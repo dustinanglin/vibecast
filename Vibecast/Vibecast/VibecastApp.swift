@@ -12,7 +12,7 @@ import SwiftData
 struct VibecastApp: App {
     var body: some Scene {
         WindowGroup {
-            Text("Vibecast")
+            SubscriptionsListView()
         }
         .modelContainer(for: [Podcast.self, Episode.self])
     }
