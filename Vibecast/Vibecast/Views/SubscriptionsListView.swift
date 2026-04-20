@@ -18,6 +18,9 @@ struct SubscriptionsListView: View {
             }
             .navigationTitle("Vibecast")
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    EditButton()
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         showAddPodcast = true
@@ -73,7 +76,6 @@ struct SubscriptionsListView: View {
             }
         }
         .listStyle(.plain)
-        .environment(\.editMode, .constant(.active))
     }
 }
 
