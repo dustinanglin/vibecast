@@ -21,9 +21,9 @@ final class SubscriptionsViewModel {
     }
 
     func remove(_ podcast: Podcast) {
+        podcasts.removeAll { $0.persistentModelID == podcast.persistentModelID }
         modelContext.delete(podcast)
         save()
-        fetch()
     }
 
     func markPlayed(_ episode: Episode) {
