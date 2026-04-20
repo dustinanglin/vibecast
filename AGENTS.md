@@ -46,7 +46,7 @@ Native iOS podcast app built with Swift and SwiftUI. See `specs/app-spec.md` for
 ## Testing
 
 - XCTest for all ViewModel and model logic
-- Test files mirror source structure: `VibecaastTests/ViewModels/SubscriptionsViewModelTests.swift`
+- Test files mirror source structure: `VibecastTests/ViewModels/SubscriptionsViewModelTests.swift`
 - Test method names follow `test_subject_condition_expectation` convention
 - All test classes are `@MainActor final class`
 - Use `SampleData.insertSampleData(into:)` to seed test contexts — never hardcode data inline
@@ -76,7 +76,7 @@ Vibecast/
 ├── Views/           — SwiftUI views and components
 └── Preview Content/ — SampleData.swift only
 
-VibecaastTests/
+VibecastTests/
 ├── ModelTests.swift
 └── SubscriptionsViewModelTests.swift
 ```

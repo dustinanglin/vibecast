@@ -25,7 +25,7 @@ After this plan the app runs with sample data, all gestures work, and the detail
 
 ```
 Vibecast/
-├── VibecaastApp.swift                    — entry point, ModelContainer setup
+├── VibecastApp.swift                    — entry point, ModelContainer setup
 ├── Models/
 │   ├── Podcast.swift                     — @Model: title, author, artworkURL, feedURL, sortPosition
 │   └── Episode.swift                     — @Model: title, date, description, duration, audioURL,
@@ -42,7 +42,7 @@ Vibecast/
 └── Preview Content/
     └── SampleData.swift                  — in-memory ModelContainer, 5 podcasts × 12 episodes each
 
-VibecaastTests/
+VibecastTests/
 ├── ModelTests.swift                      — Podcast and Episode model behaviour
 └── SubscriptionsViewModelTests.swift     — reorder, remove, mark-played logic
 ```
@@ -68,7 +68,7 @@ VibecaastTests/
 
 - [ ] **Step 2: Delete generated placeholder files**
 
-  In Xcode's file navigator delete `ContentView.swift` and `Item.swift` (the generated SwiftData example model). Keep `VibecaastApp.swift` and `Assets.xcassets`.
+  In Xcode's file navigator delete `ContentView.swift` and `Item.swift` (the generated SwiftData example model). Keep `VibecastApp.swift` and `Assets.xcassets`.
 
 - [ ] **Step 3: Create folder groups**
 
@@ -76,16 +76,16 @@ VibecaastTests/
 
 - [ ] **Step 4: Confirm the test target exists**
 
-  Xcode creates `VibecaastTests/` automatically. Delete the placeholder `VibecaastTests.swift` inside it.
+  Xcode creates `VibecastTests/` automatically. Delete the placeholder `VibecastTests.swift` inside it.
 
 - [ ] **Step 5: Temporarily fix the entry point so the app builds**
 
   ```swift
-  // Vibecast/VibecaastApp.swift
+  // Vibecast/VibecastApp.swift
   import SwiftUI
 
   @main
-  struct VibecaastApp: App {
+  struct VibecastApp: App {
       var body: some Scene {
           WindowGroup {
               Text("Vibecast")
@@ -112,11 +112,11 @@ VibecaastTests/
 **Files:**
 - Create: `Vibecast/Models/Podcast.swift`
 - Create: `Vibecast/Models/Episode.swift`
-- Create: `VibecaastTests/ModelTests.swift`
+- Create: `VibecastTests/ModelTests.swift`
 
 - [ ] **Step 1: Write failing model tests**
 
-  Create `VibecaastTests/ModelTests.swift`:
+  Create `VibecastTests/ModelTests.swift`:
 
   ```swift
   import XCTest
@@ -278,7 +278,7 @@ VibecaastTests/
 - [ ] **Step 6: Commit**
 
   ```bash
-  git add Vibecast/Models/Podcast.swift Vibecast/Models/Episode.swift VibecaastTests/ModelTests.swift
+  git add Vibecast/Models/Podcast.swift Vibecast/Models/Episode.swift VibecastTests/ModelTests.swift
   git commit -m "feat: add Podcast and Episode SwiftData models"
   ```
 
@@ -287,18 +287,18 @@ VibecaastTests/
 ## Task 3: ModelContainer Setup + Sample Data
 
 **Files:**
-- Modify: `Vibecast/VibecaastApp.swift`
+- Modify: `Vibecast/VibecastApp.swift`
 - Create: `Vibecast/Preview Content/SampleData.swift`
 
-- [ ] **Step 1: Update `VibecaastApp.swift`**
+- [ ] **Step 1: Update `VibecastApp.swift`**
 
   ```swift
-  // Vibecast/VibecaastApp.swift
+  // Vibecast/VibecastApp.swift
   import SwiftUI
   import SwiftData
 
   @main
-  struct VibecaastApp: App {
+  struct VibecastApp: App {
       var body: some Scene {
           WindowGroup {
               Text("Vibecast")
@@ -420,7 +420,7 @@ VibecaastTests/
 - [ ] **Step 4: Commit**
 
   ```bash
-  git add Vibecast/VibecaastApp.swift "Vibecast/Preview Content/SampleData.swift"
+  git add Vibecast/VibecastApp.swift "Vibecast/Preview Content/SampleData.swift"
   git commit -m "feat: configure ModelContainer and add sample preview data"
   ```
 
@@ -786,12 +786,12 @@ Displays podcast artwork alongside the latest episode's metadata and play contro
 **Files:**
 - Create: `Vibecast/ViewModels/SubscriptionsViewModel.swift`
 - Create: `Vibecast/Views/SubscriptionsListView.swift`
-- Modify: `Vibecast/VibecaastApp.swift`
-- Create: `VibecaastTests/SubscriptionsViewModelTests.swift`
+- Modify: `Vibecast/VibecastApp.swift`
+- Create: `VibecastTests/SubscriptionsViewModelTests.swift`
 
 - [ ] **Step 1: Write failing ViewModel tests**
 
-  Create `VibecaastTests/SubscriptionsViewModelTests.swift`:
+  Create `VibecastTests/SubscriptionsViewModelTests.swift`:
 
   ```swift
   import XCTest
@@ -993,15 +993,15 @@ Displays podcast artwork alongside the latest episode's metadata and play contro
 
   > The list is kept in `.active` edit mode permanently so long-press drag handles are always present. Plan 2 replaces this with a long-press gesture that activates drag without showing the edit-mode indent and delete buttons.
 
-- [ ] **Step 6: Update `VibecaastApp.swift` to use `SubscriptionsListView`**
+- [ ] **Step 6: Update `VibecastApp.swift` to use `SubscriptionsListView`**
 
   ```swift
-  // Vibecast/VibecaastApp.swift
+  // Vibecast/VibecastApp.swift
   import SwiftUI
   import SwiftData
 
   @main
-  struct VibecaastApp: App {
+  struct VibecastApp: App {
       var body: some Scene {
           WindowGroup {
               SubscriptionsListView()
@@ -1029,7 +1029,7 @@ Displays podcast artwork alongside the latest episode's metadata and play contro
 - [ ] **Step 8: Commit**
 
   ```bash
-  git add Vibecast/ViewModels/SubscriptionsViewModel.swift Vibecast/Views/SubscriptionsListView.swift Vibecast/VibecaastApp.swift VibecaastTests/SubscriptionsViewModelTests.swift
+  git add Vibecast/ViewModels/SubscriptionsViewModel.swift Vibecast/Views/SubscriptionsListView.swift Vibecast/VibecastApp.swift VibecastTests/SubscriptionsViewModelTests.swift
   git commit -m "feat: add SubscriptionsListView with swipe and reorder gestures"
   ```
 
@@ -1196,4 +1196,4 @@ Displays podcast artwork alongside the latest episode's metadata and play contro
 
 - [ ] **Step 3: Verify on GitHub**
 
-  Confirm the file tree on GitHub includes `Vibecast/Models/`, `Vibecast/Views/`, `Vibecast/ViewModels/`, `VibecaastTests/`.
+  Confirm the file tree on GitHub includes `Vibecast/Models/`, `Vibecast/Views/`, `Vibecast/ViewModels/`, `VibecastTests/`.
