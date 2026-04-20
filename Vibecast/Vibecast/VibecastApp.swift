@@ -14,5 +14,6 @@ struct VibecastApp: App {
         WindowGroup {
             Text("Vibecast")
         }
+        .modelContainer(for: [Podcast.self, Episode.self])
     }
 }
