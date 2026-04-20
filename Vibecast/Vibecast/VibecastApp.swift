@@ -14,6 +14,6 @@ struct VibecastApp: App {
         WindowGroup {
             SubscriptionsListView()
         }
-        .modelContainer(for: [Podcast.self, Episode.self])
+        .modelContainer(SampleData.container)
     }
 }
