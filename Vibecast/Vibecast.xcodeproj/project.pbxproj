@@ -55,10 +55,6 @@
 		7376C2032F95B8840049998F = {
 			isa = PBXGroup;
 			children = (
-				7376C21F2F95B8F70049998F /* Preview Content */,
-				7376C21E2F95B8EF0049998F /* Views */,
-				7376C21D2F95B8E60049998F /* ViewModels */,
-				7376C21C2F95B8DE0049998F /* Models */,
 				7376C20E2F95B8840049998F /* Vibecast */,
 				7376C2252F95BAD10049998F /* VibecastTests */,
 				7376C20D2F95B8840049998F /* Products */,
@@ -72,34 +68,6 @@
 				7376C2242F95BAD10049998F /* VibecastTests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		7376C21C2F95B8DE0049998F /* Models */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		7376C21D2F95B8E60049998F /* ViewModels */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = ViewModels;
-			sourceTree = "<group>";
-		};
-		7376C21E2F95B8EF0049998F /* Views */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Views;
-			sourceTree = "<group>";
-		};
-		7376C21F2F95B8F70049998F /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = "Preview Content";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
