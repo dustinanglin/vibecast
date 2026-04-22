@@ -25,6 +25,7 @@ final class AVPlayerAudioEngine: AudioEngine {
     private let player = AVPlayer()
     private var timeObserverToken: Any?
     private var endObserver: NSObjectProtocol?
+    private var statusObservation: NSKeyValueObservation?
 
     var isPlaying: Bool { player.timeControlStatus == .playing }
 
@@ -58,6 +59,7 @@ final class AVPlayerAudioEngine: AudioEngine {
         if let observer = endObserver {
             NotificationCenter.default.removeObserver(observer)
         }
+        statusObservation?.invalidate()
     }
 
     func load(url: URL, startAt: TimeInterval) {
@@ -70,15 +72,34 @@ final class AVPlayerAudioEngine: AudioEngine {
             NotificationCenter.default.removeObserver(observer)
             endObserver = nil
         }
+        statusObservation?.invalidate()
+        statusObservation = nil
 
         let item = AVPlayerItem(url: url)
         player.replaceCurrentItem(with: item)
 
         if startAt > 0 {
-            let t = CMTime(seconds: startAt, preferredTimescale: 600)
-            // Loose before / strict after: AVPlayer can hunt back to a keyframe
-            // if the item isn't fully indexed yet, but never lands past the target.
-            player.seek(to: t, toleranceBefore: .positiveInfinity, toleranceAfter: .zero)
+            let target = CMTime(seconds: startAt, preferredTimescale: 600)
+            // AVPlayer drops seek requests until the item reaches
+            // .readyToPlay, so wait for that status transition before seeking.
+            statusObservation = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
+                switch item.status {
+                case .readyToPlay:
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        self.player.seek(to: target, toleranceBefore: .positiveInfinity, toleranceAfter: .zero)
+                        self.statusObservation?.invalidate()
+                        self.statusObservation = nil
+                    }
+                case .failed:
+                    Task { @MainActor [weak self] in
+                        self?.statusObservation?.invalidate()
+                        self?.statusObservation = nil
+                    }
+                default:
+                    break
+                }
+            }
         }
 
         // Periodic time observer: ~4 callbacks per second.
