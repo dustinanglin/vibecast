@@ -32,13 +32,14 @@ struct SampleData {
             for i in 0..<12 {
                 let daysAgo = Double(i) * 7
                 let duration = [3600, 4500, 2700, 5400, 3900, 6600][i % 6]
+                let audioURL = (position == 0 && i == 0) ? testAudioURL : ""
                 let ep = Episode(
                     podcast: podcast,
                     title: sampleTitle(index: i),
                     publishDate: Date().addingTimeInterval(-daysAgo * 86400),
                     descriptionText: sampleDescription(index: i),
-                    durationSeconds: duration,
-                    audioURL: ""
+                    durationSeconds: (position == 0 && i == 0) ? 15 : duration,
+                    audioURL: audioURL
                 )
                 switch i {
                 case 0 where position == 1:
@@ -59,6 +60,21 @@ struct SampleData {
         }
 
         try? context.save()
+    }
+
+    /// Publicly hosted short MP3 used to verify audio playback in the simulator.
+    /// Replace with any reachable audio URL if this stops resolving.
+    static let testAudioURL = "https://download.samplelib.com/mp3/sample-15s.mp3"
+
+    private static let seededDefaultsKey = "didSeedSampleData"
+
+    /// Call once at app launch. Seeds sample data only if the UserDefaults flag
+    /// is unset, so user-deleted or reordered podcasts survive relaunches.
+    static func seedIfNeeded(into context: ModelContext) {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: seededDefaultsKey) else { return }
+        insertSampleData(into: context)
+        defaults.set(true, forKey: seededDefaultsKey)
     }
 
     private static func sampleTitle(index: Int) -> String {
