@@ -27,6 +27,7 @@ final class AVPlayerAudioEngine: AudioEngine {
     private var endObserver: NSObjectProtocol?
     private var statusObservation: NSKeyValueObservation?
     private var loadedURL: URL?
+    private var awaitingInitialSeek = false
 
     var isPlaying: Bool { player.timeControlStatus == .playing }
 
@@ -76,6 +77,7 @@ final class AVPlayerAudioEngine: AudioEngine {
         }
 
         loadedURL = url
+        awaitingInitialSeek = false
 
         // Tear down observers from any previous item.
         if let token = timeObserverToken {
@@ -94,6 +96,7 @@ final class AVPlayerAudioEngine: AudioEngine {
 
         if startAt > 0 {
             let target = CMTime(seconds: startAt, preferredTimescale: 600)
+            awaitingInitialSeek = true
             // AVPlayer drops seek requests until the item reaches
             // .readyToPlay, so wait for that status transition before seeking.
             statusObservation = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
@@ -102,11 +105,13 @@ final class AVPlayerAudioEngine: AudioEngine {
                     Task { @MainActor [weak self] in
                         guard let self else { return }
                         self.player.seek(to: target, toleranceBefore: .positiveInfinity, toleranceAfter: .zero)
+                        self.awaitingInitialSeek = false
                         self.statusObservation?.invalidate()
                         self.statusObservation = nil
                     }
                 case .failed:
                     Task { @MainActor [weak self] in
+                        self?.awaitingInitialSeek = false
                         self?.statusObservation?.invalidate()
                         self?.statusObservation = nil
                     }
@@ -123,7 +128,8 @@ final class AVPlayerAudioEngine: AudioEngine {
             let seconds = CMTimeGetSeconds(time)
             if seconds.isFinite {
                 // Closure runs on main queue, hop to MainActor explicitly.
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
+                    guard let self, !self.awaitingInitialSeek else { return }
                     self.onTimeUpdate?(seconds)
                 }
             }
