@@ -157,6 +157,12 @@ final class PlayerManager {
 
     // MARK: - Persistence helper
 
+    /// Flush the current episode's playback position to disk immediately.
+    /// Call on scene backgrounding so progress survives abrupt termination.
+    func saveCurrentState() {
+        persistCurrentPosition()
+    }
+
     private func persistCurrentPosition() {
         guard let episode = currentEpisode else { return }
         episode.playbackPosition = elapsed

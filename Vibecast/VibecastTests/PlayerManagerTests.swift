@@ -243,6 +243,18 @@ final class PlayerManagerTests: XCTestCase {
         XCTAssertEqual(manager.elapsed, 20, accuracy: 0.001)
     }
 
+    func test_saveCurrentState_flushesElapsedBetweenThrottledSaves() {
+        manager.play(episode)
+        engine.simulateTimeUpdate(1)  // first-touch: .unplayed → .inProgress, saves playbackPosition=1
+        XCTAssertEqual(episode.playbackPosition, 1, accuracy: 0.001)
+
+        engine.simulateTimeUpdate(3)  // below 5s throttle; no save
+        XCTAssertEqual(episode.playbackPosition, 1, accuracy: 0.001)
+
+        manager.saveCurrentState()
+        XCTAssertEqual(episode.playbackPosition, 3, accuracy: 0.001)
+    }
+
     func test_play_switchingToEmptyURLEpisode_ignoresStaleTimeUpdate() {
         manager.play(episode)
         engine.simulateTimeUpdate(11)

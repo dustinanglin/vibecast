@@ -3,6 +3,7 @@ import SwiftData
 
 @main
 struct VibecastApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     private let container: ModelContainer
     @State private var playerManager: PlayerManager
 
@@ -28,5 +29,10 @@ struct VibecastApp: App {
                 .environment(\.playerManager, playerManager)
         }
         .modelContainer(container)
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background {
+                playerManager.saveCurrentState()
+            }
+        }
     }
 }
