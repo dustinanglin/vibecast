@@ -103,6 +103,15 @@ final class PlayerManager {
             return
         }
 
+        // Rewind transition: played → inProgress when position moves below duration.
+        if episode.listenedStatus == .played, duration > 0, t < duration {
+            episode.listenedStatus = .inProgress
+            episode.playbackPosition = t
+            try? modelContext.save()
+            lastPersistedAt = t
+            return
+        }
+
         // Throttled periodic save.
         if t - lastPersistedAt >= Self.saveIntervalSeconds {
             episode.playbackPosition = t
@@ -127,6 +136,8 @@ final class PlayerManager {
         guard let episode = currentEpisode else { return }
         episode.playbackPosition = elapsed
         if episode.listenedStatus == .unplayed && elapsed > 0 {
+            episode.listenedStatus = .inProgress
+        } else if episode.listenedStatus == .played, duration > 0, elapsed < duration {
             episode.listenedStatus = .inProgress
         }
         try? modelContext.save()
