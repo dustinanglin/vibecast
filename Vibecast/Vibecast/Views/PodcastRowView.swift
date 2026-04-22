@@ -3,6 +3,8 @@ import SwiftData
 
 struct PodcastRowView: View {
     let podcast: Podcast
+    var isCurrent: Bool = false
+    var isPlaying: Bool = false
     let onPlay: () -> Void
     let onOpenDetail: () -> Void
 
@@ -20,7 +22,12 @@ struct PodcastRowView: View {
                     .contentShape(Rectangle())
                     .onTapGesture { onOpenDetail() }
 
-                PlayControlView(episode: episode, onTap: onPlay)
+                PlayControlView(
+                    episode: episode,
+                    isCurrent: isCurrent,
+                    isPlaying: isPlaying,
+                    onTap: onPlay
+                )
             } else {
                 Text("No episodes")
                     .font(.system(size: 13))

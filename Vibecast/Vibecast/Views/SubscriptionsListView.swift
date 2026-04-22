@@ -60,12 +60,18 @@ struct SubscriptionsListView: View {
     private func listContent(viewModel vm: SubscriptionsViewModel) -> some View {
         List {
             ForEach(vm.podcasts) { podcast in
+                let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
+                let isCurrent = latest != nil && latest?.persistentModelID == playerManager?.currentEpisode?.persistentModelID
                 PodcastRowView(
                     podcast: podcast,
+                    isCurrent: isCurrent,
+                    isPlaying: isCurrent && (playerManager?.isPlaying ?? false),
                     onPlay: {
-                        if let ep = podcast.episodes
-                            .sorted(by: { $0.publishDate > $1.publishDate }).first {
-                            playerManager?.play(ep)
+                        guard let ep = latest, let mgr = playerManager else { return }
+                        if mgr.currentEpisode?.persistentModelID == ep.persistentModelID {
+                            mgr.togglePlayPause()
+                        } else {
+                            mgr.play(ep)
                         }
                     },
                     onOpenDetail: { selectedPodcast = podcast }

@@ -3,6 +3,8 @@ import SwiftData
 
 struct EpisodeRowView: View {
     let episode: Episode
+    var isCurrent: Bool = false
+    var isPlaying: Bool = false
     let onPlay: () -> Void
 
     private var titleWeight: Font.Weight {
@@ -35,7 +37,12 @@ struct EpisodeRowView: View {
 
             Spacer(minLength: 8)
 
-            PlayControlView(episode: episode, onTap: onPlay)
+            PlayControlView(
+                episode: episode,
+                isCurrent: isCurrent,
+                isPlaying: isPlaying,
+                onTap: onPlay
+            )
         }
         .frame(minHeight: 72)
     }

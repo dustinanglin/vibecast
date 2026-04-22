@@ -3,6 +3,8 @@ import SwiftData
 
 struct PlayControlView: View {
     let episode: Episode
+    var isCurrent: Bool = false
+    var isPlaying: Bool = false
     let onTap: () -> Void
 
     private var ringColor: Color {
@@ -14,7 +16,8 @@ struct PlayControlView: View {
     }
 
     private var iconName: String {
-        episode.listenedStatus == .played ? "arrow.clockwise" : "play.fill"
+        if isCurrent && isPlaying { return "pause.fill" }
+        return episode.listenedStatus == .played ? "arrow.clockwise" : "play.fill"
     }
 
     private var durationLabel: String {

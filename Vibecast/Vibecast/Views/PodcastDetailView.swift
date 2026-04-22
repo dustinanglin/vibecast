@@ -34,14 +34,27 @@ struct PodcastDetailView: View {
                 .listRowSeparator(.hidden)
 
             ForEach(vm.displayedEpisodes) { episode in
-                EpisodeRowView(episode: episode, onPlay: { playerManager?.play(episode) })
-                    .listRowSeparator(.visible)
-                    .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
-                    .onAppear {
-                        if episode.id == vm.displayedEpisodes.last?.id && vm.hasMore {
-                            vm.loadNextPage()
+                let isCurrent = episode.persistentModelID == playerManager?.currentEpisode?.persistentModelID
+                EpisodeRowView(
+                    episode: episode,
+                    isCurrent: isCurrent,
+                    isPlaying: isCurrent && (playerManager?.isPlaying ?? false),
+                    onPlay: {
+                        guard let mgr = playerManager else { return }
+                        if mgr.currentEpisode?.persistentModelID == episode.persistentModelID {
+                            mgr.togglePlayPause()
+                        } else {
+                            mgr.play(episode)
                         }
                     }
+                )
+                .listRowSeparator(.visible)
+                .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
+                .onAppear {
+                    if episode.id == vm.displayedEpisodes.last?.id && vm.hasMore {
+                        vm.loadNextPage()
+                    }
+                }
             }
 
             if vm.isLoadingMore {
