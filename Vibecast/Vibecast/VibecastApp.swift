@@ -4,6 +4,7 @@ import SwiftData
 @main
 struct VibecastApp: App {
     private let container: ModelContainer
+    @State private var playerManager: PlayerManager
 
     init() {
         let c: ModelContainer
@@ -13,14 +14,18 @@ struct VibecastApp: App {
             fatalError("Failed to create ModelContainer: \(error)")
         }
         container = c
-        MainActor.assumeIsolated {
+
+        let manager: PlayerManager = MainActor.assumeIsolated {
             SampleData.seedIfNeeded(into: ModelContext(c))
+            return PlayerManager(engine: AVPlayerAudioEngine(), modelContext: ModelContext(c))
         }
+        _playerManager = State(initialValue: manager)
     }
 
     var body: some Scene {
         WindowGroup {
             SubscriptionsListView()
+                .environment(\.playerManager, playerManager)
         }
         .modelContainer(container)
     }

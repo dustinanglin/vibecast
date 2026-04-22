@@ -3,6 +3,7 @@ import SwiftData
 
 struct SubscriptionsListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.playerManager) private var playerManager
     @State private var viewModel: SubscriptionsViewModel?
     @State private var selectedPodcast: Podcast?
     @State private var showAddPodcast = false
@@ -47,7 +48,12 @@ struct SubscriptionsListView: View {
             ForEach(vm.podcasts) { podcast in
                 PodcastRowView(
                     podcast: podcast,
-                    onPlay: { },
+                    onPlay: {
+                        if let ep = podcast.episodes
+                            .sorted(by: { $0.publishDate > $1.publishDate }).first {
+                            playerManager?.play(ep)
+                        }
+                    },
                     onOpenDetail: { selectedPodcast = podcast }
                 )
                 .listRowSeparator(.visible)

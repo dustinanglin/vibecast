@@ -132,3 +132,16 @@ final class PlayerManager {
         lastPersistedAt = elapsed
     }
 }
+
+import SwiftUI
+
+private struct PlayerManagerKey: EnvironmentKey {
+    @MainActor static let defaultValue: PlayerManager? = nil
+}
+
+extension EnvironmentValues {
+    var playerManager: PlayerManager? {
+        get { self[PlayerManagerKey.self] }
+        set { self[PlayerManagerKey.self] = newValue }
+    }
+}

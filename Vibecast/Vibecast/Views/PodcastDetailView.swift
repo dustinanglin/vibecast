@@ -3,6 +3,7 @@ import SwiftData
 
 struct PodcastDetailView: View {
     let podcast: Podcast
+    @Environment(\.playerManager) private var playerManager
     @State private var viewModel: PodcastDetailViewModel?
 
     var body: some View {
@@ -33,7 +34,7 @@ struct PodcastDetailView: View {
                 .listRowSeparator(.hidden)
 
             ForEach(vm.displayedEpisodes) { episode in
-                EpisodeRowView(episode: episode, onPlay: { })
+                EpisodeRowView(episode: episode, onPlay: { playerManager?.play(episode) })
                     .listRowSeparator(.visible)
                     .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
                     .onAppear {
