@@ -112,6 +112,21 @@ final class PlayerManagerTests: XCTestCase {
         XCTAssertEqual(episode.playbackPosition, 55, accuracy: 0.001)
     }
 
+    func test_seek_clampsAgainstDuration() {
+        manager.play(episode)
+        manager.seek(to: 9999)
+        XCTAssertEqual(engine.seekedTo ?? -1, 100, accuracy: 0.001)
+        XCTAssertEqual(manager.elapsed, 100, accuracy: 0.001)
+    }
+
+    func test_skipForward_pastEnd_clampsAtDuration() {
+        manager.play(episode)
+        engine.simulateTimeUpdate(90)
+        manager.skipForward()
+        XCTAssertEqual(engine.seekedTo ?? -1, 100, accuracy: 0.001)
+        XCTAssertEqual(manager.elapsed, 100, accuracy: 0.001)
+    }
+
     func test_throttledSave_persistsEveryFiveSeconds() throws {
         manager.play(episode)
         engine.simulateTimeUpdate(1) // flips to inProgress, saves

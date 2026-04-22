@@ -81,7 +81,8 @@ final class PlayerManager {
     }
 
     func seek(to seconds: TimeInterval) {
-        let clamped = max(0, seconds)
+        let upper = duration > 0 ? duration : seconds
+        let clamped = max(0, min(seconds, upper))
         engine.seek(to: clamped)
         elapsed = clamped
         persistCurrentPosition()
