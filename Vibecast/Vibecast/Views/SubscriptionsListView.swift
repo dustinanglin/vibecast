@@ -35,6 +35,11 @@ struct SubscriptionsListView: View {
             .sheet(item: $selectedPodcast) { podcast in
                 PodcastDetailView(podcast: podcast)
             }
+            .sheet(isPresented: $showFullScreenPlayer) {
+                if let playerManager, playerManager.currentEpisode != nil {
+                    FullScreenPlayerView(player: playerManager)
+                }
+            }
             .safeAreaInset(edge: .bottom) {
                 if let playerManager, playerManager.currentEpisode != nil {
                     MiniPlayerBar(
