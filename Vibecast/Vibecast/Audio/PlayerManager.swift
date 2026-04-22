@@ -113,6 +113,9 @@ final class PlayerManager {
     // MARK: - Engine callbacks
 
     private func handleTimeUpdate(_ t: TimeInterval) {
+        // Ignore stale callbacks dispatched before pause/switch settled.
+        guard isPlaying else { return }
+
         elapsed = t
         guard let episode = currentEpisode else { return }
 

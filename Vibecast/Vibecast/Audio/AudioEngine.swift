@@ -76,7 +76,9 @@ final class AVPlayerAudioEngine: AudioEngine {
 
         if startAt > 0 {
             let t = CMTime(seconds: startAt, preferredTimescale: 600)
-            player.seek(to: t, toleranceBefore: .zero, toleranceAfter: .zero)
+            // Loose before / strict after: AVPlayer can hunt back to a keyframe
+            // if the item isn't fully indexed yet, but never lands past the target.
+            player.seek(to: t, toleranceBefore: .positiveInfinity, toleranceAfter: .zero)
         }
 
         // Periodic time observer: ~4 callbacks per second.

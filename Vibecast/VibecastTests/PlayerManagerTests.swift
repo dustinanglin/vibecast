@@ -229,6 +229,43 @@ final class PlayerManagerTests: XCTestCase {
         XCTAssertFalse(manager.isPlaying)
     }
 
+    func test_handleTimeUpdate_ignoredWhenNotPlaying() {
+        manager.play(episode)
+        engine.simulateTimeUpdate(20)
+        XCTAssertEqual(manager.elapsed, 20, accuracy: 0.001)
+
+        manager.togglePlayPause() // pause
+        XCTAssertFalse(manager.isPlaying)
+
+        // A stale callback dispatched before pause fully settled must not
+        // overwrite the displayed elapsed.
+        engine.simulateTimeUpdate(99)
+        XCTAssertEqual(manager.elapsed, 20, accuracy: 0.001)
+    }
+
+    func test_play_switchingToEmptyURLEpisode_ignoresStaleTimeUpdate() {
+        manager.play(episode)
+        engine.simulateTimeUpdate(11)
+
+        let silent = Episode(
+            podcast: podcast,
+            title: "NoURL",
+            publishDate: .now,
+            descriptionText: "",
+            durationSeconds: 1800,
+            audioURL: ""
+        )
+        silent.playbackPosition = 1260
+        context.insert(silent)
+
+        manager.play(silent)
+        XCTAssertEqual(manager.elapsed, 1260, accuracy: 0.001)
+
+        // Stale tick from the engine's last pre-pause callback arrives:
+        engine.simulateTimeUpdate(11)
+        XCTAssertEqual(manager.elapsed, 1260, accuracy: 0.001)
+    }
+
     func test_throttledSave_persistsEveryFiveSeconds() throws {
         manager.play(episode)
         engine.simulateTimeUpdate(1) // flips to inProgress, saves
