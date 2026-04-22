@@ -26,6 +26,7 @@ final class AVPlayerAudioEngine: AudioEngine {
     private var timeObserverToken: Any?
     private var endObserver: NSObjectProtocol?
     private var statusObservation: NSKeyValueObservation?
+    private var loadedURL: URL?
 
     var isPlaying: Bool { player.timeControlStatus == .playing }
 
@@ -63,6 +64,19 @@ final class AVPlayerAudioEngine: AudioEngine {
     }
 
     func load(url: URL, startAt: TimeInterval) {
+        // Fast path: the requested URL is already loaded. Seek in place so we
+        // don't trigger a replaceCurrentItem → re-fetch → KVO-deferred-seek
+        // race. This is the common resume-same-episode case.
+        if loadedURL == url,
+           let currentItem = player.currentItem,
+           currentItem.status == .readyToPlay {
+            let target = CMTime(seconds: max(0, startAt), preferredTimescale: 600)
+            player.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero)
+            return
+        }
+
+        loadedURL = url
+
         // Tear down observers from any previous item.
         if let token = timeObserverToken {
             player.removeTimeObserver(token)
