@@ -7,6 +7,7 @@ struct SubscriptionsListView: View {
     @State private var viewModel: SubscriptionsViewModel?
     @State private var selectedPodcast: Podcast?
     @State private var showAddPodcast = false
+    @State private var showFullScreenPlayer = false
 
     var body: some View {
         NavigationStack {
@@ -33,6 +34,14 @@ struct SubscriptionsListView: View {
             }
             .sheet(item: $selectedPodcast) { podcast in
                 PodcastDetailView(podcast: podcast)
+            }
+            .safeAreaInset(edge: .bottom) {
+                if let playerManager, playerManager.currentEpisode != nil {
+                    MiniPlayerBar(
+                        player: playerManager,
+                        onTapBar: { showFullScreenPlayer = true }
+                    )
+                }
             }
         }
         .task {
