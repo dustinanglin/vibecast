@@ -42,6 +42,9 @@ final class PlayerManager {
     // MARK: - Transport
 
     func play(_ episode: Episode) {
+        // Stop any in-flight audio before switching or restarting.
+        engine.pause()
+
         // Persist position of the previous episode before switching.
         persistCurrentPosition()
 
@@ -67,7 +70,7 @@ final class PlayerManager {
     }
 
     func togglePlayPause() {
-        guard let episode = currentEpisode else { return }
+        guard let episode = currentEpisode, !episode.audioURL.isEmpty else { return }
         if isPlaying {
             engine.pause()
             isPlaying = false

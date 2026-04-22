@@ -173,6 +173,62 @@ final class PlayerManagerTests: XCTestCase {
         XCTAssertEqual(engine.seekedTo ?? -1, 0, accuracy: 0.001)
     }
 
+    func test_play_switchingEpisodes_pausesEngineAndPersistsPreviousPosition() {
+        manager.play(episode)
+        engine.simulateTimeUpdate(30)
+        engine.pauseCalled = false
+
+        let other = Episode(
+            podcast: podcast,
+            title: "Other",
+            publishDate: .now,
+            descriptionText: "",
+            durationSeconds: 60,
+            audioURL: "https://example.com/b.mp3"
+        )
+        context.insert(other)
+
+        manager.play(other)
+        XCTAssertTrue(engine.pauseCalled)
+        XCTAssertEqual(episode.playbackPosition, 30, accuracy: 0.001)
+        XCTAssertEqual(manager.currentEpisode?.persistentModelID, other.persistentModelID)
+        XCTAssertTrue(manager.isPlaying)
+    }
+
+    func test_play_switchingToEmptyURLEpisode_pausesEngineWithoutPlaying() {
+        manager.play(episode)
+        engine.simulateTimeUpdate(30)
+        engine.pauseCalled = false
+        engine.playCalled = false
+
+        let silent = Episode(
+            podcast: podcast,
+            title: "NoURL",
+            publishDate: .now,
+            descriptionText: "",
+            durationSeconds: 60,
+            audioURL: ""
+        )
+        context.insert(silent)
+
+        manager.play(silent)
+        XCTAssertTrue(engine.pauseCalled)
+        XCTAssertFalse(engine.playCalled)
+        XCTAssertFalse(manager.isPlaying)
+        XCTAssertEqual(episode.playbackPosition, 30, accuracy: 0.001)
+    }
+
+    func test_togglePlayPause_ignoresEmptyURLEpisode() {
+        episode.audioURL = ""
+        manager.play(episode)
+        XCTAssertFalse(manager.isPlaying)
+        engine.playCalled = false
+
+        manager.togglePlayPause()
+        XCTAssertFalse(engine.playCalled)
+        XCTAssertFalse(manager.isPlaying)
+    }
+
     func test_throttledSave_persistsEveryFiveSeconds() throws {
         manager.play(episode)
         engine.simulateTimeUpdate(1) // flips to inProgress, saves
