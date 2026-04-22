@@ -146,6 +146,33 @@ final class PlayerManagerTests: XCTestCase {
         XCTAssertEqual(episode.listenedStatus, .played)
     }
 
+    func test_play_replaysEndedEpisodeFromStart() {
+        manager.play(episode)
+        engine.simulatePlaybackEnd()
+        XCTAssertEqual(episode.listenedStatus, .played)
+        XCTAssertEqual(episode.playbackPosition, 100, accuracy: 0.001)
+
+        manager.play(episode)
+        XCTAssertEqual(episode.listenedStatus, .inProgress)
+        XCTAssertEqual(episode.playbackPosition, 0, accuracy: 0.001)
+        XCTAssertEqual(manager.elapsed, 0, accuracy: 0.001)
+        XCTAssertEqual(engine.loadedStart, 0, accuracy: 0.001)
+        XCTAssertTrue(manager.isPlaying)
+    }
+
+    func test_togglePlayPause_atEnd_restartsFromZero() {
+        manager.play(episode)
+        engine.simulatePlaybackEnd()
+        XCTAssertFalse(manager.isPlaying)
+        XCTAssertEqual(episode.listenedStatus, .played)
+
+        manager.togglePlayPause()
+        XCTAssertTrue(manager.isPlaying)
+        XCTAssertEqual(episode.listenedStatus, .inProgress)
+        XCTAssertEqual(manager.elapsed, 0, accuracy: 0.001)
+        XCTAssertEqual(engine.seekedTo ?? -1, 0, accuracy: 0.001)
+    }
+
     func test_throttledSave_persistsEveryFiveSeconds() throws {
         manager.play(episode)
         engine.simulateTimeUpdate(1) // flips to inProgress, saves

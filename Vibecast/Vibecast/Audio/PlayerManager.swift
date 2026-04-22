@@ -46,14 +46,20 @@ final class PlayerManager {
         persistCurrentPosition()
 
         currentEpisode = episode
-        elapsed = episode.playbackPosition
-        lastPersistedAt = episode.playbackPosition
 
         guard let url = URL(string: episode.audioURL), !episode.audioURL.isEmpty else {
             // No URL — keep state, do not start the engine.
+            elapsed = episode.playbackPosition
+            lastPersistedAt = episode.playbackPosition
             isPlaying = false
             return
         }
+
+        // A completed episode replays from the beginning.
+        resetIfComplete(episode)
+
+        elapsed = episode.playbackPosition
+        lastPersistedAt = episode.playbackPosition
 
         engine.load(url: url, startAt: episode.playbackPosition)
         engine.play()
@@ -61,15 +67,28 @@ final class PlayerManager {
     }
 
     func togglePlayPause() {
-        guard currentEpisode != nil else { return }
+        guard let episode = currentEpisode else { return }
         if isPlaying {
             engine.pause()
             isPlaying = false
             persistCurrentPosition()
         } else {
+            if episode.listenedStatus == .played {
+                resetIfComplete(episode)
+                elapsed = 0
+                lastPersistedAt = 0
+                engine.seek(to: 0)
+            }
             engine.play()
             isPlaying = true
         }
+    }
+
+    private func resetIfComplete(_ episode: Episode) {
+        guard episode.listenedStatus == .played else { return }
+        episode.playbackPosition = 0
+        episode.listenedStatus = .inProgress
+        try? modelContext.save()
     }
 
     func skipForward(_ seconds: TimeInterval = 30) {
