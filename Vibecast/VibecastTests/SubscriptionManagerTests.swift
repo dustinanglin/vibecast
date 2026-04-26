@@ -102,14 +102,14 @@ final class SubscriptionManagerTests: XCTestCase {
         XCTAssertTrue(manager.inFlightSubscriptions.isEmpty)
     }
 
-    func test_subscribe_clearsInFlightOnFetchFailure() async {
+    func test_subscribe_skipsRowOnFetchFailure() async {
         fetcher.error = URLError(.notConnectedToInternet)
         await manager.subscribe(to: makeResult())
 
+        // No stub row left behind — feed fetch is required before insert
+        // because the user has no recovery path until Plan 4 adds refresh.
         let podcasts = try! context.fetch(FetchDescriptor<Podcast>())
-        XCTAssertEqual(podcasts.count, 1)            // row still inserted
-        XCTAssertTrue(podcasts[0].episodes.isEmpty)  // no episodes
-        XCTAssertNil(podcasts[0].lastFetchedAt)      // no successful fetch timestamp
+        XCTAssertEqual(podcasts.count, 0)
         XCTAssertTrue(manager.inFlightSubscriptions.isEmpty)
     }
 }

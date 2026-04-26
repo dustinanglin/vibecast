@@ -34,6 +34,16 @@ final class SubscriptionManager {
         inFlightSubscriptions.insert(result.feedURL)
         defer { inFlightSubscriptions.remove(result.feedURL) }
 
+        // Fetch the RSS feed first. If it fails (offline, bad feed, server
+        // error), do NOT insert a Podcast row — an episode-less row leaves
+        // the user with no recovery path until Plan 4 adds pull-to-refresh.
+        let feed: ParsedFeed
+        do {
+            feed = try await fetcher.fetch(result.feedURL)
+        } catch {
+            return
+        }
+
         let nextSortPosition = nextAvailableSortPosition()
         let podcast = Podcast(
             title: result.title,
@@ -44,28 +54,22 @@ final class SubscriptionManager {
             iTunesCollectionId: result.id
         )
         modelContext.insert(podcast)
-        try? modelContext.save()
 
-        do {
-            let feed = try await fetcher.fetch(result.feedURL)
-            for parsed in feed.episodes {
-                let episode = Episode(
-                    podcast: podcast,
-                    title: parsed.title,
-                    publishDate: parsed.publishDate,
-                    descriptionText: parsed.descriptionText,
-                    durationSeconds: parsed.durationSeconds,
-                    audioURL: parsed.audioURL
-                )
-                episode.isExplicit = parsed.isExplicit
-                modelContext.insert(episode)
-                podcast.episodes.append(episode)
-            }
-            podcast.lastFetchedAt = .now
-            try? modelContext.save()
-        } catch {
-            // Leave podcast row in place with no episodes; user can pull-to-refresh in Plan 4.
+        for parsed in feed.episodes {
+            let episode = Episode(
+                podcast: podcast,
+                title: parsed.title,
+                publishDate: parsed.publishDate,
+                descriptionText: parsed.descriptionText,
+                durationSeconds: parsed.durationSeconds,
+                audioURL: parsed.audioURL
+            )
+            episode.isExplicit = parsed.isExplicit
+            modelContext.insert(episode)
+            podcast.episodes.append(episode)
         }
+        podcast.lastFetchedAt = .now
+        try? modelContext.save()
     }
 
     private func nextAvailableSortPosition() -> Int {
