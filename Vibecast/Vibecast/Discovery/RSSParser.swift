@@ -132,11 +132,29 @@ final class RSSParser: NSObject, XMLParserDelegate {
         return ParsedEpisode(
             title: buf.title,
             publishDate: date,
-            descriptionText: buf.description,
+            descriptionText: Self.sanitizeDescription(buf.description),
             durationSeconds: Self.parseDuration(buf.durationString),
             audioURL: buf.audioURL,
             isExplicit: buf.explicit
         )
+    }
+
+    /// Strip HTML tags and decode common entities so descriptions render as plain text.
+    /// Real-world feeds (e.g. Hard Fork) wrap descriptions in CDATA HTML like
+    /// `<p>...</p><ul><li>...</li></ul>`, which would otherwise show as raw markup.
+    static func sanitizeDescription(_ raw: String) -> String {
+        // Replace tags with a space rather than nothing so adjacent
+        // tags (e.g. `<p>A</p><p>B</p>`) don't fuse text together.
+        var s = raw.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
+        s = s.replacingOccurrences(of: "&nbsp;", with: " ")
+        s = s.replacingOccurrences(of: "&amp;", with: "&")
+        s = s.replacingOccurrences(of: "&lt;", with: "<")
+        s = s.replacingOccurrences(of: "&gt;", with: ">")
+        s = s.replacingOccurrences(of: "&quot;", with: "\"")
+        s = s.replacingOccurrences(of: "&#39;", with: "'")
+        s = s.replacingOccurrences(of: "&apos;", with: "'")
+        s = s.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        return s.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     static func parseDuration(_ raw: String) -> Int {

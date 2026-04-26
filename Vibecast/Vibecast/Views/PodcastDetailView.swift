@@ -72,9 +72,19 @@ struct PodcastDetailView: View {
                 .fill(Color.secondary.opacity(0.2))
                 .frame(width: 88, height: 88)
                 .overlay {
-                    Image(systemName: "mic.fill")
-                        .font(.title2)
-                        .foregroundStyle(.tertiary)
+                    if let urlString = podcast.artworkURL,
+                       let url = URL(string: urlString) {
+                        AsyncImage(url: url) { img in
+                            img.resizable().scaledToFill()
+                        } placeholder: {
+                            Color.clear
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    } else {
+                        Image(systemName: "mic.fill")
+                            .font(.title2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
 
             VStack(alignment: .leading, spacing: 5) {

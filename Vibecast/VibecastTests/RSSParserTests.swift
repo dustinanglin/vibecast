@@ -75,6 +75,21 @@ final class RSSParserTests: XCTestCase {
         XCTAssertEqual(feed.episodes.count, 50)
     }
 
+    func test_sanitizeDescription_stripsHTMLTags() {
+        let raw = "<p>Hello <strong>world</strong></p><ul><li>One</li><li>Two</li></ul>"
+        XCTAssertEqual(RSSParser.sanitizeDescription(raw), "Hello world One Two")
+    }
+
+    func test_sanitizeDescription_decodesCommonEntities() {
+        let raw = "Tom &amp; Jerry &lt;3 &nbsp;&quot;hello&quot;"
+        XCTAssertEqual(RSSParser.sanitizeDescription(raw), "Tom & Jerry <3 \"hello\"")
+    }
+
+    func test_sanitizeDescription_collapsesWhitespace() {
+        let raw = "<p>Line 1</p>\n\n<p>Line   2</p>"
+        XCTAssertEqual(RSSParser.sanitizeDescription(raw), "Line 1 Line 2")
+    }
+
     private func fixture(_ name: String, ext: String) throws -> Data {
         let url = Bundle(for: Self.self).url(forResource: name, withExtension: ext)!
         return try Data(contentsOf: url)
