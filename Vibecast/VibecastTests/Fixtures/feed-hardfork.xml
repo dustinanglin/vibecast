@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Hard Fork</title>
+    <itunes:author>The New York Times</itunes:author>
+    <itunes:image href="https://example.com/hardfork-channel.jpg"/>
+    <item>
+      <title>The Future of AI Regulation</title>
+      <pubDate>Wed, 22 Apr 2026 09:00:00 +0000</pubDate>
+      <description><![CDATA[New rules could reshape how companies deploy LLMs across the EU.]]></description>
+      <itunes:duration>1:02:30</itunes:duration>
+      <itunes:explicit>no</itunes:explicit>
+      <enclosure url="https://example.com/episode-3.mp3" length="123456" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Inside the Semiconductor Supply Chain</title>
+      <pubDate>Wed, 15 Apr 2026 09:00:00 +0000</pubDate>
+      <description>From Taiwan to Texas.</description>
+      <itunes:duration>2700</itunes:duration>
+      <itunes:explicit>yes</itunes:explicit>
+      <enclosure url="https://example.com/episode-2.mp3" length="234567" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Episode With No Duration</title>
+      <pubDate>Wed, 08 Apr 2026 09:00:00 +0000</pubDate>
+      <description>Test fallback.</description>
+      <enclosure url="https://example.com/episode-1.mp3" length="345678" type="audio/mpeg"/>
+    </item>
+  </channel>
+</rss>
