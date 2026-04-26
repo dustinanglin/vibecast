@@ -4,6 +4,7 @@ struct SearchResultRow: View {
     let result: PodcastSearchResult
     let isSubscribed: Bool
     let isInFlight: Bool
+    var isFailed: Bool = false
     let onTapSubscribe: () -> Void
 
     var body: some View {
@@ -17,6 +18,11 @@ struct SearchResultRow: View {
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                if isFailed {
+                    Text("Couldn't add — try again")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.red)
+                }
             }
             Spacer(minLength: 8)
             subscribeButton

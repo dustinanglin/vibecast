@@ -56,6 +56,7 @@ struct AddPodcastSheet: View {
                     result: result,
                     isSubscribed: manager.isSubscribed(feedURL: result.feedURL),
                     isInFlight: manager.inFlightSubscriptions.contains(result.feedURL),
+                    isFailed: manager.failedSubscribes.contains(result.feedURL),
                     onTapSubscribe: {
                         Task { await manager.subscribe(to: result) }
                     }

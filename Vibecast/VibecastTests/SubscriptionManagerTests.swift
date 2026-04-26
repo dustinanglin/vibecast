@@ -112,6 +112,31 @@ final class SubscriptionManagerTests: XCTestCase {
         XCTAssertEqual(podcasts.count, 0)
         XCTAssertTrue(manager.inFlightSubscriptions.isEmpty)
     }
+
+    func test_subscribe_recordsFailedSubscribeOnFetchFailure() async {
+        fetcher.error = URLError(.notConnectedToInternet)
+        let result = makeResult()
+        await manager.subscribe(to: result)
+
+        XCTAssertTrue(manager.failedSubscribes.contains(result.feedURL))
+    }
+
+    func test_subscribe_clearsFailedSubscribeOnRetrySuccess() async {
+        let result = makeResult()
+        fetcher.error = URLError(.notConnectedToInternet)
+        await manager.subscribe(to: result)
+        XCTAssertTrue(manager.failedSubscribes.contains(result.feedURL))
+
+        // Retry: failure flag cleared at start of subscribe, then a successful
+        // fetch leaves it cleared.
+        fetcher.error = nil
+        fetcher.feed = sampleFeed()
+        await manager.subscribe(to: result)
+        XCTAssertFalse(manager.failedSubscribes.contains(result.feedURL))
+
+        let podcasts = try! context.fetch(FetchDescriptor<Podcast>())
+        XCTAssertEqual(podcasts.count, 1)
+    }
 }
 
 // MARK: - Test Doubles

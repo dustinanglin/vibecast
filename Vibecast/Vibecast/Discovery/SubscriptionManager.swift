@@ -6,6 +6,11 @@ import Observation
 @MainActor
 final class SubscriptionManager {
     private(set) var inFlightSubscriptions: Set<URL> = []
+    private(set) var failedSubscribes: Set<URL> = []
+
+    /// Auto-clear duration for failed-subscribe state. Picked so a stale red
+    /// error doesn't linger after the user has moved on.
+    @ObservationIgnored private static let failureClearAfter: UInt64 = 5_000_000_000  // 5s
 
     @ObservationIgnored private let searcher: PodcastSearchService
     @ObservationIgnored private let fetcher: FeedFetcher
@@ -31,6 +36,10 @@ final class SubscriptionManager {
     func subscribe(to result: PodcastSearchResult) async {
         guard !isSubscribed(feedURL: result.feedURL) else { return }
 
+        // Clear any prior failure state so the row reverts to the spinner
+        // when the user retries.
+        failedSubscribes.remove(result.feedURL)
+
         inFlightSubscriptions.insert(result.feedURL)
         defer { inFlightSubscriptions.remove(result.feedURL) }
 
@@ -41,6 +50,12 @@ final class SubscriptionManager {
         do {
             feed = try await fetcher.fetch(result.feedURL)
         } catch {
+            failedSubscribes.insert(result.feedURL)
+            let url = result.feedURL
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: Self.failureClearAfter)
+                self?.failedSubscribes.remove(url)
+            }
             return
         }
 
