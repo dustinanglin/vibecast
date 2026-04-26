@@ -46,6 +46,11 @@ struct SubscriptionsListView: View {
                     AddPodcastSheet(manager: subscriptionManager)
                 }
             }
+            .onChange(of: showAddPodcast) { _, isPresented in
+                if !isPresented {
+                    viewModel?.fetch()
+                }
+            }
             .safeAreaInset(edge: .bottom) {
                 if let playerManager, playerManager.currentEpisode != nil {
                     MiniPlayerBar(

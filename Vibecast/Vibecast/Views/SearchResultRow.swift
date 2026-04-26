@@ -44,13 +44,13 @@ struct SearchResultRow: View {
 
     @ViewBuilder
     private var subscribeButton: some View {
-        if isSubscribed {
+        if isInFlight {
+            ProgressView()
+                .frame(width: 36, height: 36)
+        } else if isSubscribed {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 24))
                 .foregroundStyle(.tertiary)
-                .frame(width: 36, height: 36)
-        } else if isInFlight {
-            ProgressView()
                 .frame(width: 36, height: 36)
         } else {
             Button(action: onTapSubscribe) {
