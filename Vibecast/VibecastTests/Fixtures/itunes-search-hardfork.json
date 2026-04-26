@@ -1,0 +1,20 @@
+{
+  "resultCount": 2,
+  "results": [
+    {
+      "collectionId": 1528594034,
+      "collectionName": "Hard Fork",
+      "artistName": "The New York Times",
+      "artworkUrl600": "https://example.com/hardfork600.jpg",
+      "artworkUrl100": "https://example.com/hardfork100.jpg",
+      "feedUrl": "https://feeds.simplecast.com/l2i9YnTd"
+    },
+    {
+      "collectionId": 1184361729,
+      "collectionName": "Acquired",
+      "artistName": "Ben Gilbert and David Rosenthal",
+      "artworkUrl600": "https://example.com/acquired600.jpg",
+      "feedUrl": "https://feeds.transistor.fm/acquired"
+    }
+  ]
+}
