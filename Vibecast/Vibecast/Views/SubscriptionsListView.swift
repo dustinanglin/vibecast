@@ -4,6 +4,7 @@ import SwiftData
 struct SubscriptionsListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.playerManager) private var playerManager
+    @Environment(\.subscriptionManager) private var subscriptionManager
     @State private var viewModel: SubscriptionsViewModel?
     @State private var selectedPodcast: Podcast?
     @State private var showAddPodcast = false
@@ -38,6 +39,11 @@ struct SubscriptionsListView: View {
             .sheet(isPresented: $showFullScreenPlayer) {
                 if let playerManager, playerManager.currentEpisode != nil {
                     FullScreenPlayerView(player: playerManager)
+                }
+            }
+            .sheet(isPresented: $showAddPodcast) {
+                if let subscriptionManager {
+                    AddPodcastSheet(manager: subscriptionManager)
                 }
             }
             .safeAreaInset(edge: .bottom) {

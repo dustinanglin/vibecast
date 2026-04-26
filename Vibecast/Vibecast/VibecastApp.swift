@@ -6,6 +6,7 @@ struct VibecastApp: App {
     @Environment(\.scenePhase) private var scenePhase
     private let container: ModelContainer
     @State private var playerManager: PlayerManager
+    @State private var subscriptionManager: SubscriptionManager
 
     init() {
         let c: ModelContainer
@@ -16,17 +17,27 @@ struct VibecastApp: App {
         }
         container = c
 
-        let manager: PlayerManager = MainActor.assumeIsolated {
+        let players: PlayerManager
+        let subs: SubscriptionManager
+        (players, subs) = MainActor.assumeIsolated {
             SampleData.seedIfNeeded(into: ModelContext(c))
-            return PlayerManager(engine: AVPlayerAudioEngine(), modelContext: ModelContext(c))
+            let p = PlayerManager(engine: AVPlayerAudioEngine(), modelContext: ModelContext(c))
+            let s = SubscriptionManager(
+                searcher: iTunesSearchService(),
+                fetcher: URLSessionFeedFetcher(),
+                modelContext: ModelContext(c)
+            )
+            return (p, s)
         }
-        _playerManager = State(initialValue: manager)
+        _playerManager = State(initialValue: players)
+        _subscriptionManager = State(initialValue: subs)
     }
 
     var body: some Scene {
         WindowGroup {
             SubscriptionsListView()
                 .environment(\.playerManager, playerManager)
+                .environment(\.subscriptionManager, subscriptionManager)
         }
         .modelContainer(container)
         .onChange(of: scenePhase) { _, newPhase in
