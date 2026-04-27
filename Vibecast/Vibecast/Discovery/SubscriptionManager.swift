@@ -207,7 +207,7 @@ final class SubscriptionManager {
         await fetchAndMerge(podcast)
     }
 
-    @ObservationIgnored private static let refreshDebounceSeconds: TimeInterval = 60
+    private static let refreshDebounceSeconds: TimeInterval = 60
 
     private func fetchAndMerge(_ podcast: Podcast) async {
         guard let url = URL(string: podcast.feedURL) else { return }
@@ -219,8 +219,13 @@ final class SubscriptionManager {
             return
         }
 
+        // `uniquingKeysWith: { first, _ in first }` so a malformed feed or a
+        // historical bad-insert with duplicate audioURLs doesn't crash the
+        // refresh path. The class doesn't enforce audioURL uniqueness on
+        // Episode, so we can't assume it.
         let existingByAudioURL = Dictionary(
-            uniqueKeysWithValues: podcast.episodes.map { ($0.audioURL, $0) }
+            podcast.episodes.map { ($0.audioURL, $0) },
+            uniquingKeysWith: { first, _ in first }
         )
 
         for parsed in feed.episodes {
