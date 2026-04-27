@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>Apple Podcasts Subscriptions</title>
+  </head>
+  <body>
+    <outline text="Technology">
+      <outline type="rss" text="Hard Fork" xmlUrl="https://feeds.simplecast.com/6HKOhNgS"/>
+      <outline type="rss" text="Acquired" xmlUrl="https://feeds.transistor.fm/acquired"/>
+      <outline type="rss" text="The Vergecast" xmlUrl="https://feeds.megaphone.fm/vergecast"/>
+    </outline>
+    <outline text="News">
+      <outline type="rss" text="The Daily" xmlUrl="https://feeds.simplecast.com/54nAGcIl"/>
+      <outline type="rss" text="Hard Fork" xmlUrl="https://feeds.simplecast.com/6HKOhNgS"/>
+    </outline>
+    <outline type="rss" text="Top-level entry" xmlUrl="https://example.com/toplevel.xml"/>
+    <outline text="Garbage entries">
+      <outline type="rss" text="Empty URL" xmlUrl=""/>
+      <outline type="rss" text="No URL attribute"/>
+    </outline>
+  </body>
+</opml>
