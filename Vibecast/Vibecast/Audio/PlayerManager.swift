@@ -20,6 +20,7 @@ final class PlayerManager {
     @ObservationIgnored private let engine: AudioEngine
     @ObservationIgnored private let modelContext: ModelContext
     @ObservationIgnored private var lastPersistedAt: TimeInterval = 0
+    @ObservationIgnored private var wasPlayingBeforeInterruption = false
     @ObservationIgnored private static let saveIntervalSeconds: TimeInterval = 5
 
     init(engine: AudioEngine, modelContext: ModelContext) {
@@ -33,12 +34,19 @@ final class PlayerManager {
             self?.handlePlaybackEnd()
         }
 
-        // Wire system audio events through to manager state.
+        // Wire system audio events through to manager state. We capture
+        // wasPlayingBeforeInterruption on .began so a user who had paused
+        // *before* the interruption isn't auto-resumed when it ends.
         engine.onInterruptionBegan = { [weak self] in
-            self?.isPlaying = false
+            guard let self else { return }
+            self.wasPlayingBeforeInterruption = self.isPlaying
+            self.isPlaying = false
         }
         engine.onInterruptionEndedShouldResume = { [weak self] in
-            guard let self, self.currentEpisode != nil else { return }
+            guard let self,
+                  let episode = self.currentEpisode,
+                  !episode.audioURL.isEmpty,
+                  self.wasPlayingBeforeInterruption else { return }
             self.engine.play()
             self.isPlaying = true
         }
