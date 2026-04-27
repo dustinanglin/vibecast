@@ -133,7 +133,6 @@ private final class PreviewAudioEngine: AudioEngine {
     var isPlaying: Bool = true
     var currentTime: TimeInterval = 0
     var duration: TimeInterval = 1800
-    var volume: Float = 1.0
     var onTimeUpdate: ((TimeInterval) -> Void)?
     var onPlaybackEnd: (() -> Void)?
     func load(url: URL, startAt: TimeInterval) { currentTime = startAt }
