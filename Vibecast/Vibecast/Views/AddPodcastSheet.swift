@@ -2,9 +2,9 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct AddPodcastSheet: View {
-    let manager: SubscriptionManager
-
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.subscriptionManager) private var manager
+
     @State private var query = ""
     @State private var results: [PodcastSearchResult] = []
     @State private var phase: Phase = .idle
@@ -47,7 +47,7 @@ struct AddPodcastSheet: View {
                 ) { result in
                     handleFileImport(result)
                 }
-                .alert("Import Result", isPresented: $showImportSummaryAlert, presenting: manager.lastImportSummary) { _ in
+                .alert("Import Result", isPresented: $showImportSummaryAlert, presenting: manager?.lastImportSummary) { _ in
                     Button("OK") { dismiss() }
                 } message: { summary in
                     Text(importSummaryMessage(summary))
@@ -62,7 +62,7 @@ struct AddPodcastSheet: View {
 
     @ViewBuilder
     private var content: some View {
-        if manager.isImportingOPML {
+        if manager?.isImportingOPML == true {
             VStack(spacing: 12) {
                 ProgressView().controlSize(.large)
                 Text("Importing podcasts…")
@@ -93,11 +93,11 @@ struct AddPodcastSheet: View {
                 List(results) { result in
                     SearchResultRow(
                         result: result,
-                        isSubscribed: manager.isSubscribed(feedURL: result.feedURL),
-                        isInFlight: manager.inFlightSubscriptions.contains(result.feedURL),
-                        isFailed: manager.failedSubscribes.contains(result.feedURL),
+                        isSubscribed: manager?.isSubscribed(feedURL: result.feedURL) ?? false,
+                        isInFlight: manager?.inFlightSubscriptions.contains(result.feedURL) ?? false,
+                        isFailed: manager?.failedSubscribes.contains(result.feedURL) ?? false,
                         onTapSubscribe: {
-                            Task { await manager.subscribe(to: result) }
+                            Task { await manager?.subscribe(to: result) }
                         }
                     )
                     .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
@@ -115,7 +115,7 @@ struct AddPodcastSheet: View {
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
-        .disabled(manager.isImportingOPML)
+        .disabled(manager?.isImportingOPML ?? false)
     }
 
     private func handleFileImport(_ result: Result<[URL], Error>) {
@@ -128,7 +128,7 @@ struct AddPodcastSheet: View {
                 return
             }
             do {
-                try await manager.importOPML(from: data)
+                try await manager?.importOPML(from: data)
                 showImportSummaryAlert = true
             } catch {
                 showImportFailureAlert = true
@@ -159,7 +159,7 @@ struct AddPodcastSheet: View {
         phase = .searching
         lastSubmittedQuery = trimmed
         do {
-            let fetched = try await manager.search(trimmed)
+            guard let fetched = try await manager?.search(trimmed) else { return }
             results = fetched
             phase = fetched.isEmpty ? .empty : .results
         } catch {

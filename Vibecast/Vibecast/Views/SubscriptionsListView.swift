@@ -5,71 +5,54 @@ struct SubscriptionsListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.playerManager) private var playerManager
     @Environment(\.subscriptionManager) private var subscriptionManager
-    @State private var viewModel: SubscriptionsViewModel?
+    @Query(sort: [SortDescriptor(\Podcast.sortPosition)]) private var podcasts: [Podcast]
+
     @State private var selectedPodcast: Podcast?
-    @State private var showAddPodcast = false
+    @State private var showAddSheet = false
     @State private var showFullScreenPlayer = false
 
     var body: some View {
         NavigationStack {
-            Group {
-                if let viewModel {
-                    listContent(viewModel: viewModel)
-                } else {
-                    ProgressView()
-                }
-            }
-            .navigationTitle("Vibecast")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    EditButton()
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showAddPodcast = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.title2.weight(.light))
+            listContent
+                .navigationTitle("Subscriptions")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        EditButton()
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showAddSheet = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.title2.weight(.light))
+                        }
                     }
                 }
-            }
-            .sheet(item: $selectedPodcast) { podcast in
-                PodcastDetailView(podcast: podcast)
-            }
-            .sheet(isPresented: $showFullScreenPlayer) {
-                if let playerManager, playerManager.currentEpisode != nil {
-                    FullScreenPlayerView(player: playerManager)
+                .sheet(isPresented: $showAddSheet) {
+                    AddPodcastSheet()
                 }
-            }
-            .sheet(isPresented: $showAddPodcast) {
-                if let subscriptionManager {
-                    AddPodcastSheet(manager: subscriptionManager)
+                .sheet(isPresented: $showFullScreenPlayer) {
+                    if let playerManager, playerManager.currentEpisode != nil {
+                        FullScreenPlayerView(player: playerManager)
+                    }
                 }
-            }
-            .onChange(of: showAddPodcast) { _, isPresented in
-                if !isPresented {
-                    viewModel?.fetch()
+                .navigationDestination(item: $selectedPodcast) { podcast in
+                    PodcastDetailView(podcast: podcast)
                 }
-            }
-            .safeAreaInset(edge: .bottom) {
-                if let playerManager, playerManager.currentEpisode != nil {
-                    MiniPlayerBar(
-                        player: playerManager,
-                        onTapBar: { showFullScreenPlayer = true }
-                    )
+                .safeAreaInset(edge: .bottom) {
+                    if let playerManager, playerManager.currentEpisode != nil {
+                        MiniPlayerBar(
+                            player: playerManager,
+                            onTapBar: { showFullScreenPlayer = true }
+                        )
+                    }
                 }
-            }
-        }
-        .task {
-            if viewModel == nil {
-                viewModel = SubscriptionsViewModel(modelContext: modelContext)
-            }
         }
     }
 
     @ViewBuilder
-    private func listContent(viewModel vm: SubscriptionsViewModel) -> some View {
-        if vm.podcasts.isEmpty {
+    private var listContent: some View {
+        if podcasts.isEmpty {
             ContentUnavailableView(
                 "No podcasts yet",
                 systemImage: "antenna.radiowaves.left.and.right",
@@ -77,7 +60,7 @@ struct SubscriptionsListView: View {
             )
         } else {
             List {
-                ForEach(vm.podcasts) { podcast in
+                ForEach(podcasts) { podcast in
                     let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
                     let isCurrent = latest != nil && latest?.persistentModelID == playerManager?.currentEpisode?.persistentModelID
                     PodcastRowView(
@@ -100,7 +83,7 @@ struct SubscriptionsListView: View {
                         Button {
                             if let ep = podcast.episodes
                                 .sorted(by: { $0.publishDate > $1.publishDate }).first {
-                                vm.markPlayed(ep)
+                                markPlayed(ep)
                             }
                         } label: {
                             Label("Played", systemImage: "checkmark")
@@ -109,22 +92,41 @@ struct SubscriptionsListView: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
-                            vm.remove(podcast)
+                            remove(podcast)
                         } label: {
                             Label("Remove", systemImage: "trash")
                         }
                     }
                 }
                 .onMove { source, destination in
-                    vm.move(from: source, to: destination)
+                    move(from: source, to: destination)
                 }
             }
             .listStyle(.plain)
             .refreshable {
                 await subscriptionManager?.refreshAll()
-                vm.fetch()
             }
         }
+    }
+
+    private func remove(_ podcast: Podcast) {
+        modelContext.delete(podcast)
+        try? modelContext.save()
+    }
+
+    private func markPlayed(_ episode: Episode) {
+        episode.listenedStatus = .played
+        episode.playbackPosition = Double(episode.durationSeconds)
+        try? modelContext.save()
+    }
+
+    private func move(from source: IndexSet, to destination: Int) {
+        var reordered = podcasts
+        reordered.move(fromOffsets: source, toOffset: destination)
+        for (index, podcast) in reordered.enumerated() {
+            podcast.sortPosition = index
+        }
+        try? modelContext.save()
     }
 }
 
