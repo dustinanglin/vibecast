@@ -87,6 +87,50 @@ final class SubscriptionManager {
         try? modelContext.save()
     }
 
+    /// OPML path: subscribe by feed URL alone, with no iTunes metadata.
+    /// Title/author/artwork come from the parsed RSS. Same fail-first contract
+    /// as subscribe(to: PodcastSearchResult): if the RSS fetch fails, no
+    /// Podcast row is inserted.
+    func subscribe(to feedURL: URL) async {
+        guard !isSubscribed(feedURL: feedURL) else { return }
+
+        inFlightSubscriptions.insert(feedURL)
+        defer { inFlightSubscriptions.remove(feedURL) }
+
+        let feed: ParsedFeed
+        do {
+            feed = try await fetcher.fetch(feedURL)
+        } catch {
+            return
+        }
+
+        let nextSortPosition = nextAvailableSortPosition()
+        let podcast = Podcast(
+            title: feed.podcastTitle ?? feedURL.host ?? feedURL.absoluteString,
+            author: feed.podcastAuthor ?? "",
+            artworkURL: feed.artworkURL?.absoluteString,
+            feedURL: feedURL.absoluteString,
+            sortPosition: nextSortPosition
+        )
+        modelContext.insert(podcast)
+
+        for parsed in feed.episodes {
+            let episode = Episode(
+                podcast: podcast,
+                title: parsed.title,
+                publishDate: parsed.publishDate,
+                descriptionText: parsed.descriptionText,
+                durationSeconds: parsed.durationSeconds,
+                audioURL: parsed.audioURL
+            )
+            episode.isExplicit = parsed.isExplicit
+            modelContext.insert(episode)
+            podcast.episodes.append(episode)
+        }
+        podcast.lastFetchedAt = .now
+        try? modelContext.save()
+    }
+
     private func nextAvailableSortPosition() -> Int {
         let descriptor = FetchDescriptor<Podcast>(sortBy: [SortDescriptor(\.sortPosition, order: .reverse)])
         let last = (try? modelContext.fetch(descriptor))?.first

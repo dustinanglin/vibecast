@@ -137,6 +137,50 @@ final class SubscriptionManagerTests: XCTestCase {
         let podcasts = try! context.fetch(FetchDescriptor<Podcast>())
         XCTAssertEqual(podcasts.count, 1)
     }
+
+    func test_subscribeFeedURL_insertsRowOnSuccess() async {
+        let url = URL(string: "https://feeds.example.com/podcastA")!
+        fetcher.feed = ParsedFeed(
+            podcastTitle: "Parsed Title",
+            podcastAuthor: "Parsed Author",
+            artworkURL: URL(string: "https://example.com/art.jpg"),
+            episodes: [
+                ParsedEpisode(title: "E1", publishDate: .now, descriptionText: "d", durationSeconds: 1800, audioURL: "https://x/1.mp3", isExplicit: false),
+            ]
+        )
+        await manager.subscribe(to: url)
+
+        let podcasts = try! context.fetch(FetchDescriptor<Podcast>())
+        XCTAssertEqual(podcasts.count, 1)
+        XCTAssertEqual(podcasts[0].title, "Parsed Title")
+        XCTAssertEqual(podcasts[0].author, "Parsed Author")
+        XCTAssertEqual(podcasts[0].artworkURL, "https://example.com/art.jpg")
+        XCTAssertEqual(podcasts[0].feedURL, url.absoluteString)
+        XCTAssertNil(podcasts[0].iTunesCollectionId)  // no iTunes metadata for OPML path
+        XCTAssertEqual(podcasts[0].episodes.count, 1)
+    }
+
+    func test_subscribeFeedURL_skipsRowOnFetchFailure() async {
+        fetcher.error = URLError(.notConnectedToInternet)
+        await manager.subscribe(to: URL(string: "https://feeds.example.com/podcastA")!)
+
+        let podcasts = try! context.fetch(FetchDescriptor<Podcast>())
+        XCTAssertEqual(podcasts.count, 0)
+    }
+
+    func test_subscribeFeedURL_dedupesByFeedURL() async {
+        let url = URL(string: "https://feeds.example.com/podcastA")!
+        let existing = Podcast(title: "Already", author: "Subscribed", artworkURL: nil, feedURL: url.absoluteString)
+        context.insert(existing)
+        try! context.save()
+
+        fetcher.feed = sampleFeed()
+        await manager.subscribe(to: url)
+
+        let podcasts = try! context.fetch(FetchDescriptor<Podcast>())
+        XCTAssertEqual(podcasts.count, 1)
+        XCTAssertEqual(podcasts[0].title, "Already")  // existing record left alone
+    }
 }
 
 // MARK: - Test Doubles
