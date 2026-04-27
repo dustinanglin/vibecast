@@ -299,6 +299,7 @@ final class PlayerManagerTests: XCTestCase {
         engine.simulatePlaybackEnd()
 
         XCTAssertEqual(episode.playbackPosition, 1234.5, accuracy: 0.001)
+        XCTAssertEqual(manager.elapsed, 1234.5, accuracy: 0.001)
         XCTAssertEqual(episode.listenedStatus, .played)
     }
 
@@ -311,6 +312,7 @@ final class PlayerManagerTests: XCTestCase {
         engine.simulatePlaybackEnd()
 
         XCTAssertEqual(episode.playbackPosition, 1234.0, accuracy: 0.001)
+        XCTAssertEqual(manager.elapsed, 1234.0, accuracy: 0.001)
         XCTAssertEqual(episode.listenedStatus, .played)
     }
 }
