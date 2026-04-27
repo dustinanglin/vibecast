@@ -2,8 +2,32 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct AddPodcastSheet: View {
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.subscriptionManager) private var manager
+
+    var body: some View {
+        if let manager {
+            LoadedSheet(manager: manager)
+        } else {
+            #if DEBUG
+            let _ = { assertionFailure("subscriptionManager was not injected into AddPodcastSheet") }()
+            #endif
+            ContentUnavailableView(
+                "Manager unavailable",
+                systemImage: "exclamationmark.triangle",
+                description: Text("Subscription manager wasn't injected. This is a bug.")
+            )
+        }
+    }
+}
+
+// MARK: - Private implementation
+
+private enum Phase { case idle, searching, results, empty, error }
+
+private struct LoadedSheet: View {
+    let manager: SubscriptionManager
+
+    @Environment(\.dismiss) private var dismiss
 
     @State private var query = ""
     @State private var results: [PodcastSearchResult] = []
@@ -13,8 +37,6 @@ struct AddPodcastSheet: View {
     @State private var showFileImporter = false
     @State private var showImportSummaryAlert = false
     @State private var showImportFailureAlert = false
-
-    enum Phase { case idle, searching, results, empty, error }
 
     var body: some View {
         NavigationStack {
@@ -47,7 +69,7 @@ struct AddPodcastSheet: View {
                 ) { result in
                     handleFileImport(result)
                 }
-                .alert("Import Result", isPresented: $showImportSummaryAlert, presenting: manager?.lastImportSummary) { _ in
+                .alert("Import Result", isPresented: $showImportSummaryAlert, presenting: manager.lastImportSummary) { _ in
                     Button("OK") { dismiss() }
                 } message: { summary in
                     Text(importSummaryMessage(summary))
@@ -62,7 +84,7 @@ struct AddPodcastSheet: View {
 
     @ViewBuilder
     private var content: some View {
-        if manager?.isImportingOPML == true {
+        if manager.isImportingOPML {
             VStack(spacing: 12) {
                 ProgressView().controlSize(.large)
                 Text("Importing podcasts…")
@@ -93,11 +115,11 @@ struct AddPodcastSheet: View {
                 List(results) { result in
                     SearchResultRow(
                         result: result,
-                        isSubscribed: manager?.isSubscribed(feedURL: result.feedURL) ?? false,
-                        isInFlight: manager?.inFlightSubscriptions.contains(result.feedURL) ?? false,
-                        isFailed: manager?.failedSubscribes.contains(result.feedURL) ?? false,
+                        isSubscribed: manager.isSubscribed(feedURL: result.feedURL),
+                        isInFlight: manager.inFlightSubscriptions.contains(result.feedURL),
+                        isFailed: manager.failedSubscribes.contains(result.feedURL),
                         onTapSubscribe: {
-                            Task { await manager?.subscribe(to: result) }
+                            Task { await manager.subscribe(to: result) }
                         }
                     )
                     .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
@@ -115,7 +137,7 @@ struct AddPodcastSheet: View {
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
-        .disabled(manager?.isImportingOPML ?? false)
+        .disabled(manager.isImportingOPML)
     }
 
     private func handleFileImport(_ result: Result<[URL], Error>) {
@@ -128,7 +150,7 @@ struct AddPodcastSheet: View {
                 return
             }
             do {
-                try await manager?.importOPML(from: data)
+                try await manager.importOPML(from: data)
                 showImportSummaryAlert = true
             } catch {
                 showImportFailureAlert = true
@@ -159,7 +181,7 @@ struct AddPodcastSheet: View {
         phase = .searching
         lastSubmittedQuery = trimmed
         do {
-            guard let fetched = try await manager?.search(trimmed) else { return }
+            let fetched = try await manager.search(trimmed)
             results = fetched
             phase = fetched.isEmpty ? .empty : .results
         } catch {
