@@ -181,6 +181,73 @@ final class SubscriptionManager {
             failed: failed
         )
     }
+
+    /// Pull-to-refresh on the subscriptions list. Iterates every subscribed
+    /// podcast sequentially. Per-podcast errors are swallowed (refresh is
+    /// best-effort; the user pulls again to retry). Episodes are merged by
+    /// audioURL — existing episodes get metadata updates, new episodes are
+    /// inserted, none are deleted, and user state (playbackPosition,
+    /// listenedStatus) on existing episodes is preserved.
+    func refreshAll() async {
+        let descriptor = FetchDescriptor<Podcast>(sortBy: [SortDescriptor(\.sortPosition)])
+        let podcasts = (try? modelContext.fetch(descriptor)) ?? []
+        for podcast in podcasts {
+            await fetchAndMerge(podcast)
+        }
+    }
+
+    /// Detail-open refresh. No-op if the podcast was fetched within the last
+    /// `refreshDebounceSeconds` seconds — prevents in/out navigation from
+    /// spamming the network.
+    func refresh(_ podcast: Podcast) async {
+        if let last = podcast.lastFetchedAt,
+           Date().timeIntervalSince(last) < Self.refreshDebounceSeconds {
+            return
+        }
+        await fetchAndMerge(podcast)
+    }
+
+    @ObservationIgnored private static let refreshDebounceSeconds: TimeInterval = 60
+
+    private func fetchAndMerge(_ podcast: Podcast) async {
+        guard let url = URL(string: podcast.feedURL) else { return }
+
+        let feed: ParsedFeed
+        do {
+            feed = try await fetcher.fetch(url)
+        } catch {
+            return
+        }
+
+        let existingByAudioURL = Dictionary(
+            uniqueKeysWithValues: podcast.episodes.map { ($0.audioURL, $0) }
+        )
+
+        for parsed in feed.episodes {
+            if let existing = existingByAudioURL[parsed.audioURL] {
+                existing.title = parsed.title
+                existing.publishDate = parsed.publishDate
+                existing.descriptionText = parsed.descriptionText
+                existing.durationSeconds = parsed.durationSeconds
+                existing.isExplicit = parsed.isExplicit
+                // playbackPosition + listenedStatus deliberately untouched.
+            } else {
+                let episode = Episode(
+                    podcast: podcast,
+                    title: parsed.title,
+                    publishDate: parsed.publishDate,
+                    descriptionText: parsed.descriptionText,
+                    durationSeconds: parsed.durationSeconds,
+                    audioURL: parsed.audioURL
+                )
+                episode.isExplicit = parsed.isExplicit
+                modelContext.insert(episode)
+                podcast.episodes.append(episode)
+            }
+        }
+        podcast.lastFetchedAt = .now
+        try? modelContext.save()
+    }
 }
 
 struct ImportSummary: Equatable {

@@ -247,6 +247,97 @@ final class SubscriptionManagerTests: XCTestCase {
             XCTAssertEqual(error as? OPMLImportError, .malformed)
         }
     }
+
+    func test_refreshAll_iteratesAllSubscribedPodcasts() async {
+        let urlA = "https://feeds.example.com/a"
+        let urlB = "https://feeds.example.com/b"
+        context.insert(Podcast(title: "A", author: "A", artworkURL: nil, feedURL: urlA))
+        context.insert(Podcast(title: "B", author: "B", artworkURL: nil, feedURL: urlB))
+        try! context.save()
+
+        var fetchedURLs: [URL] = []
+        fetcher.feed = sampleFeed()
+        fetcher.beforeFetch = { url in fetchedURLs.append(url) }
+
+        await manager.refreshAll()
+
+        XCTAssertEqual(Set(fetchedURLs.map(\.absoluteString)), [urlA, urlB])
+    }
+
+    func test_refreshAll_mergesEpisodesByAudioURL_preservingUserState() async {
+        let url = URL(string: "https://feeds.example.com/a")!
+        let podcast = Podcast(title: "A", author: "A", artworkURL: nil, feedURL: url.absoluteString)
+        context.insert(podcast)
+
+        // Pre-existing episode with user state
+        let existing = Episode(
+            podcast: podcast,
+            title: "OLD title",
+            publishDate: .now.addingTimeInterval(-86400),
+            descriptionText: "old desc",
+            durationSeconds: 1000,
+            audioURL: "https://x/1.mp3"
+        )
+        existing.playbackPosition = 250
+        existing.listenedStatus = .inProgress
+        context.insert(existing)
+        podcast.episodes.append(existing)
+        try! context.save()
+
+        // Fetch returns: 1 update for the same audioURL, 1 net-new episode
+        fetcher.feed = ParsedFeed(
+            podcastTitle: nil, podcastAuthor: nil, artworkURL: nil,
+            episodes: [
+                ParsedEpisode(title: "NEW title", publishDate: .now, descriptionText: "new desc", durationSeconds: 1500, audioURL: "https://x/1.mp3", isExplicit: false),
+                ParsedEpisode(title: "Brand new", publishDate: .now, descriptionText: "n", durationSeconds: 600, audioURL: "https://x/2.mp3", isExplicit: false),
+            ]
+        )
+
+        await manager.refreshAll()
+
+        let podcasts = try! context.fetch(FetchDescriptor<Podcast>())
+        XCTAssertEqual(podcasts.first?.episodes.count, 2)
+        let updated = podcasts.first?.episodes.first { $0.audioURL == "https://x/1.mp3" }
+        XCTAssertEqual(updated?.title, "NEW title")          // metadata refreshed
+        XCTAssertEqual(updated?.descriptionText, "new desc") // metadata refreshed
+        XCTAssertEqual(updated?.durationSeconds, 1500)       // metadata refreshed
+        XCTAssertEqual(updated?.playbackPosition, 250)       // user state preserved
+        XCTAssertEqual(updated?.listenedStatus, .inProgress) // user state preserved
+    }
+
+    func test_refresh_skipsWhenLastFetchedAtIsRecent() async {
+        let podcast = Podcast(
+            title: "A", author: "A", artworkURL: nil,
+            feedURL: "https://feeds.example.com/a",
+            lastFetchedAt: .now  // just-fetched
+        )
+        context.insert(podcast)
+        try! context.save()
+
+        var fetchCount = 0
+        fetcher.feed = sampleFeed()
+        fetcher.beforeFetch = { _ in fetchCount += 1 }
+
+        await manager.refresh(podcast)
+
+        XCTAssertEqual(fetchCount, 0)
+    }
+
+    func test_refresh_updatesLastFetchedAtOnSuccess() async {
+        let podcast = Podcast(
+            title: "A", author: "A", artworkURL: nil,
+            feedURL: "https://feeds.example.com/a",
+            lastFetchedAt: .now.addingTimeInterval(-3600)  // an hour ago
+        )
+        context.insert(podcast)
+        try! context.save()
+
+        fetcher.feed = sampleFeed()
+        await manager.refresh(podcast)
+
+        XCTAssertNotNil(podcast.lastFetchedAt)
+        XCTAssertGreaterThan(podcast.lastFetchedAt!, .now.addingTimeInterval(-5))
+    }
 }
 
 // MARK: - Test Doubles
@@ -266,8 +357,10 @@ final class MockSearchService: PodcastSearchService {
 final class MockFeedFetcher: FeedFetcher {
     var feed: ParsedFeed?
     var error: Error?
+    var beforeFetch: ((URL) -> Void)?
 
     func fetch(_ feedURL: URL) async throws -> ParsedFeed {
+        beforeFetch?(feedURL)
         if let error { throw error }
         return feed ?? ParsedFeed(podcastTitle: nil, podcastAuthor: nil, artworkURL: nil, episodes: [])
     }
