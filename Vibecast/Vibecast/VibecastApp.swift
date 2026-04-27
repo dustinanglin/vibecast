@@ -17,19 +17,22 @@ struct VibecastApp: App {
         }
         container = c
 
-        let players: PlayerManager
+        // Both managers share the views' main context so writes are immediately
+        // visible to any @Query / FetchDescriptor reads in the same context.
+        // No more sample-data seed — first-launch users see the empty state
+        // hint Task 2 adds. Existing testers keep their seeded podcasts.
+        let player: PlayerManager
         let subs: SubscriptionManager
-        (players, subs) = MainActor.assumeIsolated {
-            SampleData.seedIfNeeded(into: ModelContext(c))
-            let p = PlayerManager(engine: AVPlayerAudioEngine(), modelContext: ModelContext(c))
+        (player, subs) = MainActor.assumeIsolated {
+            let p = PlayerManager(engine: AVPlayerAudioEngine(), modelContext: c.mainContext)
             let s = SubscriptionManager(
                 searcher: iTunesSearchService(),
                 fetcher: URLSessionFeedFetcher(),
-                modelContext: ModelContext(c)
+                modelContext: c.mainContext
             )
             return (p, s)
         }
-        _playerManager = State(initialValue: players)
+        _playerManager = State(initialValue: player)
         _subscriptionManager = State(initialValue: subs)
     }
 
