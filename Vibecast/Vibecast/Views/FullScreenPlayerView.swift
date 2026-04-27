@@ -6,11 +6,9 @@ struct FullScreenPlayerView: View {
 
     /// Non-nil while the user is dragging the scrubber.
     @State private var scrubValue: Double?
-    @State private var volume: Float
 
     init(player: PlayerManager) {
         self.player = player
-        _volume = State(initialValue: player.volume)
     }
 
     var body: some View {
@@ -48,7 +46,8 @@ struct FullScreenPlayerView: View {
 
             Spacer(minLength: 28)
 
-            volumeSlider
+            SystemVolumeView()
+                .frame(height: 44)
                 .padding(.horizontal, 32)
                 .padding(.bottom, 32)
         }
@@ -133,27 +132,6 @@ struct FullScreenPlayerView: View {
         }
     }
 
-    private var volumeSlider: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "speaker.fill")
-                .foregroundStyle(.secondary)
-
-            Slider(
-                value: Binding(
-                    get: { Double(volume) },
-                    set: {
-                        volume = Float($0)
-                        player.volume = volume
-                    }
-                ),
-                in: 0...1
-            )
-
-            Image(systemName: "speaker.wave.3.fill")
-                .foregroundStyle(.secondary)
-        }
-    }
-
     private func format(_ seconds: TimeInterval) -> String {
         let total = Int(seconds)
         let h = total / 3600
@@ -186,7 +164,6 @@ private final class PreviewAudioEngine: AudioEngine {
     var isPlaying: Bool = true
     var currentTime: TimeInterval = 0
     var duration: TimeInterval = 1800
-    var volume: Float = 0.6
     var onTimeUpdate: ((TimeInterval) -> Void)?
     var onPlaybackEnd: (() -> Void)?
     func load(url: URL, startAt: TimeInterval) { currentTime = startAt }

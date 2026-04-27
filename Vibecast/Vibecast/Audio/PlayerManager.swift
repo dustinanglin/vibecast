@@ -17,11 +17,6 @@ final class PlayerManager {
         return 0
     }
 
-    var volume: Float {
-        get { engine.volume }
-        set { engine.volume = newValue }
-    }
-
     @ObservationIgnored private let engine: AudioEngine
     @ObservationIgnored private let modelContext: ModelContext
     @ObservationIgnored private var lastPersistedAt: TimeInterval = 0

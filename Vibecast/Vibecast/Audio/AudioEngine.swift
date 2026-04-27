@@ -6,7 +6,6 @@ protocol AudioEngine: AnyObject {
     var isPlaying: Bool { get }
     var currentTime: TimeInterval { get }
     var duration: TimeInterval { get }
-    var volume: Float { get set }
 
     /// Invoked on the main actor at most a few times per second while playing.
     var onTimeUpdate: ((TimeInterval) -> Void)? { get set }
@@ -40,11 +39,6 @@ final class AVPlayerAudioEngine: AudioEngine {
         guard let item = player.currentItem else { return 0 }
         let d = item.duration
         return d.isValid && !d.isIndefinite ? CMTimeGetSeconds(d) : 0
-    }
-
-    var volume: Float {
-        get { player.volume }
-        set { player.volume = newValue }
     }
 
     var onTimeUpdate: ((TimeInterval) -> Void)?

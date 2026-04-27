@@ -324,7 +324,6 @@ final class MockAudioEngine: AudioEngine {
     var isPlaying: Bool = false
     var currentTime: TimeInterval = 0
     var duration: TimeInterval = 0
-    var volume: Float = 1.0
 
     var onTimeUpdate: ((TimeInterval) -> Void)?
     var onPlaybackEnd: (() -> Void)?
