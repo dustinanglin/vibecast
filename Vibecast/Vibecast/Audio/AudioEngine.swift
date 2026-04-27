@@ -13,6 +13,15 @@ protocol AudioEngine: AnyObject {
     /// Invoked on the main actor when the loaded item reaches its end.
     var onPlaybackEnd: (() -> Void)? { get set }
 
+    /// Invoked on the main actor when an audio session interruption begins (e.g. phone call).
+    var onInterruptionBegan: (() -> Void)? { get set }
+
+    /// Invoked on the main actor when an interruption ends and the system signals .shouldResume.
+    var onInterruptionEndedShouldResume: (() -> Void)? { get set }
+
+    /// Invoked on the main actor when the audio output route becomes unavailable (headphone unplug).
+    var onRouteOldDeviceUnavailable: (() -> Void)? { get set }
+
     func load(url: URL, startAt: TimeInterval)
     func play()
     func pause()
@@ -27,6 +36,8 @@ final class AVPlayerAudioEngine: AudioEngine {
     private var statusObservation: NSKeyValueObservation?
     private var loadedURL: URL?
     private var awaitingInitialSeek = false
+    private var interruptionObserver: NSObjectProtocol?
+    private var routeChangeObserver: NSObjectProtocol?
 
     var isPlaying: Bool { player.timeControlStatus == .playing }
 
@@ -43,9 +54,13 @@ final class AVPlayerAudioEngine: AudioEngine {
 
     var onTimeUpdate: ((TimeInterval) -> Void)?
     var onPlaybackEnd: (() -> Void)?
+    var onInterruptionBegan: (() -> Void)?
+    var onInterruptionEndedShouldResume: (() -> Void)?
+    var onRouteOldDeviceUnavailable: (() -> Void)?
 
     init() {
         configureAudioSession()
+        configureNotifications()
     }
 
     deinit {
@@ -56,6 +71,8 @@ final class AVPlayerAudioEngine: AudioEngine {
             NotificationCenter.default.removeObserver(observer)
         }
         statusObservation?.invalidate()
+        if let token = interruptionObserver { NotificationCenter.default.removeObserver(token) }
+        if let token = routeChangeObserver { NotificationCenter.default.removeObserver(token) }
     }
 
     func load(url: URL, startAt: TimeInterval) {
@@ -156,11 +173,79 @@ final class AVPlayerAudioEngine: AudioEngine {
 
     private func configureAudioSession() {
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [])
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, policy: .longFormAudio)
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             // Playback will still work for the simulator/foreground; log and continue.
             print("AVAudioSession config failed: \(error)")
         }
+    }
+
+    private func configureNotifications() {
+        let center = NotificationCenter.default
+
+        interruptionObserver = center.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard
+                let userInfo = notification.userInfo,
+                let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+                let type = AVAudioSession.InterruptionType(rawValue: typeValue)
+            else { return }
+
+            // Extract Sendable-safe values before crossing into the Task.
+            let shouldResume: Bool = {
+                guard type == .ended,
+                      let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt
+                else { return false }
+                return AVAudioSession.InterruptionOptions(rawValue: optionsValue).contains(.shouldResume)
+            }()
+
+            Task { @MainActor [weak self] in
+                switch type {
+                case .began:
+                    self?.handleInterruptionBegan()
+                case .ended:
+                    if shouldResume {
+                        self?.handleInterruptionEndedShouldResume()
+                    }
+                @unknown default: break
+                }
+            }
+        }
+
+        routeChangeObserver = center.addObserver(
+            forName: AVAudioSession.routeChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard
+                let userInfo = notification.userInfo,
+                let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+                let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue)
+            else { return }
+
+            Task { @MainActor [weak self] in
+                if reason == .oldDeviceUnavailable {
+                    self?.handleRouteOldDeviceUnavailable()
+                }
+            }
+        }
+    }
+
+    private func handleInterruptionBegan() {
+        pause()
+        onInterruptionBegan?()
+    }
+
+    private func handleInterruptionEndedShouldResume() {
+        onInterruptionEndedShouldResume?()
+    }
+
+    private func handleRouteOldDeviceUnavailable() {
+        pause()
+        onRouteOldDeviceUnavailable?()
     }
 }

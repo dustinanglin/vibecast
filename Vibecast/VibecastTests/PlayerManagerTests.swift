@@ -327,6 +327,9 @@ final class MockAudioEngine: AudioEngine {
 
     var onTimeUpdate: ((TimeInterval) -> Void)?
     var onPlaybackEnd: (() -> Void)?
+    var onInterruptionBegan: (() -> Void)?
+    var onInterruptionEndedShouldResume: (() -> Void)?
+    var onRouteOldDeviceUnavailable: (() -> Void)?
 
     // Captured for assertions
     var loadedURL: URL?

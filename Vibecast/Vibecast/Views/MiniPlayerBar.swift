@@ -135,6 +135,9 @@ private final class PreviewAudioEngine: AudioEngine {
     var duration: TimeInterval = 1800
     var onTimeUpdate: ((TimeInterval) -> Void)?
     var onPlaybackEnd: (() -> Void)?
+    var onInterruptionBegan: (() -> Void)?
+    var onInterruptionEndedShouldResume: (() -> Void)?
+    var onRouteOldDeviceUnavailable: (() -> Void)?
     func load(url: URL, startAt: TimeInterval) { currentTime = startAt }
     func play() { isPlaying = true }
     func pause() { isPlaying = false }

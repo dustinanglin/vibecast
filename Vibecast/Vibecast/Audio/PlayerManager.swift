@@ -32,6 +32,19 @@ final class PlayerManager {
         engine.onPlaybackEnd = { [weak self] in
             self?.handlePlaybackEnd()
         }
+
+        // Wire system audio events through to manager state.
+        engine.onInterruptionBegan = { [weak self] in
+            self?.isPlaying = false
+        }
+        engine.onInterruptionEndedShouldResume = { [weak self] in
+            guard let self, self.currentEpisode != nil else { return }
+            self.engine.play()
+            self.isPlaying = true
+        }
+        engine.onRouteOldDeviceUnavailable = { [weak self] in
+            self?.isPlaying = false
+        }
     }
 
     // MARK: - Transport
