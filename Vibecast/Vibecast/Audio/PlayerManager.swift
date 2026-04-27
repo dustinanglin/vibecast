@@ -148,8 +148,9 @@ final class PlayerManager {
     private func handlePlaybackEnd() {
         guard let episode = currentEpisode else { return }
         episode.listenedStatus = .played
-        episode.playbackPosition = Double(episode.durationSeconds)
-        elapsed = Double(episode.durationSeconds)
+        let canonicalDuration = duration > 0 ? duration : Double(episode.durationSeconds)
+        episode.playbackPosition = canonicalDuration
+        elapsed = canonicalDuration
         isPlaying = false
         try? modelContext.save()
         lastPersistedAt = elapsed

@@ -287,6 +287,32 @@ final class PlayerManagerTests: XCTestCase {
         engine.simulateTimeUpdate(7) // above 5s delta since last save — saves
         XCTAssertEqual(episode.playbackPosition, 7, accuracy: 0.001)
     }
+
+    func test_handlePlaybackEnd_usesEngineDuration_whenAvailable() throws {
+        // Episode duration from feed: 1234 seconds (Int rounded).
+        // Engine reports actual duration of 1234.5 seconds.
+        episode.durationSeconds = 1234
+        engine.duration = 1234.5
+        try context.save()
+
+        manager.play(episode)
+        engine.simulatePlaybackEnd()
+
+        XCTAssertEqual(episode.playbackPosition, 1234.5, accuracy: 0.001)
+        XCTAssertEqual(episode.listenedStatus, .played)
+    }
+
+    func test_handlePlaybackEnd_fallsBackToFeedDuration_whenEngineDurationZero() throws {
+        episode.durationSeconds = 1234
+        engine.duration = 0   // engine never resolved actual duration
+        try context.save()
+
+        manager.play(episode)
+        engine.simulatePlaybackEnd()
+
+        XCTAssertEqual(episode.playbackPosition, 1234.0, accuracy: 0.001)
+        XCTAssertEqual(episode.listenedStatus, .played)
+    }
 }
 
 // MARK: - Test Double
