@@ -69,50 +69,58 @@ struct SubscriptionsListView: View {
 
     @ViewBuilder
     private func listContent(viewModel vm: SubscriptionsViewModel) -> some View {
-        List {
-            ForEach(vm.podcasts) { podcast in
-                let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
-                let isCurrent = latest != nil && latest?.persistentModelID == playerManager?.currentEpisode?.persistentModelID
-                PodcastRowView(
-                    podcast: podcast,
-                    isCurrent: isCurrent,
-                    isPlaying: isCurrent && (playerManager?.isPlaying ?? false),
-                    onPlay: {
-                        guard let ep = latest, let mgr = playerManager else { return }
-                        if mgr.currentEpisode?.persistentModelID == ep.persistentModelID {
-                            mgr.togglePlayPause()
-                        } else {
-                            mgr.play(ep)
+        if vm.podcasts.isEmpty {
+            ContentUnavailableView(
+                "No podcasts yet",
+                systemImage: "antenna.radiowaves.left.and.right",
+                description: Text("Tap + to search for podcasts or import an OPML file.")
+            )
+        } else {
+            List {
+                ForEach(vm.podcasts) { podcast in
+                    let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
+                    let isCurrent = latest != nil && latest?.persistentModelID == playerManager?.currentEpisode?.persistentModelID
+                    PodcastRowView(
+                        podcast: podcast,
+                        isCurrent: isCurrent,
+                        isPlaying: isCurrent && (playerManager?.isPlaying ?? false),
+                        onPlay: {
+                            guard let ep = latest, let mgr = playerManager else { return }
+                            if mgr.currentEpisode?.persistentModelID == ep.persistentModelID {
+                                mgr.togglePlayPause()
+                            } else {
+                                mgr.play(ep)
+                            }
+                        },
+                        onOpenDetail: { selectedPodcast = podcast }
+                    )
+                    .listRowSeparator(.visible)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        Button {
+                            if let ep = podcast.episodes
+                                .sorted(by: { $0.publishDate > $1.publishDate }).first {
+                                vm.markPlayed(ep)
+                            }
+                        } label: {
+                            Label("Played", systemImage: "checkmark")
                         }
-                    },
-                    onOpenDetail: { selectedPodcast = podcast }
-                )
-                .listRowSeparator(.visible)
-                .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
-                .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                    Button {
-                        if let ep = podcast.episodes
-                            .sorted(by: { $0.publishDate > $1.publishDate }).first {
-                            vm.markPlayed(ep)
-                        }
-                    } label: {
-                        Label("Played", systemImage: "checkmark")
+                        .tint(.green)
                     }
-                    .tint(.green)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            vm.remove(podcast)
+                        } label: {
+                            Label("Remove", systemImage: "trash")
+                        }
+                    }
                 }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        vm.remove(podcast)
-                    } label: {
-                        Label("Remove", systemImage: "trash")
-                    }
+                .onMove { source, destination in
+                    vm.move(from: source, to: destination)
                 }
             }
-            .onMove { source, destination in
-                vm.move(from: source, to: destination)
-            }
+            .listStyle(.plain)
         }
-        .listStyle(.plain)
     }
 }
 
