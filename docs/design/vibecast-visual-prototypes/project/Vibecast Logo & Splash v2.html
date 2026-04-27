@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibecast — Logo &amp; Splash v2</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>html,body{margin:0;background:#f0eee9}*{box-sizing:border-box}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="vibes-shared.jsx"></script>
+<script type="text/babel" src="vibe-logos.jsx"></script>
+<script type="text/babel" src="vibe-logos-v2.jsx"></script>
+<script type="text/babel" data-presets="env,react">
+const T = window.VIBE_TOKENS;
+const HUES = window.VIBE_HUES;
+function Phone({ children }) { return <window.IOSDevice width={402} height={874} dark={false}>{children}</window.IOSDevice>; }
+function IFrame({ label, sublabel, children, h = 232 }) {
+  return <window.MarkFrame height={h} label={label} sublabel={sublabel}>{children}</window.MarkFrame>;
+}
+
+function App() {
+  return (
+    <window.DesignCanvas
+      title="Vibecast — Logo &amp; Splash · v2"
+      subtitle="Round 2: doubling down on wordmark + accent dot. New app icon directions (V-letterform + dot-glyph studies) and splash variants that quietly fold in the color-band aesthetic from the radiate splash."
+    >
+      <window.DCSection
+        id="lock"
+        title="1 · Locked: wordmark + accent dot"
+        subtitle="The hero. Carries forward unchanged — this is what the brand IS. Shown across vibe colors so we can see how the dot reads as the live state indicator."
+      >
+        <window.DCArtboard id="lk-around" label="Around" width={400} height={200}>
+          <IFrame label="Wordmark · around"><window.WordmarkAccentDot size={64} accent={HUES[1].color} /></IFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="lk-morning" label="Morning" width={400} height={200}>
+          <IFrame label="Wordmark · morning"><window.WordmarkAccentDot size={64} accent={HUES[0].color} /></IFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="lk-workout" label="Workout" width={400} height={200}>
+          <IFrame label="Wordmark · workout"><window.WordmarkAccentDot size={64} accent={HUES[2].color} /></IFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="lk-winddown" label="Wind down" width={400} height={200}>
+          <IFrame label="Wordmark · winddown"><window.WordmarkAccentDot size={64} accent={HUES[3].color} /></IFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="lk-plane" label="Plane" width={400} height={200}>
+          <IFrame label="Wordmark · plane"><window.WordmarkAccentDot size={64} accent={HUES[4].color} /></IFrame>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="vicon"
+        title="2 · App icon — V letterforms"
+        subtitle="The wordmark's letter, monumentalized. Each is a literal shape from the Fraunces family. Most carry the accent dot to keep the brand thread through to the home screen."
+      >
+        <window.DCArtboard id="vi-serif" label="Serif V · ink" width={220} height={260}>
+          <IFrame label="Serif V" sublabel="ink, accent dot"><window.IconSerifV size={140} accent={HUES[1].color} /></IFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="vi-italic" label="Italic v · paper" width={220} height={260}>
+          <IFrame label="Italic v" sublabel="paper, dot ear"><window.IconItalicV size={140} accent={HUES[1].color} /></IFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="vi-ear" label="V with ear" width={220} height={260}>
+          <IFrame label="V · ear" sublabel="dot caps the right stroke"><window.IconVEar size={140} accent={HUES[1].color} /></IFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="vi-bracket" label="Bracketed [v]" width={220} height={260}>
+          <IFrame label="Bracketed [v]" sublabel="editorial / metadata"><window.IconBracketV size={140} accent={HUES[1].color} /></IFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="vi-slash" label="V / slash" width={220} height={260}>
+          <IFrame label="V slash" sublabel="from the slash wordmark"><window.IconSlashV size={140} accent={HUES[1].color} /></IFrame>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="vicon-set"
+        title="2a · V·ear across vibes"
+        subtitle="The strongest V candidate, swatched in all five vibe colors. The icon shifts color to whatever you most recently played — your home screen tells you what mood you're in."
+      >
+        {HUES.map((v) => (
+          <window.DCArtboard key={v.id} id={`vear-${v.id}`} label={v.id} width={180} height={220}>
+            <IFrame h={192} label="V·ear" sublabel={v.id}><window.IconVEar size={120} accent={v.color} /></IFrame>
+          </window.DCArtboard>
+        ))}
+      </window.DCSection>
+
+      <window.DCSection
+        id="dicon"
+        title="3 · App icon — dot-led"
+        subtitle="If the accent dot becomes The Thing, lean into it. Big chromatic dot variants — some pure, some paired with a glyph for legibility. Reads as 'audio app' less explicitly, but reads as Vibecast IMMEDIATELY once you know it."
+      >
+        <window.DCArtboard id="di-bigdot" label="Just the dot" width={220} height={260}>
+          <IFrame label="Big dot" sublabel="pure / enigmatic"><window.IconBigDot size={140} accent={HUES[1].color} /></IFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="di-dotv" label="Dot + serif V" width={220} height={260}>
+          <IFrame label="Dot · V" sublabel="V reversed inside dot"><window.IconDotV size={140} accent={HUES[1].color} /></IFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="di-period" label="v + period" width={220} height={260}>
+          <IFrame label="v." sublabel="punctuation mark"><window.IconPeriod size={140} accent={HUES[1].color} /></IFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="di-corner" label="Vibecast · corner dot" width={220} height={260}>
+          <IFrame label="Stacked + corner dot" sublabel="quiet, editorial"><window.IconDotCorner size={140} accent={HUES[1].color} /></IFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="di-eclipse" label="Eclipse" width={220} height={260}>
+          <IFrame label="Eclipse" sublabel="ink + vibe"><window.IconEclipse size={140} accent={HUES[1].color} /></IFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="di-halo" label="Halo" width={220} height={260}>
+          <IFrame label="Halo" sublabel="dot with quiet rings"><window.IconDotHalo size={140} accent={HUES[1].color} /></IFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="di-morse" label="Crescendo" width={220} height={260}>
+          <IFrame label="Crescendo" sublabel="dots growing into vibe"><window.IconDotMorse size={140} accent={HUES[1].color} /></IFrame>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="dicon-set"
+        title="3a · Big-dot across vibes"
+        subtitle="The cleanest dot icon swatched. This is where the chromatic confidence really shows up on a home screen."
+      >
+        {HUES.map((v) => (
+          <window.DCArtboard key={v.id} id={`bd-${v.id}`} label={v.id} width={180} height={220}>
+            <IFrame h={192} label="Dot" sublabel={v.id}><window.IconBigDot size={120} accent={v.color} /></IFrame>
+          </window.DCArtboard>
+        ))}
+      </window.DCSection>
+
+      <window.DCSection
+        id="dicon-period-set"
+        title="3b · v + period across vibes"
+        subtitle="The dot stays in its place — alongside the serif v, like punctuation."
+      >
+        {HUES.map((v) => (
+          <window.DCArtboard key={v.id} id={`per-${v.id}`} label={v.id} width={180} height={220}>
+            <IFrame h={192} label="v." sublabel={v.id}><window.IconPeriod size={120} accent={v.color} /></IFrame>
+          </window.DCArtboard>
+        ))}
+      </window.DCSection>
+
+      <window.DCSection
+        id="splash"
+        title="4 · Splash · accent dot + soft color bands"
+        subtitle="Combining the two best ideas from round 1. The wordmark + dot is always the anchor; bands are a quiet hint of the vibe palette behind it. Six restrained treatments — never full-bleed."
+      >
+        <window.DCArtboard id="sp-horizon" label="Top + bottom horizons" width={402} height={874}>
+          <Phone><window.SplashBandHorizon vibeIndex={1} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="sp-stripe" label="Stripe behind wordmark" width={402} height={874}>
+          <Phone><window.SplashBandStripe vibeIndex={0} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="sp-spectrum" label="Five-band spectrum" width={402} height={874}>
+          <Phone><window.SplashBandSpectrum /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="sp-diagonal" label="Diagonal sweep" width={402} height={874}>
+          <Phone><window.SplashBandDiagonal vibeIndex={2} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="sp-bottom" label="Horizon · bottom" width={402} height={874}>
+          <Phone><window.SplashBandBottom vibeIndex={3} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="sp-side" label="Side band" width={402} height={874}>
+          <Phone><window.SplashBandSide vibeIndex={4} /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="rec" title="My take">
+        <window.DCArtboard id="rec-card" label="Recommendation" width={620} height={460}>
+          <RecCard />
+        </window.DCArtboard>
+      </window.DCSection>
+    </window.DesignCanvas>
+  );
+}
+
+function RecCard() {
+  const Row = ({ k, v }) => (
+    <div style={{ display: 'flex', gap: 16, padding: '10px 0', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+      <div style={{ width: 130, fontFamily: T.mono, fontSize: 10, color: 'rgba(0,0,0,0.55)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2, fontWeight: 600 }}>{k}</div>
+      <div style={{ flex: 1, fontSize: 14, lineHeight: 1.55, color: T.ink }}>{v}</div>
+    </div>
+  );
+  return (
+    <div style={{ background: T.paper, height: '100%', padding: 24, fontFamily: T.sans }}>
+      <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600 }}>RECOMMENDATION · v2</div>
+      <div style={{ fontFamily: T.serif, fontSize: 26, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 4, marginBottom: 6 }}>v + period. Splash with bottom horizon.</div>
+      <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 14, color: 'rgba(0,0,0,0.62)', marginBottom: 8 }}>Same dot, three different scales — wordmark, icon, splash. The brand thread is one shape.</div>
+      <Row k="App icon" v="‘v + period’ — the serif v with the vibe-colored dot trailing it like punctuation. It mirrors the wordmark exactly: same letter, same dot, same relationship. Pure dot is too enigmatic for cold install; this keeps a tiny piece of the wordmark." />
+      <Row k="Runner-up" v="‘V·ear’ — bigger, bolder, more confident on the home screen. Pick this if we want the icon to feel less type-y and more graphic. Strong in dark mode." />
+      <Row k="Splash" v="Bottom horizon. The color band acts as a ground line, the wordmark sits above it. Quiet on first launch (defaults to ‘around’ blue), but tints to your most recent vibe on subsequent launches — a daily greeting." />
+      <Row k="What I'd skip" v="Pure ‘big dot’ icon — too enigmatic; we'd burn months on brand recognition. Five-band spectrum splash — fights the editorial calm we worked hard for." />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

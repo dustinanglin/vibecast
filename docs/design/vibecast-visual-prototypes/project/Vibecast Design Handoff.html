@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibecast — Design Handoff</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; background: #F4EFE6; color: #1A1714; font-family: "Inter", system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  .doc { max-width: 1080px; margin: 0 auto; padding: 64px 56px 96px; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; font-size: 11px; color: rgba(26,23,20,0.55); }
+  .serif { font-family: "Fraunces", Georgia, serif; }
+  h1 { font-family: "Fraunces", serif; font-size: 64px; font-weight: 500; letter-spacing: -0.03em; line-height: 0.98; margin: 12px 0 16px; }
+  h2 { font-family: "Fraunces", serif; font-size: 34px; font-weight: 500; letter-spacing: -0.025em; line-height: 1.05; margin: 0 0 6px; }
+  h3 { font-family: "Fraunces", serif; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; margin: 0 0 8px; }
+  h4 { font-family: "Inter", sans-serif; font-size: 14px; font-weight: 600; letter-spacing: -0.005em; margin: 0 0 6px; }
+  .lede { font-family: "Fraunces", serif; font-style: italic; font-size: 19px; line-height: 1.5; color: rgba(26,23,20,0.72); max-width: 640px; }
+  section { padding: 48px 0; border-top: 1px solid rgba(26,23,20,0.12); }
+  section.cover { border-top: 0; padding-top: 24px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .card { background: #FBF7EE; border: 1px solid rgba(26,23,20,0.10); border-radius: 14px; padding: 20px; }
+  .card.tight { padding: 16px; }
+  .swatch { aspect-ratio: 1.4 / 1; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; color: #fff; }
+  .kv { display: grid; grid-template-columns: 200px 1fr; column-gap: 24px; row-gap: 4px; padding: 8px 0; border-top: 1px solid rgba(26,23,20,0.08); align-items: baseline; }
+  .kv:first-of-type { border-top: 0; }
+  .kv .k { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(26,23,20,0.55); font-weight: 600; padding-top: 4px; }
+  .kv .v { font-size: 14px; line-height: 1.55; color: #1A1714; }
+  code, .code { font-family: "JetBrains Mono", monospace; font-size: 12px; background: rgba(26,23,20,0.06); padding: 1px 6px; border-radius: 4px; letter-spacing: 0; text-transform: none; font-weight: 500; }
+  pre.code { display: block; padding: 14px 16px; line-height: 1.55; white-space: pre; overflow-x: auto; font-size: 12px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; font-weight: 700; }
+  ul.notes { list-style: none; padding: 0; margin: 0; }
+  ul.notes li { padding: 10px 0; border-top: 1px solid rgba(26,23,20,0.08); display: flex; gap: 14px; }
+  ul.notes li:first-child { border-top: 0; }
+  ul.notes .n { width: 24px; flex-shrink: 0; font-family: "JetBrains Mono", monospace; font-size: 10px; color: rgba(26,23,20,0.45); padding-top: 4px; font-weight: 600; }
+  ul.notes .b { flex: 1; font-size: 14px; line-height: 1.55; }
+  ul.notes .b em { font-family: "Fraunces", serif; font-style: italic; color: rgba(26,23,20,0.62); display: block; margin-top: 3px; font-size: 13px; }
+  .toc { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 28px; margin-top: 22px; }
+  .toc a { color: #1A1714; text-decoration: none; font-size: 14px; padding: 6px 0; border-bottom: 1px dotted rgba(26,23,20,0.20); display: flex; justify-content: space-between; }
+  .toc a:hover { border-bottom-color: rgba(26,23,20,0.55); }
+  .toc .num { font-family: "JetBrains Mono", monospace; font-size: 10px; color: rgba(26,23,20,0.50); font-weight: 600; letter-spacing: 0.10em; }
+  .row-eg { background: var(--tint); border: 1px solid rgba(26,23,20,0.10); border-radius: 12px; padding: 12px; display: flex; gap: 10px; align-items: center; }
+  .row-eg .pos { width: 22px; text-align: center; font-family: "JetBrains Mono", monospace; font-size: 10px; color: rgba(26,23,20,0.40); font-weight: 600; }
+  .row-eg .cov { width: 44px; height: 44px; border-radius: 4px; background: var(--cov, #6e3a1c); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.92); font-family: "Fraunces", serif; font-weight: 600; font-size: 16px; flex-shrink: 0; }
+  .row-eg .meta { flex: 1; min-width: 0; }
+  .row-eg .meta .show { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase; font-weight: 600; color: #1A1714; display: flex; align-items: center; gap: 6px; }
+  .row-eg .meta .ep { font-family: "Fraunces", serif; font-size: 14px; font-weight: 500; line-height: 1.2; margin-top: 3px; }
+  .row-eg .meta .dur { font-family: "JetBrains Mono", monospace; font-size: 9px; color: rgba(26,23,20,0.50); letter-spacing: 0.06em; margin-top: 4px; font-weight: 600; }
+  .row-eg .ctrl { width: 30px; height: 30px; border-radius: 999px; background: #FBF7EE; border: 1px solid rgba(26,23,20,0.10); display: flex; align-items: center; justify-content: center; }
+  .stage { background: #FBF7EE; border: 1px solid rgba(26,23,20,0.10); border-radius: 14px; overflow: hidden; }
+  .legend { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(26,23,20,0.55); font-weight: 600; padding: 10px 14px; border-bottom: 1px solid rgba(26,23,20,0.08); display: flex; justify-content: space-between; }
+  .legend span:last-child { color: rgba(26,23,20,0.40); }
+  .quote { font-family: "Fraunces", serif; font-style: italic; font-size: 17px; line-height: 1.55; color: rgba(26,23,20,0.72); border-left: 3px solid #1A1714; padding: 4px 0 4px 18px; margin: 8px 0; max-width: 640px; }
+  .files { font-family: "JetBrains Mono", monospace; font-size: 11px; line-height: 1.7; color: rgba(26,23,20,0.62); }
+  .files b { color: #1A1714; font-weight: 600; }
+  hr.thin { border: 0; border-top: 1px solid rgba(26,23,20,0.08); margin: 18px 0; }
+  .twocol-text { columns: 2; column-gap: 28px; font-size: 14px; line-height: 1.6; color: rgba(26,23,20,0.85); }
+  .twocol-text p { margin: 0 0 12px; break-inside: avoid; }
+  @media print {
+    html, body { background: #fff; }
+    .doc { max-width: none; padding: 32px 40px; }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="doc">
+
+<!-- ─── Cover ─────────────────────────────────────────── -->
+<section class="cover">
+  <div class="mono">VIBECAST · DESIGN HANDOFF · APRIL 2026</div>
+  <h1>The vibes model<br/>and how to build it.</h1>
+  <p class="lede">A consolidated handoff covering visual language, component vocabulary, the data model, and every interaction decision we settled while designing the next version of Vibecast.</p>
+
+  <div style="margin-top: 28px;">
+    <div class="mono">CONTENTS</div>
+    <div class="toc">
+      <a href="#what"><span>What's new</span><span class="num">01</span></a>
+      <a href="#brand"><span>Brand · wordmark, icon, splash</span><span class="num">02</span></a>
+      <a href="#visual"><span>Visual language</span><span class="num">03</span></a>
+      <a href="#data"><span>Data model</span><span class="num">04</span></a>
+      <a href="#rows"><span>Row states</span><span class="num">05</span></a>
+      <a href="#components"><span>Components</span><span class="num">06</span></a>
+      <a href="#interactions"><span>Interactions</span><span class="num">07</span></a>
+      <a href="#rules"><span>Rules &amp; edge cases</span><span class="num">08</span></a>
+      <a href="#adoption"><span>Iterative adoption</span><span class="num">09</span></a>
+      <a href="#open"><span>Still open</span><span class="num">10</span></a>
+      <a href="#files"><span>Source files</span><span class="num">11</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 1. What's new ─────────────────────────────────── -->
+<section id="what">
+  <div class="mono">01 · OVERVIEW</div>
+  <h2>What's new in this round.</h2>
+  <p class="lede" style="margin-bottom: 28px;">The current app is functional — a list of subscribed shows, a player, a mini-player. This handoff adds a layer of <em>intent</em> on top: how someone listens at different times of day, in different moods, on different occasions.</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>The big idea: vibes</h3>
+      <p style="font-size: 14px; line-height: 1.6; color: rgba(26,23,20,0.78); margin: 0 0 10px;">A <b>vibe</b> is a manually-ordered queue of shows for a moment in time — Morning routine, Around town, Wind down, On a plane. Tap "Start the vibe" and it plays the latest of show #1, then #2, then #3, in your order.</p>
+      <p style="font-size: 14px; line-height: 1.6; color: rgba(26,23,20,0.78); margin: 0;">Vibes give the library structure that subscriptions alone can't. They turn the question "what do I want to play?" into "what kind of moment am I in?".</p>
+    </div>
+    <div class="card">
+      <h3>The model in one sentence</h3>
+      <p style="font-size: 14px; line-height: 1.6; color: rgba(26,23,20,0.78); margin: 0 0 10px;">A vibe holds two kinds of items: <b>show items</b> (always plays the latest unplayed episode) and <b>pinned episodes</b> (a specific episode that <em>expires</em> from the queue when played).</p>
+      <p style="font-size: 14px; line-height: 1.6; color: rgba(26,23,20,0.78); margin: 0;">This is what makes "On a plane" work: subscribe to 3 podcasts, pin 4 specific older episodes for the flight, and the queue cleans itself up when you land.</p>
+    </div>
+  </div>
+
+  <div style="margin-top: 28px;">
+    <div class="mono">DESIGN STANCE</div>
+    <p class="quote">Editorial, paper-warm, dark text. Color belongs to vibes — each one is a single hue from a shared oklch family. The library stays calm so the colored vibe context can carry meaning when it appears.</p>
+  </div>
+</section>
+
+<!-- ─── 2. Brand ──────────────────────────────────────── -->
+<section id="brand">
+  <div class="mono">02 · BRAND</div>
+  <h2>Wordmark, icon, splash.</h2>
+  <p class="lede" style="margin-bottom: 28px;">One brand thread carries through three places: the <em>wordmark</em>, the <em>app icon</em>, and the <em>splash screen</em>. All three share the same letterform (Fraunces serif <code>v</code>) and the same accent dot — the dot is the live, vibe-colored element that ties the brand to the active mood.</p>
+
+  <h3>Wordmark · primary</h3>
+  <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin: 0 0 14px;">Fraunces 500, letter-spacing <code>-0.035em</code>, accent dot trailing the final <code>t</code>. The dot inherits the color of the most-recently-played vibe.</p>
+  <div class="grid-3" style="gap: 12px;">
+    <div class="card tight" style="display:flex; align-items:center; justify-content:center; height: 110px;">
+      <span style="font-family:'Fraunces',serif; font-size:48px; font-weight:500; letter-spacing:-0.035em; color:#1A1714; line-height:1; display:inline-flex; align-items:flex-end;">Vibecast<span style="width:6.5px; height:6.5px; border-radius:99px; background:oklch(0.62 0.13 200); margin-left:1.8px; margin-bottom:3px;"></span></span>
+    </div>
+    <div class="card tight" style="display:flex; align-items:center; justify-content:center; height: 110px;">
+      <span style="font-family:'Fraunces',serif; font-size:48px; font-weight:500; letter-spacing:-0.035em; color:#1A1714; line-height:1; display:inline-flex; align-items:flex-end;">Vibecast<span style="width:6.5px; height:6.5px; border-radius:99px; background:oklch(0.68 0.14 35); margin-left:1.8px; margin-bottom:3px;"></span></span>
+    </div>
+    <div class="card tight" style="display:flex; align-items:center; justify-content:center; height: 110px;">
+      <span style="font-family:'Fraunces',serif; font-size:48px; font-weight:500; letter-spacing:-0.035em; color:#1A1714; line-height:1; display:inline-flex; align-items:flex-end;">Vibecast<span style="width:6.5px; height:6.5px; border-radius:99px; background:oklch(0.55 0.13 245); margin-left:1.8px; margin-bottom:3px;"></span></span>
+    </div>
+  </div>
+
+  <h3 style="margin-top: 32px;">App icon · v + period</h3>
+  <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin: 0 0 14px;">Same letterform as the wordmark, monumentalized. Serif lowercase <code>v</code> in ink on paper, vibe-colored dot trailing it like punctuation. The icon's dot color matches your most-recently-played vibe — your home screen tells you what mood you're in. Swatches show the icon in all five vibe colors.</p>
+  <div class="grid-4" style="gap: 12px;">
+    <div class="card tight" style="display:flex; align-items:center; justify-content:center; height: 130px;"><AppIcon data-h="35"></AppIcon></div>
+    <div class="card tight" style="display:flex; align-items:center; justify-content:center; height: 130px;"><AppIcon data-h="200"></AppIcon></div>
+    <div class="card tight" style="display:flex; align-items:center; justify-content:center; height: 130px;"><AppIcon data-h="145"></AppIcon></div>
+    <div class="card tight" style="display:flex; align-items:center; justify-content:center; height: 130px;"><AppIcon data-h="245"></AppIcon></div>
+  </div>
+
+  <h3 style="margin-top: 32px;">Splash · animated side bar</h3>
+  <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin: 0 0 14px;">On first launch the splash plays a short cycle through the five vibes — a vertical color bar pinned to the left edge, the dot in the wordmark, and a small label chip all crossfade together. Settles on the default vibe with the tagline <em>“Listen with intent.”</em> Subsequent launches skip the cycle and fade in tinted to your most-recent vibe.</p>
+  <div class="kv"><div class="k">Total length</div><div class="v">~5.5s on first launch · ~600ms on warm launches</div></div>
+  <div class="kv"><div class="k">Sequence</div><div class="v">Fade in 600ms · hold each vibe 950ms · color crossfade 340ms · settle on user's most-recent (or <code>around</code> as default)</div></div>
+  <div class="kv"><div class="k">In sync</div><div class="v">Three things crossfade together on every step — dot in wordmark, the left side bar + its hairline, and the small label chip pairing vibe name with tagline</div></div>
+  <div class="kv"><div class="k">Side bar geometry</div><div class="v">Full-height vertical band on the left edge of the screen · width ≈11% of viewport · hairline divider on its inner edge in <code>rgba(0,0,0,0.10)</code></div></div>
+  <div class="kv"><div class="k">Vibe taglines</div><div class="v"><em>Morning · ease into it.</em> &nbsp; <em>Around · background, but better.</em> &nbsp; <em>Workout · pulse up.</em> &nbsp; <em>Wind down · lights low.</em> &nbsp; <em>On a plane · thirty thousand feet.</em></div></div>
+  <div class="kv"><div class="k">Reduced motion</div><div class="v">Honor <code>prefers-reduced-motion</code> — skip the cycle, fade in the static splash on the user's most-recent vibe</div></div>
+  <div class="kv"><div class="k">Implementation</div><div class="v">See <code>Vibecast Animated Splash.html</code> for the live animation + storyboard. Static variants in <code>Vibecast Logo &amp; Splash v2.html</code>.</div></div>
+
+  <h3 style="margin-top: 28px;">The brand thread</h3>
+  <p class="quote">The same Fraunces <em>v</em> appears in the wordmark, the app icon, and the splash. The same vibe-colored dot trails it in all three. One letterform, one dot, three scales — that's the brand.</p>
+</section>
+
+<!-- ─── 3. Visual language ────────────────────────────── -->
+<section id="visual">
+  <div class="mono">03 · VISUAL LANGUAGE</div>
+  <h2>Tokens.</h2>
+
+  <h3 style="margin-top: 28px;">Surface palette</h3>
+  <div class="grid-4" style="margin-top: 12px;">
+    <div class="swatch" style="background:#F4EFE6; color:#1A1714; border:1px solid rgba(26,23,20,0.10);"><div class="mono" style="color:rgba(26,23,20,0.55);">BG</div><div class="code" style="background:transparent; padding:0;">#F4EFE6</div></div>
+    <div class="swatch" style="background:#FBF7EE; color:#1A1714; border:1px solid rgba(26,23,20,0.10);"><div class="mono" style="color:rgba(26,23,20,0.55);">PAPER</div><div class="code" style="background:transparent; padding:0;">#FBF7EE</div></div>
+    <div class="swatch" style="background:#EFE9DD; color:#1A1714; border:1px solid rgba(26,23,20,0.10);"><div class="mono" style="color:rgba(26,23,20,0.55);">PAPER DEEP</div><div class="code" style="background:transparent; padding:0;">#EFE9DD</div></div>
+    <div class="swatch" style="background:#1A1714;"><div class="mono" style="color:rgba(255,255,255,0.55);">INK</div><div class="code" style="background:transparent; padding:0; color:#fff;">#1A1714</div></div>
+  </div>
+  <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin-top: 12px;">Ink at full strength is body. Use <code>rgba(26,23,20,0.62)</code> for secondary, <code>0.40</code> for muted, <code>0.22</code> for faint, <code>0.10</code> for hairlines.</p>
+
+  <h3 style="margin-top: 32px;">Vibe palette</h3>
+  <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin: 0 0 12px;">Five vibes, each a single hue. All colors share chroma and lightness within their role so the family reads as a set of paint chips, not jelly beans.</p>
+  <div class="grid-3" style="gap: 12px;">
+    <VibeCard data-id="morning"></VibeCard>
+    <VibeCard data-id="around"></VibeCard>
+    <VibeCard data-id="workout"></VibeCard>
+    <VibeCard data-id="winddown"></VibeCard>
+    <VibeCard data-id="plane"></VibeCard>
+    <VibeCard data-id="deepwork"></VibeCard>
+  </div>
+  <pre class="code" style="margin-top: 14px;">
+// Color role formula (oklch)
+.color  ── oklch(L≈0.55–0.68, C≈0.13–0.16, H=hue)   // accent — buttons, indicators
+.chip   ── oklch(0.92,         C≈0.03–0.04, H=hue)   // tinted card / chip background
+.ink    ── oklch(L≈0.30,       C≈0.10,      H=hue)   // text on chip</pre>
+
+  <h3 style="margin-top: 32px;">Type</h3>
+  <div class="grid-2">
+    <div>
+      <div style="font-family:'Fraunces', serif; font-size: 56px; font-weight: 500; letter-spacing: -0.025em; line-height: 0.95;">Fraunces</div>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin-top: 6px;">Display + episode titles. Fraunces 500 with negative tracking. Italic for editorial captions and metadata flavor.</p>
+    </div>
+    <div>
+      <div style="font-family:'Inter', sans-serif; font-size: 48px; font-weight: 600; letter-spacing: -0.02em; line-height: 1;">Inter</div>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin-top: 6px;">UI text — buttons, body, sheet titles. Inter 400/500/600.</p>
+    </div>
+  </div>
+  <div style="margin-top: 14px;">
+    <div style="font-family:'JetBrains Mono', monospace; font-size: 28px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;">JETBRAINS MONO</div>
+    <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin-top: 6px;">Eyebrows, durations, vibe labels, position indicators. Always uppercase, tracked +0.10em, weight 600.</p>
+  </div>
+
+  <h3 style="margin-top: 32px;">Spacing &amp; radius</h3>
+  <div class="kv"><div class="k">Row padding</div><div class="v">12px all sides; 8px gap between rows</div></div>
+  <div class="kv"><div class="k">Card radius</div><div class="v">14px (rows, cards), 10–12px (inline tiles), 999px (pills + transport)</div></div>
+  <div class="kv"><div class="k">Cover radius</div><div class="v">4px small (rows), 6px medium (detail hero), 8px large (Now Playing)</div></div>
+  <div class="kv"><div class="k">Hairline</div><div class="v">1px, <code>rgba(26,23,20,0.10)</code></div></div>
+  <div class="kv"><div class="k">Hit targets</div><div class="v">38×38 minimum for icon controls; 56×56 for play; 70×70 for the primary play button</div></div>
+
+  <h3 style="margin-top: 32px;">Motion</h3>
+  <div class="kv"><div class="k">Now-playing bars</div><div class="v">3-bar VU, 0.6–0.95s ease-in-out alternate; replaces the position number when active</div></div>
+  <div class="kv"><div class="k">Vibing dot</div><div class="v">2-second pulse on the live indicator; pauses with playback</div></div>
+  <div class="kv"><div class="k">Sheet</div><div class="v">Slide up from bottom, scrim 45% black, drag handle 36×4 at top</div></div>
+  <div class="kv"><div class="k">Skip 15/30</div><div class="v">Buttons rotate 30° on press (scrub direction) and snap back; haptic light impact</div></div>
+</section>
+
+<!-- ─── 4. Data model ─────────────────────────────────── -->
+<section id="data">
+  <div class="mono">04 · DATA MODEL</div>
+  <h2>What lives where.</h2>
+  <p class="lede" style="margin-bottom: 24px;">The current Swift model already has shows and episodes. This adds two concepts: <em>vibes</em> (named, ordered, colored containers) and <em>queue items</em> (the polymorphic thing inside a vibe).</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Vibe</h3>
+      <pre class="code">struct Vibe {
+  let id: UUID
+  var name: String         // "On a plane"
+  var hue: Double          // 0–360, oklch H
+  var queue: [QueueItem]   // user's manual order
+  var isTemporary: Bool    // future — purges itself
+}</pre>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin: 8px 0 0;">A vibe owns its queue order. No separate "ordering" table needed.</p>
+    </div>
+    <div class="card">
+      <h3>QueueItem (sum type)</h3>
+      <pre class="code">enum QueueItem {
+  case show(Show.ID)                    // "latest unplayed of X"
+  case episode(Episode.ID,
+               pinnedAt: Date)          // specific episode, expires on play
+}</pre>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin: 8px 0 0;">The two kinds reorder freely together. Pinned items leave the queue when they finish.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top: 28px;">Constraints &amp; cardinality</h3>
+  <div class="kv"><div class="k">Show in N vibes</div><div class="v"><b>0–2</b>. Soft cap. Beyond that, the multi-vibe gradient gets muddy and the mental model frays.</div></div>
+  <div class="kv"><div class="k">Episode pins</div><div class="v"><b>Any vibe, any number</b>. Pins are temporary by design — caps not needed. A user can pin 6 Blank Check episodes to "On a plane" without it polluting "Around town".</div></div>
+  <div class="kv"><div class="k">Pin → vibe</div><div class="v">A pin does <em>not</em> require the show to be a member of that vibe. This is what lets "On a plane" pull from anywhere.</div></div>
+  <div class="kv"><div class="k">Played pinned ep</div><div class="v">Removed from <code>queue</code>. Stays in the show's "played" history (existing data).</div></div>
+  <div class="kv"><div class="k">"All vibes" view</div><div class="v">Master order across all subscribed shows. Independent from per-vibe orders.</div></div>
+</section>
+
+<!-- ─── 5. Row states ─────────────────────────────────── -->
+<section id="rows">
+  <div class="mono">05 · ROW STATES</div>
+  <h2>The queue speaks.</h2>
+  <p class="lede" style="margin-bottom: 20px;">When you're vibing, the queue is the dominant context. Each row broadcasts its state at a glance.</p>
+
+  <div class="stage">
+    <div class="legend"><span>Around town · live</span><span>Now → Up next → Queued → Played → Pinned</span></div>
+    <div style="padding: 14px;">
+      <div class="row-eg" style="--tint: oklch(0.92 0.03 200); --cov: oklch(0.42 0.13 18);"><div class="pos" style="display:flex; align-items:center; justify-content:center;"><span style="display:inline-block; width:14px; height:14px; border-radius:99px; background:oklch(0.62 0.13 200);"></span></div><div class="cov">HF</div><div class="meta"><div class="show">Hard Fork <span style="background:oklch(0.62 0.13 200); color:#fff; padding:1px 6px; border-radius:99px; font-size:8px;">▶ NOW</span></div><div class="ep">The Future of AI Regulation in Europe</div><div class="dur">62 MIN · 24M IN</div></div><div class="ctrl">⏸</div></div>
+      <div style="height:6px;"></div>
+      <div class="row-eg" style="--tint: oklch(0.92 0.03 200); --cov: oklch(0.42 0.13 282);"><div class="pos">03</div><div class="cov">VC</div><div class="meta"><div class="show">The Vergecast <span style="background:oklch(0.62 0.13 200); color:#fff; padding:1px 6px; border-radius:99px; font-size:8px;">UP NEXT</span></div><div class="ep">How Figma Became the Design Standard</div><div class="dur">75 MIN</div></div><div class="ctrl">▶</div></div>
+      <div style="height:6px;"></div>
+      <div class="row-eg" style="--tint: oklch(0.92 0.03 200); --cov: oklch(0.42 0.13 38);"><div class="pos">04</div><div class="cov">99</div><div class="meta"><div class="show">99% Invisible <span style="font-size:8px; color:rgba(26,23,20,0.5); letter-spacing:0.08em;">· LATEST</span></div><div class="ep">The Architecture of Crowds</div><div class="dur">38 MIN</div></div><div class="ctrl">▶</div></div>
+      <div style="height:6px;"></div>
+      <div class="row-eg" style="--tint: oklch(0.92 0.03 200); --cov: oklch(0.42 0.13 18); opacity: 0.55;"><div class="pos">01</div><div class="cov">PM</div><div class="meta"><div class="show">Planet Money</div><div class="ep">Inside the Semiconductor Supply Chain</div><div class="dur">✓ PLAYED</div></div><div class="ctrl">↻</div></div>
+      <div style="height:6px;"></div>
+      <div class="row-eg" style="--tint: oklch(0.92 0.04 245); --cov: oklch(0.42 0.16 24); border-left: 3px solid oklch(0.55 0.13 245);"><div class="pos" style="color:oklch(0.30 0.10 245);">📌</div><div class="cov">BC</div><div class="meta"><div class="show">Blank Check <span style="background:oklch(0.55 0.13 245); color:#fff; padding:1px 6px; border-radius:99px; font-size:8px;">📌 PINNED</span></div><div class="ep">Pirates of the Caribbean: At World's End</div><div class="dur">142 MIN · PINNED 2D AGO</div></div><div class="ctrl">▶</div></div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top: 24px;">
+    <div>
+      <h4>Right-side control reflects the action</h4>
+      <ul class="notes">
+        <li><span class="n">⏸</span><span class="b"><b>Now</b> — vibe-color filled circle, white pause glyph. Tap pauses.</span></li>
+        <li><span class="n">▶</span><span class="b"><b>Paused</b> — same circle, play glyph. Tap resumes.</span></li>
+        <li><span class="n">▶</span><span class="b"><b>Queued / Up Next</b> — paper-colored ring, ink glyph. Tap skips to this row.</span></li>
+        <li><span class="n">↻</span><span class="b"><b>Played</b> — transparent, muted glyph. Tap replays.</span></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Left-side position slot is multi-purpose</h4>
+      <ul class="notes">
+        <li><span class="n">N</span><span class="b">Position number for queued shows (zero-padded mono).</span></li>
+        <li><span class="n">≡</span><span class="b">Animated 3-bar VU when actively playing.</span></li>
+        <li><span class="n">📌</span><span class="b">Pin glyph (vibe-colored) for pinned episodes.</span></li>
+        <li><span class="n">⋮⋮</span><span class="b">Drag handle in reorder mode.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 6. Components ─────────────────────────────────── -->
+<section id="components">
+  <div class="mono">06 · COMPONENTS</div>
+  <h2>The pieces.</h2>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Library home</h3>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.78); line-height: 1.6;">Big serif "Vibecast" wordmark. Vibe filter pills directly under the wordmark — sticky on scroll. Master "All" order by default; tapping a pill collapses to that vibe's queue.</p>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.62); line-height: 1.6; font-style: italic; font-family: 'Fraunces', serif;">Affordance: horizontal swipe also snaps between vibes (power-user shortcut).</p>
+    </div>
+    <div class="card">
+      <h3>Vibe screen (filtered)</h3>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.78); line-height: 1.6;">Full-bleed vibe color band fades into paper. Live "VIBING / PAUSED" indicator with pulsing dot. Vibe name in display serif, queue summary in italic ("3 of 5 · about 2.4h left").</p>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.62); line-height: 1.6; font-style: italic; font-family: 'Fraunces', serif;">"Start the vibe" CTA in the vibe's color, only appears before playback.</p>
+    </div>
+    <div class="card">
+      <h3>Now Playing (vibe-aware)</h3>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.78); line-height: 1.6;">Replaces the standalone Now Playing when vibing. Header reads "Vibing · {Vibe}". Play button takes the vibe color. Up Next ribbon at the bottom — one-tap skip-ahead to the next show in the vibe queue.</p>
+    </div>
+    <div class="card">
+      <h3>Mini player</h3>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.78); line-height: 1.6;">Black bar, vibe-color stripe on the left edge, vibe-color progress sliver across the bottom. Eyebrow shows "{Vibe} · 2/5". Tap expands to Now Playing.</p>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.62); line-height: 1.6; font-style: italic; font-family: 'Fraunces', serif;">Falls back to a neutral mini player when not vibing.</p>
+    </div>
+    <div class="card">
+      <h3>Podcast detail page</h3>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.78); line-height: 1.6;">Cover, publisher, title, vibe membership chips. Three-action row: <b>Play latest</b> (filled), <b>Pin to vibe</b> (outlined w/ pin icon), Subscribed indicator. Episode list with played history; each row has Play + Pin buttons. Pinned eps wear a small "ON A PLANE" tag inline.</p>
+    </div>
+    <div class="card">
+      <h3>Pin sheet</h3>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.78); line-height: 1.6;">Bottom sheet. Episode title in serif. Vibe list — selected vibe takes its accent color and chip background; checkmark in vibe color. Caption explains the temporary expiration behavior. Filled CTA in vibe color.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 7. Interactions ───────────────────────────────── -->
+<section id="interactions">
+  <div class="mono">07 · INTERACTIONS</div>
+  <h2>How it moves.</h2>
+
+  <h3 style="margin-top: 24px;">Start a vibe</h3>
+  <ul class="notes">
+    <li><span class="n">1</span><span class="b">Tap a vibe pill → page collapses to that vibe's queue, header band picks up the vibe's chip color, "Start the vibe" CTA appears in vibe color. <em>The vibe is queued but not playing yet.</em></span></li>
+    <li><span class="n">2</span><span class="b">Tap "Start the vibe" → first item begins. Header switches to live "VIBING" with pulsing dot. Mini player appears. CTA hides.</span></li>
+    <li><span class="n">3</span><span class="b">Episode finishes → auto-advance to next item in order. Played row dims, next row's eyebrow flips from "UP NEXT" to active.</span></li>
+    <li><span class="n">4</span><span class="b">All items finished → "Vibe complete" screen. Restart, or pick another vibe.</span></li>
+  </ul>
+
+  <h3 style="margin-top: 24px;">Pin an episode</h3>
+  <ul class="notes">
+    <li><span class="n">1</span><span class="b">From a podcast detail page, tap the pin icon on any episode (or the hero "Pin to vibe" button to pin the latest).</span></li>
+    <li><span class="n">2</span><span class="b">Sheet slides up. Pick a vibe — selected state shows in that vibe's color. Tap the filled CTA.</span></li>
+    <li><span class="n">3</span><span class="b">Sheet dismisses. Pin icon on the source row turns vibe-colored. The vibe screen now contains this episode in queue order (default: appended to end; user can drag to reorder).</span></li>
+    <li><span class="n">4</span><span class="b">When played — pinned item leaves the queue silently. Show items the user subscribed to remain.</span></li>
+  </ul>
+
+  <h3 style="margin-top: 24px;">Skip / replay</h3>
+  <ul class="notes">
+    <li><span class="n">·</span><span class="b">Tap a queued row → skip to that row. Plays from the start.</span></li>
+    <li><span class="n">·</span><span class="b">Tap a played row's ↻ button → restart from the beginning. Row un-dims.</span></li>
+    <li><span class="n">·</span><span class="b">Tap the row anywhere outside the right-side button → tappable region is the same as the right-side play button. Whole row is the affordance; the button is the explicit one.</span></li>
+  </ul>
+
+  <h3 style="margin-top: 24px;">Reorder</h3>
+  <ul class="notes">
+    <li><span class="n">·</span><span class="b">Tap "Edit" in the queue header → enters reorder mode. Position glyphs swap to drag handles. Right-side controls collapse to keep targets clear.</span></li>
+    <li><span class="n">·</span><span class="b">Drag rows freely. Pinned and show items mix in any order.</span></li>
+    <li><span class="n">·</span><span class="b">Tap "Done" → exits, persists order on the vibe.</span></li>
+  </ul>
+</section>
+
+<!-- ─── 8. Rules ──────────────────────────────────────── -->
+<section id="rules">
+  <div class="mono">08 · RULES &amp; EDGE CASES</div>
+  <h2>Decided.</h2>
+  <ul class="notes">
+    <li><span class="n">·</span><span class="b"><b>Multi-vibe shows</b> get a soft gradient from vibe-A chip to vibe-B chip on their row. Cap at 2 vibes per show — beyond that, gradient and mental model both break down.</span></li>
+    <li><span class="n">·</span><span class="b"><b>"Start the vibe" plays in order, skipping already-played episodes.</b> Auto-prune on; the queue is always fresh.</span></li>
+    <li><span class="n">·</span><span class="b"><b>Pin = latest of show?</b> Dedupe — show only the pinned version (user explicitly chose its position). When played, the show item takes over with the next-newest unplayed episode.</span></li>
+    <li><span class="n">·</span><span class="b"><b>Partial play of a pinned episode</b> stays in queue with playback position preserved. Only completion expires it.</span></li>
+    <li><span class="n">·</span><span class="b"><b>Manual unpin</b> behaves identically to playing — the item leaves the queue. Long-press a pinned row for inline unpin; sheet also offers it.</span></li>
+    <li><span class="n">·</span><span class="b"><b>Show with zero vibes</b> still appears in "All" with no tint. Empty cards stand out as "ungrouped" on purpose.</span></li>
+    <li><span class="n">·</span><span class="b"><b>Color collisions</b> avoided by curating the vibe color picker to ~10–12 hues from the family. No free color picker.</span></li>
+  </ul>
+</section>
+
+<!-- ─── 9. Adoption ───────────────────────────────────── -->
+<section id="adoption">
+  <div class="mono">09 · ITERATIVE ADOPTION</div>
+  <h2>How to land it without breaking the app.</h2>
+  <p class="lede" style="margin-bottom: 20px;">The current app is a flat list + player. The new model is additive — vibes can ship in stages without disrupting the existing flow.</p>
+
+  <div class="grid-3" style="gap: 14px;">
+    <div class="card tight">
+      <span class="pill" style="background:#1A1714; color:#FBF7EE;">PHASE 1</span>
+      <h3 style="margin-top: 10px;">Visual refresh</h3>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.78); line-height: 1.55; margin: 0;">Adopt the editorial palette + type pairing. Refresh library, podcast detail, Now Playing. No data model changes. The app already works; it just looks intentional.</p>
+    </div>
+    <div class="card tight">
+      <span class="pill" style="background:oklch(0.55 0.13 245); color:#fff;">PHASE 2</span>
+      <h3 style="margin-top: 10px;">Vibes</h3>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.78); line-height: 1.55; margin: 0;">Add Vibe + show-only QueueItem. Build vibe filter, vibe screen, vibe-aware Now Playing &amp; mini player. Manual order. "Start the vibe."</p>
+    </div>
+    <div class="card tight">
+      <span class="pill" style="background:oklch(0.62 0.13 200); color:#fff;">PHASE 3</span>
+      <h3 style="margin-top: 10px;">Pinning</h3>
+      <p style="font-size: 13px; color: rgba(26,23,20,0.78); line-height: 1.55; margin: 0;">Add episode-kind QueueItem. Pin sheet, pin icons on episode rows, expiration on play. Reorder mixed queues. The "On a plane" use case lights up.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top: 28px;">What's already there vs what's net-new</h3>
+  <div class="kv"><div class="k">Already in app</div><div class="v">Subscriptions, episode list, player + mini player, played history, mark-as-played</div></div>
+  <div class="kv"><div class="k">Visual changes only</div><div class="v">Library list, podcast detail, Now Playing, mini player — same data, new look</div></div>
+  <div class="kv"><div class="k">Net-new model</div><div class="v">Vibe entity, QueueItem sum type, per-vibe ordering, pinned-at timestamp</div></div>
+  <div class="kv"><div class="k">Net-new screens</div><div class="v">Vibe filter pills, vibe screen, pin sheet, vibe complete screen, reorder mode</div></div>
+  <div class="kv"><div class="k">Net-new behaviors</div><div class="v">Auto-advance through queue, expire-on-play, dedupe pin↔latest, soft 0-2 vibe cap</div></div>
+</section>
+
+<!-- ─── 10. Open ───────────────────────────────────────── -->
+<section id="open">
+  <div class="mono">10 · STILL OPEN</div>
+  <h2>To decide on the way to ship.</h2>
+  <ul class="notes">
+    <li><span class="n">·</span><span class="b"><b>Truly temporary vibes</b> — a vibe that auto-deletes after every item is played or expires. "On a plane" might want this. Maybe a property on the Vibe itself.</span></li>
+    <li><span class="n">·</span><span class="b"><b>Smart suggestions</b> — at 7am, surface "Morning routine" first. Time-of-day, day-of-week, location. Could be a separate "Suggested" rail above pinned vibes; needs a privacy stance.</span></li>
+    <li><span class="n">·</span><span class="b"><b>Cross-device sync</b> — vibe order, pins, played-state. Existing iCloud sync on subscriptions probably extends, but pin timestamps need the same treatment.</span></li>
+    <li><span class="n">·</span><span class="b"><b>Accessibility</b> — vibe color shouldn't be the only signal. Verify the eyebrow text + position glyph + pill carry the meaning when color is invisible.</span></li>
+    <li><span class="n">·</span><span class="b"><b>Wordmark in app chrome</b> — should the live wordmark in the library header tint its dot to the currently-vibing vibe? Currently spec'd as static / most-recent.</span></li>
+    <li><span class="n">·</span><span class="b"><b>Vibe complete tagline</b> — the splash uses per-vibe taglines; consider reusing the same copy on the “Vibe complete” screen.</span></li>
+  </ul>
+</section>
+
+<!-- ─── 11. Files ─────────────────────────────────────── -->
+<section id="files">
+  <div class="mono">11 · SOURCE FILES</div>
+  <h2>Where everything lives.</h2>
+
+  <div class="files">
+    <p><b>Vibecast Visual Punch-up.html</b> — three direction studies (Refined Dark / Editorial / Expressive) with Tweaks toggles for accent, type, density. Locked direction: <b>Editorial</b>.</p>
+    <p><b>Vibecast Vibes.html</b> — vibe row treatments (color stripe / chips / dots / tinted cards), vibe filter, vibe edit/order. Locked treatment: <b>Tinted cards</b>.</p>
+    <p><b>Vibecast Start Vibing.html</b> — playback experience: row states, vibing screen, vibe-aware Now Playing, vibe complete.</p>
+    <p><b>Vibecast Podcast & Pinning.html</b> — podcast detail, pin sheet, On-a-plane mixed queue, reorder mode, post-play expiration.</p>
+    <p><b>Vibecast Logo &amp; Splash.html</b> + <b>Vibecast Logo &amp; Splash v2.html</b> — wordmark explorations, V-letterform and dot-glyph app icon studies, static splash treatments. Locked: wordmark + accent dot, <b>v+period</b> app icon, bottom-horizon splash.</p>
+    <p><b>Vibecast Animated Splash.html</b> — animated splash with live phone preview + replay button, side-by-side storyboards, animation spec card. Locked: <b>animated side bar</b>.</p>
+    <p style="margin-top: 16px; color: rgba(26,23,20,0.50);">All four canvases use a shared component vocabulary in <b>vibes-shared.jsx</b>, <b>vibes-rows.jsx</b>, <b>vibes-playback.jsx</b>, <b>vibes-vibing-screens.jsx</b>, and <b>vibes-detail-pin.jsx</b>. Cover artwork is colored placeholders with serif initials — replace with real artwork when available; the system already supports it.</p>
+  </div>
+
+  <hr class="thin" />
+  <div class="mono" style="margin-top: 18px;">END OF HANDOFF</div>
+  <p style="font-family: 'Fraunces', serif; font-style: italic; font-size: 16px; color: rgba(26,23,20,0.62); margin-top: 4px;">Print this page (Cmd+P) for a clean PDF. Each canvas is also independently shareable.</p>
+</section>
+
+</div>
+
+<script>
+(function () {
+  const VIBES = {
+    morning:  { name: 'Morning routine', color: 'oklch(0.68 0.14 35)',   chip: 'oklch(0.92 0.04 35)',  ink: 'oklch(0.32 0.10 35)',  hue: 35  },
+    around:   { name: 'Around town',     color: 'oklch(0.62 0.13 200)',  chip: 'oklch(0.92 0.03 200)', ink: 'oklch(0.32 0.10 220)', hue: 200 },
+    workout:  { name: 'Workout',         color: 'oklch(0.60 0.16 145)',  chip: 'oklch(0.92 0.04 145)', ink: 'oklch(0.30 0.10 145)', hue: 145 },
+    winddown: { name: 'Wind down',       color: 'oklch(0.55 0.13 280)',  chip: 'oklch(0.92 0.04 280)', ink: 'oklch(0.30 0.10 280)', hue: 280 },
+    plane:    { name: 'On a plane',      color: 'oklch(0.55 0.13 245)',  chip: 'oklch(0.92 0.04 245)', ink: 'oklch(0.30 0.10 245)', hue: 245 },
+    deepwork: { name: 'Deep work',       color: 'oklch(0.45 0.04 60)',   chip: 'oklch(0.92 0.02 60)',  ink: 'oklch(0.25 0.04 60)',  hue: 60  },
+  };
+  document.querySelectorAll('AppIcon').forEach(el => {
+    const h = el.getAttribute('data-h');
+    const accent = `oklch(${h === '60' ? '0.55 0.13 60' : (h === '35' ? '0.68 0.14 35' : (h === '200' ? '0.62 0.13 200' : (h === '145' ? '0.60 0.16 145' : (h === '280' ? '0.55 0.13 280' : '0.55 0.13 245'))))})`;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:8px;';
+    wrap.innerHTML = `
+      <svg width="86" height="86" viewBox="0 0 120 120" style="filter: drop-shadow(0 8px 20px rgba(0,0,0,0.10));">
+        <rect width="120" height="120" rx="26.4" ry="26.4" fill="#FBF7EE" stroke="rgba(0,0,0,0.06)"/>
+        <text x="50%" y="78%" text-anchor="middle" font-family="Fraunces, serif" font-weight="500" font-size="74" fill="#1A1714" style="letter-spacing:-0.04em">v</text>
+        <circle cx="86.4" cy="84" r="9" fill="${accent}"/>
+      </svg>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.10em; color:rgba(26,23,20,0.45); text-transform:uppercase; font-weight:600;">H ${h}°</div>
+    `;
+    el.replaceWith(wrap);
+  });
+  document.querySelectorAll('VibeCard').forEach(el => {
+    const id = el.getAttribute('data-id');
+    const v = VIBES[id]; if (!v) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'card tight';
+    wrap.style.padding = '14px';
+    wrap.innerHTML = `
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom: 10px;">
+        <span style="width:14px; height:14px; border-radius:99px; background:${v.color};"></span>
+        <span style="font-family:'Fraunces',serif; font-size:18px; font-weight:500; letter-spacing:-0.015em;">${v.name}</span>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-bottom:10px;">
+        <div style="height:36px; border-radius:6px; background:${v.chip};"></div>
+        <div style="height:36px; border-radius:6px; background:${v.color};"></div>
+        <div style="height:36px; border-radius:6px; background:${v.ink};"></div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.08em; color:rgba(26,23,20,0.55); text-transform:uppercase; font-weight:600; line-height:1.7;">
+        H ${v.hue}° &nbsp;·&nbsp; chip / accent / ink
+      </div>
+    `;
+    el.replaceWith(wrap);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibecast — Podcast detail & pinning</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>html,body{margin:0;background:#f0eee9}*{box-sizing:border-box}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="vibecast-shared.jsx"></script>
+<script type="text/babel" src="vibes-shared.jsx"></script>
+<script type="text/babel" src="vibes-rows.jsx"></script>
+<script type="text/babel" src="vibes-playback.jsx"></script>
+<script type="text/babel" src="vibes-vibing-screens.jsx"></script>
+<script type="text/babel" src="vibes-plane-data.jsx"></script>
+<script type="text/babel" src="vibes-detail-pin.jsx"></script>
+<script type="text/babel" data-presets="env,react">
+function Phone({ children }) {
+  return <window.IOSDevice width={402} height={874} dark={false}>{children}</window.IOSDevice>;
+}
+
+function ModelCard() {
+  const Bullet = ({ k, v }) => (
+    <div style={{ display: 'flex', gap: 14, padding: '8px 0', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+      <div style={{ width: 130, fontFamily: '"JetBrains Mono", monospace', fontSize: 10, color: 'rgba(0,0,0,0.55)', letterSpacing: '0.08em', textTransform: 'uppercase', paddingTop: 2, fontWeight: 600 }}>{k}</div>
+      <div style={{ flex: 1, fontSize: 13, lineHeight: 1.5, color: '#1A1714' }}>{v}</div>
+    </div>
+  );
+  return (
+    <div style={{ background: '#FBF7EE', height: '100%', padding: 22, fontFamily: '"Inter", system-ui' }}>
+      <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600 }}>MODEL</div>
+      <div style={{ fontFamily: '"Fraunces", serif', fontSize: 24, fontWeight: 500, letterSpacing: '-0.02em', marginTop: 4, marginBottom: 8 }}>Two kinds of queue items</div>
+      <Bullet k="Show item" v="The default. Always plays the latest unplayed episode of a subscribed show. Persists in the vibe forever." />
+      <Bullet k="Pinned episode" v="A specific episode (often older). Lives in the vibe temporarily. When played, it expires from the queue. Reorderable alongside show items." />
+      <Bullet k="On-a-plane example" v="3 subscribed shows + 3 pinned Blank Check episodes (Pirates 1→2→3) + 1 pinned Rewatchables episode. After landing, only the 3 shows remain." />
+      <Bullet k="Visual cue" v="Pinned items get a vibe-color left edge, a glyph in the position slot, and a 'PINNED' pill. Show items show a 'LATEST' eyebrow. Played pinned items dim and read 'EXPIRED FROM VIBE'." />
+      <Bullet k="Where to pin" v="Podcast detail page → tap the pin button on any episode. Action sheet picks a vibe; the episode joins that queue." />
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <window.DesignCanvas
+      title="Vibecast — Podcast detail & pinning"
+      subtitle="Browse a back catalog, pin specific episodes into a vibe, and watch them expire when played. Built around the 'On a plane' use case."
+    >
+      <window.DCSection
+        id="model"
+        title="The model"
+        subtitle="Vibes hold two kinds of items: subscribed shows (always latest) and pinned episodes (specific, expire on play)."
+      >
+        <window.DCArtboard id="model-card" label="Model" width={560} height={460}>
+          <ModelCard />
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="detail"
+        title="1 · Podcast detail page"
+        subtitle="Tap any podcast in the library to open its detail page. Hero with cover, vibe membership chips, and Play/Pin/Subscribed actions. Episode list shows played history; each episode has a Play button + a Pin-to-vibe button. Tapping pin opens the action sheet."
+      >
+        <window.DCArtboard id="detail-blank-check" label="Blank Check · in 'On a plane'" width={402} height={874}>
+          <Phone><window.PodcastDetailScreen podId="blank-check" pinnedEpIds={['bc-pirates-1', 'bc-pirates-2', 'bc-pirates-3']} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="detail-rewatch" label="Rewatchables · 1 pinned" width={402} height={874}>
+          <Phone><window.PodcastDetailScreen podId="rewatchables" pinnedEpIds={['rw-jaws']} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="detail-conan" label="Conan · no pins" width={402} height={874}>
+          <Phone><window.PodcastDetailScreen podId="conan" /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="pin"
+        title="2 · Pin to vibe"
+        subtitle="Tapping the pin button on an episode brings up a sheet to pick which vibe. The selected vibe takes its accent color; a small caption explains the temporary behavior."
+      >
+        <window.DCArtboard id="pin-sheet" label="Pin sheet · choose vibe" width={402} height={874}>
+          <Phone>
+            <window.PodcastDetailScreen podId="blank-check" highlightEpId="bc-pirates-2" />
+            <window.PinSheet podId="blank-check" epId="bc-pirates-2" anchorVibeId="plane" />
+          </Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="plane-vibe"
+        title="3 · On a plane — the vibe in use"
+        subtitle="Three subscribed shows plus four temporarily pinned episodes. Pinned items wear a vibe-color edge + 'PINNED' pill so the temporary state is unmistakable. Show items show 'LATEST'. The mini player carries the vibe color and queue position as before."
+      >
+        <window.DCArtboard id="plane-default" label="Plane · ready to take off" width={402} height={874}>
+          <Phone><window.OnAPlaneScreen currentPos={0} progress={0} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="plane-active" label="Plane · playing pinned ep 2" width={402} height={874}>
+          <Phone><window.OnAPlaneScreen currentPos={1} progress={42} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="plane-deep" label="Plane · into the show items" width={402} height={874}>
+          <Phone><window.OnAPlaneScreen currentPos={4} progress={28} /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="reorder"
+        title="4 · Reorder mode"
+        subtitle="Tap 'Edit' to enter reorder. Drag handles replace position glyphs; controls collapse so the rows are easy to push around. Pinned and show items reorder freely together."
+      >
+        <window.DCArtboard id="plane-reorder" label="Reorder" width={402} height={874}>
+          <Phone><window.OnAPlaneScreen currentPos={-1} reorder /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="post"
+        title="5 · After playback — pinned items expire"
+        subtitle="The three Blank Check pins played, the Rewatchables pin played. They've left the queue. The vibe is back to its three subscribed shows, ready for the next trip. A small note explains what happened."
+      >
+        <window.DCArtboard id="plane-after" label="After landing" width={402} height={874}>
+          <Phone><window.OnAPlaneScreen currentPos={-1} postPlay /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="open-questions"
+        title="Open questions"
+      >
+        <window.DCArtboard id="oq" label="Open questions" width={520} height={420}>
+          <OpenQs />
+        </window.DCArtboard>
+      </window.DCSection>
+    </window.DesignCanvas>
+  );
+}
+
+function OpenQs() {
+  const Q = ({ q, a }) => (
+    <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+      <div style={{ fontFamily: '"Fraunces", serif', fontSize: 16, fontWeight: 500, letterSpacing: '-0.01em' }}>{q}</div>
+      <div style={{ fontFamily: '"Fraunces", serif', fontStyle: 'italic', fontSize: 13, color: 'rgba(0,0,0,0.62)', marginTop: 4, lineHeight: 1.5 }}>{a}</div>
+    </div>
+  );
+  return (
+    <div style={{ background: '#FBF7EE', height: '100%', padding: 22, fontFamily: '"Inter", system-ui' }}>
+      <Q q="Should pins also expire when manually unpinned?" a="Yes — same effect as playing. The action sheet should support unpin, and a long-press on the row offers it inline." />
+      <Q q="What if a pinned episode and the show's latest are the same episode?" a="Dedupe — show only the pinned version, since the user explicitly chose its position. When played, the show item takes over with the next-newest episode." />
+      <Q q="Can you pin from the vibe view directly?" a="Reach for it from the row's overflow menu — 'Pin another episode of this show' opens the back catalog filtered to that show." />
+      <Q q="What about partially-played pinned episodes?" a="They stay in the queue with their playback position, just like any other resumed episode. Only fully completed ones expire." />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

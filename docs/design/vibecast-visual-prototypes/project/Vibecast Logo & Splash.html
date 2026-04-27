@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibecast — Logo &amp; Splash</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>html,body{margin:0;background:#f0eee9}*{box-sizing:border-box}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="vibes-shared.jsx"></script>
+<script type="text/babel" src="vibe-logos.jsx"></script>
+<script type="text/babel" src="vibe-splash.jsx"></script>
+<script type="text/babel" data-presets="env,react">
+const T = window.VIBE_TOKENS;
+function Phone({ children }) { return <window.IOSDevice width={402} height={874} dark={false}>{children}</window.IOSDevice>; }
+
+function App() {
+  return (
+    <window.DesignCanvas
+      title="Vibecast — Logo &amp; Splash"
+      subtitle="Four directions on canvas: wordmark-led, symbolic mark, cassette/paper hybrid, color-shifting. Plus splash screen treatments."
+    >
+      <window.DCSection
+        id="wordmark"
+        title="1 · Wordmark-led"
+        subtitle="The type IS the mark. Fraunces 500 with negative tracking — the editorial voice we already locked. Variations explore: clean, accent dot (vibe-color), italic, stacked, and a vertical slash separator."
+      >
+        <window.DCArtboard id="wm-clean" label="Clean" width={420} height={260}>
+          <window.MarkFrame label="Wordmark · clean"><window.WordmarkStraight size={64} /></window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="wm-dot" label="Accent dot · primary" width={420} height={260}>
+          <window.MarkFrame label="Wordmark · accent dot"><window.WordmarkAccentDot size={64} /></window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="wm-italic" label="Italic" width={420} height={260}>
+          <window.MarkFrame label="Wordmark · italic"><window.WordmarkItalic size={64} /></window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="wm-stacked" label="Stacked" width={420} height={260}>
+          <window.MarkFrame label="Wordmark · stacked"><window.WordmarkStacked size={50} /></window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="wm-slash" label="Vertical slash" width={420} height={260}>
+          <window.MarkFrame label="Wordmark · slash"><window.WordmarkSlash size={56} /></window.MarkFrame>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="symbolic"
+        title="2 · Symbolic marks"
+        subtitle="Geometric standalone marks. All composed of primitives — circles, rectangles, simple paths. Each can lock up alongside the wordmark or stand alone as the app icon."
+      >
+        <window.DCArtboard id="sym-waves" label="Waves" width={300} height={300}>
+          <window.MarkFrame height={252} label="Soundwaves" sublabel="emanating"><window.MarkWaves size={140} /></window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="sym-stack" label="Vibe stack" width={300} height={300}>
+          <window.MarkFrame height={252} label="Stack" sublabel="vibes as the mark"><window.MarkStack size={140} /></window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="sym-V" label="V monogram" width={300} height={300}>
+          <window.MarkFrame height={252} label="V monogram" sublabel="bars in negative space"><window.MarkVMonogram size={140} /></window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="sym-disc" label="Disc" width={300} height={300}>
+          <window.MarkFrame height={252} label="Disc" sublabel="vibe-color label"><window.MarkDisc size={140} /></window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="sym-bookmark" label="Bookmark" width={300} height={300}>
+          <window.MarkFrame height={252} label="Bookmark" sublabel="nods to pinning"><window.MarkBookmark size={140} /></window.MarkFrame>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="hybrid"
+        title="3 · Cassette / paper hybrid"
+        subtitle="Analog warmth meeting the editorial paper aesthetic. The cassette form is recognizable but understated."
+      >
+        <window.DCArtboard id="hyb-cassette" label="Cassette" width={300} height={260}>
+          <window.MarkFrame height={232} label="Cassette" sublabel="analog warmth"><window.MarkCassette size={150} /></window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="hyb-cassette-lock" label="Cassette lockup" width={500} height={260}>
+          <window.MarkFrame height={232} label="Lockup · cassette + Fraunces">
+            <window.Lockup Mark={window.MarkCassette} size={88} wordSize={42} gap={20} />
+          </window.MarkFrame>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="lockups"
+        title="4 · Lockups"
+        subtitle="Mark + wordmark together. Horizontal for header chrome, vertical for splash and app store."
+      >
+        <window.DCArtboard id="lk-waves-h" label="Waves · horizontal" width={520} height={220}>
+          <window.MarkFrame height={192} label="Lockup · horizontal">
+            <window.Lockup Mark={window.MarkWaves} size={68} wordSize={44} gap={18} />
+          </window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="lk-stack-h" label="Stack · horizontal" width={520} height={220}>
+          <window.MarkFrame height={192} label="Lockup · horizontal">
+            <window.Lockup Mark={window.MarkStack} size={68} wordSize={44} gap={18} />
+          </window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="lk-V-v" label="V · vertical" width={300} height={320}>
+          <window.MarkFrame height={292} label="Lockup · vertical">
+            <window.Lockup Mark={window.MarkVMonogram} vertical size={88} wordSize={36} gap={16} />
+          </window.MarkFrame>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="appicon"
+        title="5 · App icon studies"
+        subtitle="iOS rounded-square explorations. Quiet equalizer with a vibe-colored top bar reads at any size and tints with whichever vibe is featured."
+      >
+        <window.DCArtboard id="ic-default" label="Default · around" width={220} height={260}>
+          <window.MarkFrame height={232} label="App icon" sublabel="around"><window.MarkAppIcon size={140} accent={window.VIBE_HUES[1].color} /></window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="ic-morning" label="Morning" width={220} height={260}>
+          <window.MarkFrame height={232} label="App icon" sublabel="morning"><window.MarkAppIcon size={140} accent={window.VIBE_HUES[0].color} /></window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="ic-workout" label="Workout" width={220} height={260}>
+          <window.MarkFrame height={232} label="App icon" sublabel="workout"><window.MarkAppIcon size={140} accent={window.VIBE_HUES[2].color} /></window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="ic-winddown" label="Wind down" width={220} height={260}>
+          <window.MarkFrame height={232} label="App icon" sublabel="winddown"><window.MarkAppIcon size={140} accent={window.VIBE_HUES[3].color} /></window.MarkFrame>
+        </window.DCArtboard>
+        <window.DCArtboard id="ic-plane" label="Plane" width={220} height={260}>
+          <window.MarkFrame height={232} label="App icon" sublabel="plane"><window.MarkAppIcon size={140} accent={window.VIBE_HUES[4].color} /></window.MarkFrame>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="shifting"
+        title="6 · Color-shifting mark"
+        subtitle="The mark IS the active vibe indicator. Same mark, takes the current vibe's color. In the app it cross-fades when you switch vibes — your home screen tells you what mood you're in."
+      >
+        {window.VIBE_HUES.map((v, i) => (
+          <window.DCArtboard key={v.id} id={`shift-${v.id}`} label={`Shift · ${v.id}`} width={220} height={260}>
+            <window.MarkFrame height={232} label={`Color-shift · ${v.id}`}>
+              <window.MarkWaves size={120} color={T.ink} accent={v.color} />
+            </window.MarkFrame>
+          </window.DCArtboard>
+        ))}
+      </window.DCSection>
+
+      <window.DCSection
+        id="splash"
+        title="7 · Splash screens"
+        subtitle="Five splash treatments on a real phone canvas. Quiet to expressive."
+      >
+        <window.DCArtboard id="sp-wordmark" label="Splash · accent dot" width={402} height={874}>
+          <Phone><window.SplashWordmark /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="sp-stack" label="Splash · vibe stack" width={402} height={874}>
+          <Phone><window.SplashStack /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="sp-bleed-1" label="Splash · color bleed (around)" width={402} height={874}>
+          <Phone><window.SplashColorBleed vibeIndex={1} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="sp-bleed-2" label="Splash · color bleed (morning)" width={402} height={874}>
+          <Phone><window.SplashColorBleed vibeIndex={0} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="sp-italic" label="Splash · italic only" width={402} height={874}>
+          <Phone><window.SplashItalic /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="sp-radiate" label="Splash · app icon + paper" width={402} height={874}>
+          <Phone><window.SplashRadiate /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="rec" title="My recommendation">
+        <window.DCArtboard id="rec-card" label="Recommendation" width={620} height={420}>
+          <RecCard />
+        </window.DCArtboard>
+      </window.DCSection>
+    </window.DesignCanvas>
+  );
+}
+
+function RecCard() {
+  const Row = ({ k, v }) => (
+    <div style={{ display: 'flex', gap: 16, padding: '10px 0', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+      <div style={{ width: 120, fontFamily: T.mono, fontSize: 10, color: 'rgba(0,0,0,0.55)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2, fontWeight: 600 }}>{k}</div>
+      <div style={{ flex: 1, fontSize: 14, lineHeight: 1.55, color: T.ink }}>{v}</div>
+    </div>
+  );
+  return (
+    <div style={{ background: T.paper, height: '100%', padding: 24, fontFamily: T.sans }}>
+      <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600 }}>RECOMMENDATION</div>
+      <div style={{ fontFamily: T.serif, fontSize: 26, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 4, marginBottom: 6 }}>Wordmark-led, symbol secondary.</div>
+      <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 14, color: 'rgba(0,0,0,0.62)', marginBottom: 8 }}>The editorial type IS the brand. The symbol earns its place only as the app icon.</div>
+      <Row k="Primary mark" v="Fraunces 500 wordmark with the accent-dot variant. The dot becomes the vibe-color cue when you're vibing — same wordmark, but it 'lights up' in context." />
+      <Row k="App icon" v="The equalizer-bar tile. It's distinct on a home screen, speaks 'audio,' and the color-shifting top bar lets us tint the icon to match a featured or recently-used vibe." />
+      <Row k="Splash" v="Splash · accent dot — quiet, paper-warm, italic tagline. Five-frame option exists if we want a sub-second 'unfurl' animation where bars draw in then collapse into the dot." />
+      <Row k="What I'd skip" v="Cassette and disc — too on-the-nose for podcasts and pulls the brand toward retro. The editorial voice is more interesting than analog nostalgia." />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

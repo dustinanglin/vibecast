@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibecast — Start Vibing</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>html,body{margin:0;background:#f0eee9}*{box-sizing:border-box}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="vibecast-shared.jsx"></script>
+<script type="text/babel" src="vibes-shared.jsx"></script>
+<script type="text/babel" src="vibes-rows.jsx"></script>
+<script type="text/babel" src="vibes-playback.jsx"></script>
+<script type="text/babel" src="vibes-vibing-screens.jsx"></script>
+<script type="text/babel" data-presets="env,react">
+function Phone({ children }) {
+  return <window.IOSDevice width={402} height={874} dark={false}>{children}</window.IOSDevice>;
+}
+
+// Row state reference card — shows all 5 states stacked.
+function RowStatesRef() {
+  const vibe = window.VIBE_BY_ID['around'];
+  const pods = window.VIBE_ORDER['around'].map(id => window.PODCAST_BY_ID[id]);
+  const states = [
+    { i: 0, label: 'Played' },
+    { i: 1, label: 'Now playing' },
+    { i: 1, label: 'Paused', paused: true },
+    { i: 2, label: 'Up next' },
+    { i: 3, label: 'Queued' },
+  ];
+  return (
+    <div style={{ background: '#FBF7EE', height: '100%', padding: 22, fontFamily: '"Inter", system-ui' }}>
+      <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600 }}>REFERENCE</div>
+      <div style={{ fontFamily: '"Fraunces", serif', fontSize: 24, fontWeight: 500, letterSpacing: '-0.02em', marginTop: 4, marginBottom: 14 }}>Row states</div>
+      {states.map((s, k) => {
+        // Override status to demonstrate
+        const status = s.label === 'Played' ? 'played'
+          : s.label === 'Now playing' ? 'now'
+          : s.label === 'Paused' ? 'paused'
+          : s.label === 'Up next' ? 'next'
+          : 'queued';
+        return (
+          <div key={k} style={{ marginBottom: 8 }}>
+            <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600, marginBottom: 4, marginLeft: 4 }}>{s.label}</div>
+            <window.PlaybackRow pod={pods[s.i]} pos={s.i} vibe={vibe} status={status} progressPct={status === 'now' || status === 'paused' ? 38 : 0} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function App() {
+  const [pos, setPos] = React.useState(1);
+  return (
+    <window.DesignCanvas
+      title="Vibecast — Start Vibing"
+      subtitle="Playback experience for an active vibe. Both row affordances AND the global mini player — they serve different purposes."
+    >
+      <window.DCSection
+        id="states"
+        title="1 · Row states"
+        subtitle="Each row in the queue broadcasts its state at a glance: now-playing has an animated waveform indicator + accent border + progress sliver; up-next gets a labeled badge; played dims with a check; queued is the default. The right-side button is contextual — pause when active, play when paused, replay when played, skip-to when queued."
+      >
+        <window.DCArtboard id="states-ref" label="State reference" width={420} height={620}>
+          <RowStatesRef />
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="vibing"
+        title="2 · Vibing — full screen"
+        subtitle="Around town vibe in progress. First row is played (dimmed), second is now-playing (accent border + waveform), third is up-next, rest are queued. Mini player at the bottom carries vibe color + queue position. Tap any row to skip there."
+      >
+        <window.DCArtboard id="vibing-active" label="Vibing · playing" width={402} height={874}>
+          <Phone><window.VibingScreen vibeId="around" currentPos={1} progress={38} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="vibing-mid" label="Vibing · further in" width={402} height={874}>
+          <Phone><window.VibingScreen vibeId="around" currentPos={3} progress={62} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="vibing-paused" label="Paused" width={402} height={874}>
+          <Phone><window.VibingScreen vibeId="around" currentPos={1} paused progress={38} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="vibing-morning" label="Different vibe · Morning" width={402} height={874}>
+          <Phone><window.VibingScreen vibeId="morning" currentPos={1} progress={50} /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="np"
+        title="3 · Now Playing"
+        subtitle="Tapping the mini player expands to a full Now Playing screen — vibe-aware: header says 'Vibing · Around town', play button takes the vibe's color, and there's an Up Next ribbon at the bottom for one-tap skip-ahead."
+      >
+        <window.DCArtboard id="np-around" label="Now Playing · Around town" width={402} height={874}>
+          <Phone><window.VibingNowPlaying vibeId="around" currentPos={1} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="np-morning" label="Now Playing · Morning" width={402} height={874}>
+          <Phone><window.VibingNowPlaying vibeId="morning" currentPos={1} /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="complete"
+        title="4 · Vibe complete"
+        subtitle="What you see when you finish the queue. Quiet celebration — restart, or pick a new vibe."
+      >
+        <window.DCArtboard id="done" label="Vibe complete" width={402} height={874}>
+          <Phone><window.VibingCompleteScreen vibeId="morning" /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="rationale" title="Why both row + mini player">
+        <window.DCArtboard id="why" label="Rationale" width={520} height={460}>
+          <RationaleCard />
+        </window.DCArtboard>
+      </window.DCSection>
+    </window.DesignCanvas>
+  );
+}
+
+function RationaleCard() {
+  const Bullet = ({ k, v }) => (
+    <div style={{ display: 'flex', gap: 14, padding: '8px 0', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+      <div style={{ width: 110, fontFamily: '"JetBrains Mono", monospace', fontSize: 10, color: 'rgba(0,0,0,0.55)', letterSpacing: '0.08em', textTransform: 'uppercase', paddingTop: 2, fontWeight: 600 }}>{k}</div>
+      <div style={{ flex: 1, fontSize: 13, lineHeight: 1.5, color: '#1A1714' }}>{v}</div>
+    </div>
+  );
+  return (
+    <div style={{ background: '#FBF7EE', height: '100%', padding: 22, fontFamily: '"Inter", system-ui' }}>
+      <div style={{ fontFamily: '"Fraunces", serif', fontSize: 22, fontWeight: 500, letterSpacing: '-0.02em', marginBottom: 12 }}>
+        Both row controls and a mini player.
+      </div>
+      <Bullet k="Mini player" v="Persistent, global. Carries playback across screens (Library, Vibe picker, Settings). Always visible while audio plays. Vibe color stripe + queue position adds context without being loud." />
+      <Bullet k="Row controls" v="Local to the queue view. Communicate state for every show in your vibe — what's done, what's next, what's playing. Tappable to skip directly to that show. Without these, the queue is just a static list." />
+      <Bullet k="Now Playing button" v="Bigger, vibe-colored, with an Up Next ribbon. Replaces solo Now Playing with a vibe-aware version when you're vibing — you almost always want to know what's after this one." />
+      <Bullet k="Tap targets" v="The whole row is tappable to skip. The right-side button is the explicit affordance and shows the action that will happen (play / pause / replay)." />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibecast — Visual Punch-up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; background: #f0eee9; font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="vibecast-shared.jsx"></script>
+<script type="text/babel" src="vibecast-A.jsx"></script>
+<script type="text/babel" src="vibecast-B.jsx"></script>
+<script type="text/babel" src="vibecast-C.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+const { useState } = React;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accentA": "#7AB8FF",
+  "accentB": "#C24A2C",
+  "showAccents": true,
+  "density": "comfortable",
+  "showFrames": true
+}/*EDITMODE-END*/;
+
+// Wrap an iOS-styled artboard with the iOS frame
+function Phone({ children, dark = true, w = 402, h = 874 }) {
+  return <window.IOSDevice width={w} height={h} dark={dark}>{children}</window.IOSDevice>;
+}
+
+function App() {
+  const [tweaks, setTweaks] = window.useTweaks(TWEAK_DEFAULTS);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+
+  // Listen for tweaks toggle from host
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      if (!e.data) return;
+      if (e.data.type === '__activate_edit_mode') setTweaksOpen(true);
+      if (e.data.type === '__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  return (
+    <div>
+      <window.DesignCanvas
+        title="Vibecast — visual punch-up"
+        subtitle="Three directions for the player + library. Drag artboards to compare. Click ⤢ to focus any one."
+      >
+        <window.DCSection
+          id="dir-a"
+          title="A · Refined Dark"
+          subtitle="Same DNA as the current build. Warmer near-black, better hierarchy, accent that lives in the show. Lowest-risk visual upgrade."
+        >
+          <window.DCArtboard id="a-lib" label="Library" width={402} height={874}>
+            <Phone><window.A_Library accent={tweaks.accentA} /></Phone>
+          </window.DCArtboard>
+          <window.DCArtboard id="a-show" label="Show detail" width={402} height={874}>
+            <Phone><window.A_Show accent={tweaks.accentA} /></Phone>
+          </window.DCArtboard>
+          <window.DCArtboard id="a-np" label="Now Playing" width={402} height={874}>
+            <Phone><window.A_NowPlaying accent={tweaks.accentA} /></Phone>
+          </window.DCArtboard>
+        </window.DCSection>
+
+        <window.DCSection
+          id="dir-b"
+          title="B · Editorial"
+          subtitle="Cream paper, Fraunces serif for titles, mono for metadata. Reads like a curated weekly. Best for a brand that wants 'considered'."
+        >
+          <window.DCArtboard id="b-lib" label="Library" width={402} height={874}>
+            <Phone dark={false}><window.B_Library accent={tweaks.accentB} /></Phone>
+          </window.DCArtboard>
+          <window.DCArtboard id="b-show" label="Show detail" width={402} height={874}>
+            <Phone dark={false}><window.B_Show accent={tweaks.accentB} /></Phone>
+          </window.DCArtboard>
+          <window.DCArtboard id="b-np" label="Now Playing" width={402} height={874}>
+            <Phone dark={false}><window.B_NowPlaying accent={tweaks.accentB} /></Phone>
+          </window.DCArtboard>
+        </window.DCSection>
+
+        <window.DCSection
+          id="dir-c"
+          title="C · Expressive"
+          subtitle="Big display type, full-bleed color pulled from each show's artwork, animated waveforms. The 'Spotify-y' direction with more personality."
+        >
+          <window.DCArtboard id="c-lib" label="Library" width={402} height={874}>
+            <Phone><window.C_Library /></Phone>
+          </window.DCArtboard>
+          <window.DCArtboard id="c-show" label="Show detail" width={402} height={874}>
+            <Phone><window.C_Show /></Phone>
+          </window.DCArtboard>
+          <window.DCArtboard id="c-np" label="Now Playing" width={402} height={874}>
+            <Phone><window.C_NowPlaying /></Phone>
+          </window.DCArtboard>
+        </window.DCSection>
+
+        <window.DCSection
+          id="notes"
+          title="Notes for the Swift handoff"
+          subtitle=""
+        >
+          <window.DCArtboard id="notes-1" label="Tokens & ideas" width={520} height={620}>
+            <NotesCard />
+          </window.DCArtboard>
+        </window.DCSection>
+      </window.DesignCanvas>
+
+      {tweaksOpen && (
+        <window.TweaksPanel title="Tweaks" onClose={() => setTweaksOpen(false)}>
+          <window.TweakSection title="Direction A — accent">
+            <window.TweakColor label="Blue accent" value={tweaks.accentA} onChange={v => setTweaks({ accentA: v })} />
+          </window.TweakSection>
+          <window.TweakSection title="Direction B — accent">
+            <window.TweakColor label="Terracotta" value={tweaks.accentB} onChange={v => setTweaks({ accentB: v })} />
+          </window.TweakSection>
+          <window.TweakSection title="Tip">
+            <div style={{ fontSize: 12, opacity: 0.8, lineHeight: 1.5 }}>
+              Direction C uses per-show hues — each show "owns" its color. Accent overrides only apply to A & B.
+            </div>
+          </window.TweakSection>
+        </window.TweaksPanel>
+      )}
+    </div>
+  );
+}
+
+function NotesCard() {
+  const Item = ({ k, v }) => (
+    <div style={{ display: 'flex', gap: 14, padding: '8px 0', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+      <div style={{ width: 110, fontFamily: '"JetBrains Mono", ui-monospace, monospace', fontSize: 10, color: 'rgba(0,0,0,0.55)', letterSpacing: '0.08em', textTransform: 'uppercase', paddingTop: 2 }}>{k}</div>
+      <div style={{ flex: 1, fontSize: 13, color: '#1A1714', lineHeight: 1.5 }}>{v}</div>
+    </div>
+  );
+  return (
+    <div style={{ background: '#FBF7EE', height: '100%', padding: 24, fontFamily: '"Inter", system-ui, sans-serif' }}>
+      <div style={{ fontFamily: '"Fraunces", serif', fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em' }}>Concrete things to lift</div>
+      <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.6)', marginTop: 4, marginBottom: 12 }}>
+        Even if you stay close to today's UI, these moves carry most of the weight.
+      </div>
+      <Item k="Background" v="Swap pure #000 for warm near-black (#0B0B0E). Reduces the 'AMOLED void' feel without losing dark mode." />
+      <Item k="Artwork fallback" v="Per-show duotone block + serif initials beats the universal mic glyph. Deterministic from show ID." />
+      <Item k="Accent color" v="Pull from artwork (or per-show hue if no artwork). Apply to: progress bars, in-progress ring, section eyebrows, mini-player progress sliver." />
+      <Item k="Hierarchy" v="Add an eyebrow line (tiny uppercase, accent-colored) above section titles. Costs nothing, instantly more 'designed'." />
+      <Item k="List rows" v="Hairlines instead of card backgrounds for the episode list (current density). Surface only the featured row." />
+      <Item k="Now Playing" v="Replace flat track scrubber with a dual-layer waveform. Big art, ambient color glow behind, transport row stays familiar." />
+      <Item k="Mini player" v="Liquid-glass pill with progress sliver across the top edge. Tap to expand transitions to Now Playing artwork." />
+      <Item k="Type" v="Inter for UI everywhere. Optional Fraunces (only B) for titles if you want editorial. SF system stack works fine too." />
+      <Item k="Mono" v="Use JetBrains Mono / SF Mono for timestamps, durations, episode numbers. Solves alignment and adds character." />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

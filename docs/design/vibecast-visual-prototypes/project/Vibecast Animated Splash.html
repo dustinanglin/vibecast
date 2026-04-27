@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibecast — Animated Splash</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>html,body{margin:0;background:#f0eee9}*{box-sizing:border-box}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="vibes-shared.jsx"></script>
+<script type="text/babel" src="vibe-logos.jsx"></script>
+<script type="text/babel" data-presets="env,react">
+const T = window.VIBE_TOKENS;
+const HUES = window.VIBE_HUES;
+
+// Sample copy that paints alongside the band — keeps the "this is for picking a mood" idea alive.
+const VIBE_COPY = {
+  morning:  { label: 'Morning',   tagline: 'ease into it.' },
+  around:   { label: 'Around',    tagline: 'background, but better.' },
+  workout:  { label: 'Workout',   tagline: 'pulse up.' },
+  winddown: { label: 'Wind down', tagline: 'lights low.' },
+  plane:    { label: 'On a plane', tagline: 'thirty thousand feet.' },
+};
+
+// Order the swipe goes through. Slightly different from the canonical order
+// so it reads like a story rather than a list — warm, calm, energetic, soft, deep.
+const SWIPE_ORDER = ['morning', 'around', 'workout', 'winddown', 'plane'];
+
+// ── Animated Splash — bottom horizon variant ──────────────
+// Phases:
+//   0–600ms      paper bg only
+//   600–1200ms   wordmark fades in + first vibe band rises from 0 → 38% h
+//   1200ms+      band cycles through SWIPE_ORDER, dot color crossfades in lockstep
+//   end          settles on default ("around") and tagline becomes "Listen with intent."
+function SplashAnimatedHorizon({ playKey = 0, loop = true, holdMs = 900, fadeMs = 320 }) {
+  const [stage, setStage] = React.useState('intro'); // 'intro' | 'cycle' | 'settle'
+  const [vi, setVi] = React.useState(0);
+
+  React.useEffect(() => {
+    let timers = [];
+    setStage('intro'); setVi(0);
+    timers.push(setTimeout(() => setStage('cycle'), 800));
+    return () => timers.forEach(clearTimeout);
+  }, [playKey]);
+
+  React.useEffect(() => {
+    if (stage !== 'cycle') return;
+    const t = setTimeout(() => {
+      if (vi < SWIPE_ORDER.length - 1) setVi(vi + 1);
+      else if (loop) {
+        // brief settle then restart
+        setStage('settle');
+        setTimeout(() => { setStage('intro'); setVi(0); setTimeout(() => setStage('cycle'), 600); }, 1400);
+      } else setStage('settle');
+    }, holdMs);
+    return () => clearTimeout(t);
+  }, [stage, vi, loop, holdMs]);
+
+  const activeId = SWIPE_ORDER[vi];
+  const v = HUES.find(h => h.id === activeId);
+  const copy = VIBE_COPY[activeId];
+  const settled = stage === 'settle';
+
+  return (
+    <div style={{ background: T.bg, height: '100%', position: 'relative', overflow: 'hidden' }}>
+      {/* The bottom band — fixed shape, color crossfades */}
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0, height: '38%',
+        background: v.color, opacity: stage === 'intro' ? 0 : 0.20,
+        transition: `background ${fadeMs}ms ease, opacity 600ms ease`,
+      }} />
+      {/* Hairline horizon */}
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: '38%', height: 2,
+        background: v.color, opacity: stage === 'intro' ? 0 : 0.55,
+        transition: `background ${fadeMs}ms ease, opacity 600ms ease`,
+      }} />
+
+      {/* Wordmark + accent dot */}
+      <div style={{
+        position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        paddingBottom: '12%',
+        opacity: stage === 'intro' ? 0 : 1, transform: `translateY(${stage === 'intro' ? 8 : 0}px)`,
+        transition: 'opacity 500ms ease, transform 500ms ease',
+      }}>
+        <AnimatedWordmark color={T.ink} accent={v.color} fadeMs={fadeMs} size={64} />
+      </div>
+
+      {/* Sample vibe text — sits over the band on the right side, paired with a dot */}
+      <div style={{
+        position: 'absolute', left: 24, right: 24, bottom: 96,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        opacity: stage === 'intro' ? 0 : 1,
+        transition: 'opacity 500ms ease 200ms',
+      }}>
+        <SwipeRow vi={vi} settled={settled} />
+      </div>
+
+      {/* Tagline at very bottom — same slot as the static splash */}
+      <div style={{
+        position: 'absolute', bottom: 30, left: 0, right: 0, textAlign: 'center',
+        fontFamily: T.serif, fontStyle: 'italic', fontSize: 13, color: 'rgba(26,23,20,0.65)',
+        opacity: stage === 'intro' ? 0 : 1, transition: 'opacity 600ms ease 300ms',
+      }}>
+        {settled ? 'Listen with intent.' : 'Pick your vibe.'}
+      </div>
+    </div>
+  );
+}
+
+function AnimatedWordmark({ color, accent, size = 64, fadeMs = 320 }) {
+  // Reproduces WordmarkAccentDot but with a transitioning dot color
+  return (
+    <span style={{ fontFamily: T.serif, fontSize: size, fontWeight: 500, letterSpacing: '-0.035em', color, lineHeight: 1, display: 'inline-flex', alignItems: 'flex-end' }}>
+      Vibecast
+      <span style={{
+        width: size * 0.14, height: size * 0.14, borderRadius: 999,
+        background: accent, marginLeft: size * 0.04, marginBottom: size * 0.07,
+        transition: `background ${fadeMs}ms ease`,
+      }} />
+    </span>
+  );
+}
+
+// The little vibe-row teaser. We render the active row (label + dot) and a
+// faint "next-up" preview underneath so the splash hints at multiplicity.
+function SwipeRow({ vi, settled }) {
+  const v = HUES.find(h => h.id === SWIPE_ORDER[vi]);
+  const copy = VIBE_COPY[SWIPE_ORDER[vi]];
+  if (settled) {
+    return (
+      <div style={{ flex: 1, textAlign: 'center', fontFamily: T.mono, fontSize: 9, letterSpacing: '0.20em', color: 'rgba(26,23,20,0.40)', textTransform: 'uppercase', fontWeight: 600 }}>
+        FIVE VIBES · ONE PLAYER
+      </div>
+    );
+  }
+  return (
+    <div key={vi} style={{ display: 'flex', alignItems: 'center', gap: 12, animation: 'splashRowIn 380ms ease both', width: '100%' }}>
+      <div style={{ width: 10, height: 10, borderRadius: 999, background: v.color, flexShrink: 0 }} />
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flex: 1 }}>
+        <span style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em', color: T.ink }}>{copy.label}</span>
+        <span style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 14, color: 'rgba(26,23,20,0.55)' }}>{copy.tagline}</span>
+      </div>
+      <div style={{ display: 'flex', gap: 4 }}>
+        {SWIPE_ORDER.map((id, i) => (
+          <div key={id} style={{ width: 16, height: 2, background: i === vi ? T.ink : 'rgba(26,23,20,0.18)', transition: 'background 300ms ease' }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Side-band variant — same animation logic, side band instead ────
+function SplashAnimatedSide({ playKey = 0, loop = true, holdMs = 900, fadeMs = 320 }) {
+  const [stage, setStage] = React.useState('intro');
+  const [vi, setVi] = React.useState(0);
+
+  React.useEffect(() => {
+    setStage('intro'); setVi(0);
+    const t = setTimeout(() => setStage('cycle'), 800);
+    return () => clearTimeout(t);
+  }, [playKey]);
+
+  React.useEffect(() => {
+    if (stage !== 'cycle') return;
+    const t = setTimeout(() => {
+      if (vi < SWIPE_ORDER.length - 1) setVi(vi + 1);
+      else if (loop) {
+        setStage('settle');
+        setTimeout(() => { setStage('intro'); setVi(0); setTimeout(() => setStage('cycle'), 600); }, 1400);
+      } else setStage('settle');
+    }, holdMs);
+    return () => clearTimeout(t);
+  }, [stage, vi, loop, holdMs]);
+
+  const v = HUES.find(h => h.id === SWIPE_ORDER[vi]);
+  const copy = VIBE_COPY[SWIPE_ORDER[vi]];
+  const settled = stage === 'settle';
+
+  return (
+    <div style={{ background: T.bg, height: '100%', position: 'relative', overflow: 'hidden' }}>
+      <div style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0, width: '14%',
+        background: v.color, opacity: stage === 'intro' ? 0 : 0.85,
+        transition: `background ${fadeMs}ms ease, opacity 600ms ease`,
+      }} />
+      <div style={{
+        position: 'absolute', left: '14%', top: 0, bottom: 0, width: '6%',
+        background: v.color, opacity: stage === 'intro' ? 0 : 0.32,
+        transition: `background ${fadeMs}ms ease, opacity 600ms ease`,
+      }} />
+
+      <div style={{
+        position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        paddingLeft: '10%',
+        opacity: stage === 'intro' ? 0 : 1, transform: `translateY(${stage === 'intro' ? 8 : 0}px)`,
+        transition: 'opacity 500ms ease, transform 500ms ease',
+      }}>
+        <AnimatedWordmark color={T.ink} accent={v.color} fadeMs={fadeMs} size={56} />
+      </div>
+
+      <div style={{
+        position: 'absolute', left: '26%', right: 24, bottom: 100,
+        opacity: stage === 'intro' ? 0 : 1, transition: 'opacity 500ms ease 200ms',
+      }}>
+        {settled ? (
+          <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.20em', color: 'rgba(26,23,20,0.40)', textTransform: 'uppercase', fontWeight: 600 }}>FIVE VIBES · ONE PLAYER</div>
+        ) : (
+          <div key={vi} style={{ animation: 'splashRowIn 380ms ease both' }}>
+            <div style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 500, letterSpacing: '-0.025em', color: T.ink, lineHeight: 1.1 }}>{copy.label}</div>
+            <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 13, color: 'rgba(26,23,20,0.55)', marginTop: 2 }}>{copy.tagline}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Replay control + phone wrapper ─────────────────────────
+function ReplayPhone({ children, onReplay, label }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+      {children}
+      <button onClick={onReplay} style={{
+        fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 600,
+        background: T.ink, color: T.paper, border: 'none', padding: '10px 18px', borderRadius: 999, cursor: 'pointer',
+      }}>↻ Replay {label}</button>
+    </div>
+  );
+}
+
+function App() {
+  const [k1, setK1] = React.useState(0);
+  const [k2, setK2] = React.useState(0);
+  return (
+    <window.DesignCanvas
+      title="Vibecast — Animated splash"
+      subtitle="Splash that swipes through vibes on launch. Fade in → cycle 5 colors (~900ms each) → settle on default. Dot in the wordmark, side/bottom band, and sample vibe label all crossfade together. Press replay to re-watch."
+    >
+      <window.DCSection
+        id="anim-bottom"
+        title="A · Bottom horizon · animated"
+        subtitle="The pick. Wordmark settles, then the band underneath cycles through morning → around → workout → wind down → plane. The dot in the wordmark and a small chip under the wordmark stay in sync. Quiet but the multiplicity is unmistakable."
+      >
+        <window.DCArtboard id="anim-h-phone" label="Animated · phone" width={460} height={1000}>
+          <ReplayPhone onReplay={() => setK1(k => k + 1)} label="bottom">
+            <window.IOSDevice width={402} height={874} dark={false}>
+              <SplashAnimatedHorizon playKey={k1} loop holdMs={950} fadeMs={340} />
+            </window.IOSDevice>
+          </ReplayPhone>
+        </window.DCArtboard>
+        <window.DCArtboard id="anim-h-storyboard" label="Storyboard" width={1340} height={460}>
+          <Storyboard variant="horizon" />
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="anim-side"
+        title="B · Side band · animated"
+        subtitle="Same animation, side-band shape. The vertical color reads more like a 'bookmark' or section tab — feels editorial. Slightly more present than the horizon."
+      >
+        <window.DCArtboard id="anim-s-phone" label="Animated · phone" width={460} height={1000}>
+          <ReplayPhone onReplay={() => setK2(k => k + 1)} label="side">
+            <window.IOSDevice width={402} height={874} dark={false}>
+              <SplashAnimatedSide playKey={k2} loop holdMs={950} fadeMs={340} />
+            </window.IOSDevice>
+          </ReplayPhone>
+        </window.DCArtboard>
+        <window.DCArtboard id="anim-s-storyboard" label="Storyboard" width={1340} height={460}>
+          <Storyboard variant="side" />
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="rec" title="Notes">
+        <window.DCArtboard id="rec-card" label="Notes & next" width={620} height={420}>
+          <NotesCard />
+        </window.DCArtboard>
+      </window.DCSection>
+    </window.DesignCanvas>
+  );
+}
+
+// ── Storyboard: 5 stills showing each frame in sequence ─────
+function Storyboard({ variant }) {
+  return (
+    <div style={{ background: T.paper, height: '100%', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600 }}>STORYBOARD · {variant === 'horizon' ? 'BOTTOM HORIZON' : 'SIDE BAND'}</div>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
+        {SWIPE_ORDER.map((id, i) => {
+          const v = HUES.find(h => h.id === id);
+          const copy = VIBE_COPY[id];
+          return (
+            <div key={id} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.45)', fontWeight: 600 }}>0:{(i * 0.95 + 0.6).toFixed(2).replace('.', '·')}s</div>
+              <div style={{ background: T.bg, height: 320, borderRadius: 12, position: 'relative', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)' }}>
+                {variant === 'horizon' ? (
+                  <>
+                    <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '38%', background: v.color, opacity: 0.20 }} />
+                    <div style={{ position: 'absolute', left: 0, right: 0, bottom: '38%', height: 2, background: v.color, opacity: 0.55 }} />
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '14%' }}>
+                      <window.WordmarkAccentDot color={T.ink} accent={v.color} size={26} />
+                    </div>
+                    <div style={{ position: 'absolute', bottom: 28, left: 12, right: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: 999, background: v.color }} />
+                      <span style={{ fontFamily: T.serif, fontSize: 13, fontWeight: 500, letterSpacing: '-0.02em', color: T.ink }}>{copy.label}</span>
+                      <span style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 10, color: 'rgba(26,23,20,0.55)' }}>{copy.tagline}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '14%', background: v.color, opacity: 0.85 }} />
+                    <div style={{ position: 'absolute', left: '14%', top: 0, bottom: 0, width: '6%', background: v.color, opacity: 0.32 }} />
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '10%' }}>
+                      <window.WordmarkAccentDot color={T.ink} accent={v.color} size={22} />
+                    </div>
+                    <div style={{ position: 'absolute', left: '26%', right: 12, bottom: 30 }}>
+                      <div style={{ fontFamily: T.serif, fontSize: 13, fontWeight: 500, color: T.ink, letterSpacing: '-0.02em' }}>{copy.label}</div>
+                      <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 10, color: 'rgba(26,23,20,0.55)' }}>{copy.tagline}</div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function NotesCard() {
+  const Row = ({ k, v }) => (
+    <div style={{ display: 'flex', gap: 16, padding: '10px 0', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+      <div style={{ width: 110, fontFamily: T.mono, fontSize: 10, color: 'rgba(0,0,0,0.55)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2, fontWeight: 600 }}>{k}</div>
+      <div style={{ flex: 1, fontSize: 14, lineHeight: 1.55, color: T.ink }}>{v}</div>
+    </div>
+  );
+  return (
+    <div style={{ background: T.paper, height: '100%', padding: 24, fontFamily: T.sans }}>
+      <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600 }}>ANIMATION SPEC</div>
+      <div style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 4, marginBottom: 6 }}>Pick your vibe → settle.</div>
+      <Row k="Total length" v="~5.5s. Long for a splash but acceptable on first install / cold start; subsequent launches can short-circuit to the settled frame." />
+      <Row k="Timing" v="Fade in 600ms · hold each vibe 950ms · color crossfade 340ms · settle on 'around' (default) and tagline swap." />
+      <Row k="In sync" v="Three things crossfade together on every step: dot in wordmark, the band, and the small chip under the wordmark. One color, three places — same as the static brand thread." />
+      <Row k="Cold vs warm" v="On first launch run the full sequence. On subsequent launches play just the fade-in of the wordmark + tinted band for the user's most-recent vibe. Splash tells you 'you're back, in this mood.'" />
+      <Row k="Reduced motion" v="Honor prefers-reduced-motion: skip the cycle, just fade in the static splash on the user's most-recent vibe." />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+<style>
+@keyframes splashRowIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+</body>
+</html>

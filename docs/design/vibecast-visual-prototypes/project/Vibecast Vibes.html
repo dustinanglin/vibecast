@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibecast — Vibes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; background: #f0eee9; font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="vibecast-shared.jsx"></script>
+<script type="text/babel" src="vibes-shared.jsx"></script>
+<script type="text/babel" src="vibes-rows.jsx"></script>
+<script type="text/babel" src="vibes-screens.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+function Phone({ children }) {
+  return <window.IOSDevice width={402} height={874} dark={false}>{children}</window.IOSDevice>;
+}
+
+function App() {
+  return (
+    <window.DesignCanvas
+      title="Vibecast — Vibes"
+      subtitle="The home page is your followed shows in your custom order. Vibes are color-coded playlists you can quick-filter into. Built on Direction B (editorial)."
+    >
+      {/* ─── Row treatment iterations ─── */}
+      <window.DCSection
+        id="rows"
+        title="1 · How vibes show up on a row"
+        subtitle="Four ways to attach color to a podcast row when you have multiple vibes per show. Each phone shows the same All-Vibes list — just the row component differs."
+      >
+        <window.DCArtboard id="row-stripe" label="A · Color stripe" width={402} height={874}>
+          <Phone><window.AllVibesScreen Row={window.PodcastRowStripe} label="ROW VARIANT · STRIPE" /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="row-chips" label="B · Vibe chips" width={402} height={874}>
+          <Phone><window.AllVibesScreen Row={window.PodcastRowChips} label="ROW VARIANT · CHIPS" /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="row-dots" label="C · Color dots" width={402} height={874}>
+          <Phone><window.AllVibesScreen Row={window.PodcastRowDots} label="ROW VARIANT · DOTS" /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="row-tint" label="D · Tinted card" width={402} height={874}>
+          <Phone><window.AllVibesScreen Row={window.PodcastRowTint} label="ROW VARIANT · TINTED CARDS" /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      {/* ─── Filtered view ─── */}
+      <window.DCSection
+        id="filtered"
+        title="2 · Filtered into a single vibe"
+        subtitle="Tap a vibe chip and the home page collapses to just that vibe's podcasts in their custom order. Tinted hero band picks up the vibe color."
+      >
+        <window.DCArtboard id="f-morning" label="Morning routine" width={402} height={874}>
+          <Phone><window.VibeFilteredScreen vibeId="morning" Row={window.PodcastRowDots} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="f-around" label="Around town" width={402} height={874}>
+          <Phone><window.VibeFilteredScreen vibeId="around" Row={window.PodcastRowDots} /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="f-winddown" label="Wind down" width={402} height={874}>
+          <Phone><window.VibeFilteredScreen vibeId="winddown" Row={window.PodcastRowDots} /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      {/* ─── Vibe management ─── */}
+      <window.DCSection
+        id="manage"
+        title="3 · Vibe picker + edit"
+        subtitle="A picker entry point (e.g. via a quick action) and the editor where the user sets the order and color of each vibe."
+      >
+        <window.DCArtboard id="picker" label="Vibe picker" width={402} height={874}>
+          <Phone><window.VibePickerScreen /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="edit-morning" label="Edit · Morning" width={402} height={874}>
+          <Phone><window.VibeEditScreen vibeId="morning" /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="edit-around" label="Edit · Around town" width={402} height={874}>
+          <Phone><window.VibeEditScreen vibeId="around" /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      {/* ─── Notes ─── */}
+      <window.DCSection id="notes" title="Open questions">
+        <window.DCArtboard id="qs" label="Questions to settle" width={520} height={520}>
+          <NotesCard />
+        </window.DCArtboard>
+      </window.DCSection>
+    </window.DesignCanvas>
+  );
+}
+
+function NotesCard() {
+  const Q = ({ q, a }) => (
+    <div style={{ padding: '10px 0', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+      <div style={{ fontFamily: '"Fraunces", serif', fontSize: 16, fontWeight: 500, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{q}</div>
+      <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.62)', marginTop: 4, lineHeight: 1.5 }}>{a}</div>
+    </div>
+  );
+  return (
+    <div style={{ background: '#FBF7EE', height: '100%', padding: 22, fontFamily: '"Inter", system-ui, sans-serif' }}>
+      <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600 }}>NOTES</div>
+      <div style={{ fontFamily: '"Fraunces", serif', fontSize: 24, fontWeight: 500, letterSpacing: '-0.02em', marginTop: 4, marginBottom: 10 }}>Things to settle</div>
+      <Q q="Multi-vibe shows" a="A show in 2+ vibes — split stripe (A), chips (B), or dots (C)? Stripe scales to ~3, chips read best, dots are most subtle. The tinted card (D) is strongest visually but loud at 12+ rows." />
+      <Q q="What plays when?" a="When you tap 'Start the vibe' — does it play the latest of show #1 then move to show #2's latest? Or build a true queue? The order suggests queue." />
+      <Q q="Quick-filter affordance" a="Filter pills are sticky at the top right now. Could also be a vibes drawer, a long-press on the title, or a swipe gesture. iOS feel suggests pills." />
+      <Q q="Vibe naming" a="'Morning routine', 'Around town' are great. Consider whether vibes should support an emoji or icon (we used minimal glyphs ☀ ✦ ↟ ☾ ◆) or stay text-only." />
+      <Q q="Order in 'All vibes'" a="Right now it's a separate master order. Alternatives: most-recently-played, weighted by which vibes you use most, or just alphabetical. Manual order matches the product's voice." />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
