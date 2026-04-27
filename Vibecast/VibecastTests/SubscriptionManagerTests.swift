@@ -8,6 +8,7 @@ final class SubscriptionManagerTests: XCTestCase {
     var context: ModelContext!
     var searcher: MockSearchService!
     var fetcher: MockFeedFetcher!
+    var importer: MockOPMLImporter!
     var manager: SubscriptionManager!
 
     override func setUp() async throws {
@@ -16,7 +17,13 @@ final class SubscriptionManagerTests: XCTestCase {
         context = ModelContext(container)
         searcher = MockSearchService()
         fetcher = MockFeedFetcher()
-        manager = SubscriptionManager(searcher: searcher, fetcher: fetcher, modelContext: context)
+        importer = MockOPMLImporter()
+        manager = SubscriptionManager(
+            searcher: searcher,
+            fetcher: fetcher,
+            importer: importer,
+            modelContext: context
+        )
     }
 
     private func makeResult() -> PodcastSearchResult {
@@ -181,6 +188,65 @@ final class SubscriptionManagerTests: XCTestCase {
         XCTAssertEqual(podcasts.count, 1)
         XCTAssertEqual(podcasts[0].title, "Already")  // existing record left alone
     }
+
+    func test_importOPML_addsSucceeded_skipsAlreadySubscribed() async throws {
+        // Pre-subscribe one feed (so it counts in alreadySubscribed)
+        let preexistingURL = URL(string: "https://feeds.example.com/preexisting")!
+        let existing = Podcast(title: "Pre", author: "P", artworkURL: nil, feedURL: preexistingURL.absoluteString)
+        context.insert(existing)
+        try! context.save()
+
+        importer.urls = [
+            preexistingURL,                                      // already subscribed
+            URL(string: "https://feeds.example.com/new1")!,      // succeeds
+            URL(string: "https://feeds.example.com/new2")!,      // succeeds
+        ]
+        fetcher.feed = sampleFeed()
+
+        try await manager.importOPML(from: Data())
+
+        XCTAssertEqual(manager.lastImportSummary?.attempted, 3)
+        XCTAssertEqual(manager.lastImportSummary?.succeeded, 2)
+        XCTAssertEqual(manager.lastImportSummary?.alreadySubscribed, 1)
+        XCTAssertEqual(manager.lastImportSummary?.failed, 0)
+    }
+
+    func test_importOPML_tallisFailedSubscribes() async throws {
+        importer.urls = [
+            URL(string: "https://feeds.example.com/good")!,
+            URL(string: "https://feeds.example.com/bad")!,
+        ]
+        // Fetcher fails on every call — both attempts fail. Use this to verify
+        // failed counts; mid-loop selectivity is not necessary for this contract.
+        fetcher.error = URLError(.notConnectedToInternet)
+
+        try await manager.importOPML(from: Data())
+
+        XCTAssertEqual(manager.lastImportSummary?.attempted, 2)
+        XCTAssertEqual(manager.lastImportSummary?.succeeded, 0)
+        XCTAssertEqual(manager.lastImportSummary?.failed, 2)
+    }
+
+    func test_importOPML_setsLastImportSummary() async throws {
+        XCTAssertNil(manager.lastImportSummary)
+
+        importer.urls = [URL(string: "https://feeds.example.com/x")!]
+        fetcher.feed = sampleFeed()
+        try await manager.importOPML(from: Data())
+
+        XCTAssertNotNil(manager.lastImportSummary)
+    }
+
+    func test_importOPML_throwsOnMalformedFile() async {
+        importer.error = OPMLImportError.malformed
+
+        do {
+            try await manager.importOPML(from: Data())
+            XCTFail("expected throw")
+        } catch {
+            XCTAssertEqual(error as? OPMLImportError, .malformed)
+        }
+    }
 }
 
 // MARK: - Test Doubles
@@ -204,5 +270,16 @@ final class MockFeedFetcher: FeedFetcher {
     func fetch(_ feedURL: URL) async throws -> ParsedFeed {
         if let error { throw error }
         return feed ?? ParsedFeed(podcastTitle: nil, podcastAuthor: nil, artworkURL: nil, episodes: [])
+    }
+}
+
+@MainActor
+final class MockOPMLImporter: OPMLImporter {
+    var urls: [URL] = []
+    var error: Error?
+
+    func extractFeedURLs(from data: Data) throws -> [URL] {
+        if let error { throw error }
+        return urls
     }
 }

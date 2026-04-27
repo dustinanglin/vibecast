@@ -7,6 +7,8 @@ import Observation
 final class SubscriptionManager {
     private(set) var inFlightSubscriptions: Set<URL> = []
     private(set) var failedSubscribes: Set<URL> = []
+    private(set) var lastImportSummary: ImportSummary?
+    private(set) var isImportingOPML: Bool = false
 
     /// Auto-clear duration for failed-subscribe state. Picked so a stale red
     /// error doesn't linger after the user has moved on.
@@ -14,11 +16,18 @@ final class SubscriptionManager {
 
     @ObservationIgnored private let searcher: PodcastSearchService
     @ObservationIgnored private let fetcher: FeedFetcher
+    @ObservationIgnored private let importer: OPMLImporter
     @ObservationIgnored private let modelContext: ModelContext
 
-    init(searcher: PodcastSearchService, fetcher: FeedFetcher, modelContext: ModelContext) {
+    init(
+        searcher: PodcastSearchService,
+        fetcher: FeedFetcher,
+        importer: OPMLImporter,
+        modelContext: ModelContext
+    ) {
         self.searcher = searcher
         self.fetcher = fetcher
+        self.importer = importer
         self.modelContext = modelContext
     }
 
@@ -136,4 +145,47 @@ final class SubscriptionManager {
         let last = (try? modelContext.fetch(descriptor))?.first
         return (last?.sortPosition ?? -1) + 1
     }
+
+    /// Parses OPML data, deduplicates within-file, iterates subscribe(to: URL)
+    /// sequentially, and tallies an ImportSummary. Sets isImportingOPML true
+    /// for the duration. Throws if the OPML data itself is malformed; per-feed
+    /// failures are counted into the summary, not thrown.
+    func importOPML(from data: Data) async throws {
+        isImportingOPML = true
+        defer { isImportingOPML = false }
+
+        let urls = try importer.extractFeedURLs(from: data)
+        var succeeded = 0
+        var alreadySubscribed = 0
+        var failed = 0
+
+        for url in urls {
+            if isSubscribed(feedURL: url) {
+                alreadySubscribed += 1
+                continue
+            }
+            let beforeCount = (try? modelContext.fetchCount(FetchDescriptor<Podcast>())) ?? 0
+            await subscribe(to: url)
+            let afterCount = (try? modelContext.fetchCount(FetchDescriptor<Podcast>())) ?? 0
+            if afterCount > beforeCount {
+                succeeded += 1
+            } else {
+                failed += 1
+            }
+        }
+
+        lastImportSummary = ImportSummary(
+            attempted: urls.count,
+            succeeded: succeeded,
+            alreadySubscribed: alreadySubscribed,
+            failed: failed
+        )
+    }
+}
+
+struct ImportSummary: Equatable {
+    let attempted: Int
+    let succeeded: Int
+    let alreadySubscribed: Int
+    let failed: Int
 }

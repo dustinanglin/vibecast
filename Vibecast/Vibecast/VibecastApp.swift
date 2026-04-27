@@ -28,6 +28,7 @@ struct VibecastApp: App {
             let s = SubscriptionManager(
                 searcher: iTunesSearchService(),
                 fetcher: URLSessionFeedFetcher(),
+                importer: StandardOPMLImporter(),
                 modelContext: c.mainContext
             )
             return (p, s)
