@@ -4,6 +4,7 @@ import SwiftData
 struct PodcastDetailView: View {
     let podcast: Podcast
     @Environment(\.playerManager) private var playerManager
+    @Environment(\.subscriptionManager) private var subscriptionManager
     @State private var viewModel: PodcastDetailViewModel?
 
     var body: some View {
@@ -24,6 +25,8 @@ struct PodcastDetailView: View {
             if viewModel == nil {
                 viewModel = PodcastDetailViewModel(podcast: podcast)
             }
+            await subscriptionManager?.refresh(podcast)
+            viewModel?.refetch()
         }
     }
 
