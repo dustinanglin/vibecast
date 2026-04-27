@@ -120,6 +120,10 @@ struct SubscriptionsListView: View {
                 }
             }
             .listStyle(.plain)
+            .refreshable {
+                await subscriptionManager?.refreshAll()
+                vm.fetch()
+            }
         }
     }
 }
