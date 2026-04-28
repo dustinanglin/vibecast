@@ -61,10 +61,11 @@ struct SubscriptionsListView: View {
         } else {
             List {
                 ForEach(podcasts) { podcast in
+                    let snapshot = PodcastRowSnapshot(podcast)
                     let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
                     let isCurrent = latest != nil && latest?.persistentModelID == playerManager?.currentEpisode?.persistentModelID
                     PodcastRowView(
-                        podcast: podcast,
+                        snapshot: snapshot,
                         isCurrent: isCurrent,
                         isPlaying: isCurrent && (playerManager?.isPlaying ?? false),
                         onPlay: {

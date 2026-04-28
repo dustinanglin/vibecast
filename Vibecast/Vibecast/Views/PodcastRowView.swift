@@ -2,22 +2,18 @@ import SwiftUI
 import SwiftData
 
 struct PodcastRowView: View {
-    let podcast: Podcast
+    let snapshot: PodcastRowSnapshot
     var isCurrent: Bool = false
     var isPlaying: Bool = false
     let onPlay: () -> Void
     let onOpenDetail: () -> Void
-
-    private var latestEpisode: Episode? {
-        podcast.episodes.sorted { $0.publishDate > $1.publishDate }.first
-    }
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             artworkView
                 .onTapGesture { onOpenDetail() }
 
-            if let episode = latestEpisode {
+            if let episode = snapshot.latestEpisode {
                 episodeMetadata(episode: episode)
                     .contentShape(Rectangle())
                     .onTapGesture { onOpenDetail() }
@@ -42,7 +38,7 @@ struct PodcastRowView: View {
             .fill(Color.secondary.opacity(0.25))
             .frame(width: 52, height: 52)
             .overlay {
-                if let urlString = podcast.artworkURL,
+                if let urlString = snapshot.artworkURL,
                    let url = URL(string: urlString) {
                     AsyncImage(url: url) { img in
                         img.resizable().scaledToFill()
@@ -57,7 +53,7 @@ struct PodcastRowView: View {
             }
     }
 
-    private func episodeMetadata(episode: Episode) -> some View {
+    private func episodeMetadata(episode: EpisodeRowSnapshot) -> some View {
         ViewThatFits(in: .vertical) {
             VStack(alignment: .leading, spacing: 3) {
                 dateLabel(episode: episode)
@@ -72,7 +68,7 @@ struct PodcastRowView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func dateLabel(episode: Episode) -> some View {
+    private func dateLabel(episode: EpisodeRowSnapshot) -> some View {
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .abbreviated
         let relative = f.localizedString(for: episode.publishDate, relativeTo: .now)
@@ -91,14 +87,14 @@ struct PodcastRowView: View {
         .foregroundStyle(.tertiary)
     }
 
-    private func titleLabel(episode: Episode) -> some View {
+    private func titleLabel(episode: EpisodeRowSnapshot) -> some View {
         Text(episode.title)
             .font(.system(size: 14, weight: episode.listenedStatus == .unplayed ? .bold : .regular))
             .foregroundStyle(episode.listenedStatus == .unplayed ? Color.primary : Color.secondary)
             .lineLimit(2)
     }
 
-    private func descriptionLabel(episode: Episode) -> some View {
+    private func descriptionLabel(episode: EpisodeRowSnapshot) -> some View {
         Text(episode.descriptionText)
             .font(.system(size: 12))
             .foregroundStyle(.tertiary)
@@ -113,7 +109,7 @@ struct PodcastRowView: View {
     )
     return List {
         ForEach(podcasts) { podcast in
-            PodcastRowView(podcast: podcast, onPlay: {}, onOpenDetail: {})
+            PodcastRowView(snapshot: PodcastRowSnapshot(podcast), onPlay: {}, onOpenDetail: {})
                 .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
         }
     }

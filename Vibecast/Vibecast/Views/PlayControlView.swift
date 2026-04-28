@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct PlayControlView: View {
-    let episode: Episode
+    let episode: EpisodeRowSnapshot
     var isCurrent: Bool = false
     var isPlaying: Bool = false
     let onTap: () -> Void
@@ -61,10 +61,10 @@ struct PlayControlView: View {
 #Preview {
     let container = SampleData.container
     let episodes = try! ModelContext(container).fetch(FetchDescriptor<Episode>())
-    let unplayed = episodes.first { $0.listenedStatus == .unplayed } ?? episodes[0]
-    let inProgress = episodes.first { $0.listenedStatus == .inProgress } ?? episodes[0]
-    let played = episodes.first { $0.listenedStatus == .played } ?? episodes[0]
-    return HStack(spacing: 24) {
+    let unplayed = EpisodeRowSnapshot(episodes.first { $0.listenedStatus == .unplayed } ?? episodes[0])
+    let inProgress = EpisodeRowSnapshot(episodes.first { $0.listenedStatus == .inProgress } ?? episodes[0])
+    let played = EpisodeRowSnapshot(episodes.first { $0.listenedStatus == .played } ?? episodes[0])
+    HStack(spacing: 24) {
         PlayControlView(episode: unplayed, onTap: {})
         PlayControlView(episode: inProgress, onTap: {})
         PlayControlView(episode: played, onTap: {})

@@ -38,7 +38,7 @@ struct EpisodeRowView: View {
             Spacer(minLength: 8)
 
             PlayControlView(
-                episode: episode,
+                episode: EpisodeRowSnapshot(episode),
                 isCurrent: isCurrent,
                 isPlaying: isPlaying,
                 onTap: onPlay
