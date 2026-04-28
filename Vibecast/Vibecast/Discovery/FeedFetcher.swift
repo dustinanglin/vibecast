@@ -1,5 +1,10 @@
 import Foundation
 
+enum FeedFetchError: Error, Equatable {
+    case invalidResponse
+    case serverError(status: Int)
+}
+
 @MainActor
 protocol FeedFetcher {
     func fetch(_ feedURL: URL) async throws -> ParsedFeed
@@ -14,7 +19,11 @@ final class URLSessionFeedFetcher: FeedFetcher {
     }
 
     func fetch(_ feedURL: URL) async throws -> ParsedFeed {
-        let (data, _) = try await session.data(from: feedURL)
+        let (data, response) = try await session.data(from: feedURL)
+        guard let http = response as? HTTPURLResponse else { throw FeedFetchError.invalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            throw FeedFetchError.serverError(status: http.statusCode)
+        }
         return try RSSParser().parse(data)
     }
 }

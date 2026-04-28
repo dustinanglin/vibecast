@@ -43,6 +43,21 @@ final class PodcastSearchServiceTests: XCTestCase {
         XCTAssertEqual(results.count, 2)
     }
 
+    func test_search_throwsServerError_on500Response() async throws {
+        let url = URL(string: "https://itunes.apple.com/search?media=podcast&term=anything&limit=25")!
+        MockURLProtocol.register(url: url, data: Data(), statusCode: 500)
+        let service = iTunesSearchService(session: MockURLProtocol.session())
+
+        do {
+            _ = try await service.search("anything")
+            XCTFail("expected error")
+        } catch let error as PodcastSearchError {
+            XCTAssertEqual(error, .serverError(status: 500))
+        } catch {
+            XCTFail("expected PodcastSearchError, got \(error)")
+        }
+    }
+
     private func fixture(_ name: String, ext: String) throws -> Data {
         let url = Bundle(for: Self.self).url(forResource: name, withExtension: ext)!
         return try Data(contentsOf: url)

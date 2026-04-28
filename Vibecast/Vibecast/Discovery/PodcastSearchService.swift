@@ -1,5 +1,10 @@
 import Foundation
 
+enum PodcastSearchError: Error, Equatable {
+    case invalidResponse
+    case serverError(status: Int)
+}
+
 @MainActor
 protocol PodcastSearchService {
     func search(_ query: String) async throws -> [PodcastSearchResult]
@@ -33,7 +38,11 @@ final class iTunesSearchService: PodcastSearchService {
         ]
         guard let url = components.url else { return [] }
 
-        let (data, _) = try await session.data(from: url)
+        let (data, response) = try await session.data(from: url)
+        guard let http = response as? HTTPURLResponse else { throw PodcastSearchError.invalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            throw PodcastSearchError.serverError(status: http.statusCode)
+        }
         let envelope = try JSONDecoder().decode(ITunesSearchEnvelope.self, from: data)
         return envelope.results.compactMap { raw in
             guard let feedURLString = raw.feedUrl,

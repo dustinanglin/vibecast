@@ -33,6 +33,21 @@ final class FeedFetcherTests: XCTestCase {
         }
     }
 
+    func test_fetch_throwsServerError_on503Response() async throws {
+        let url = URL(string: "https://example.com/feed")!
+        MockURLProtocol.register(url: url, data: Data(), statusCode: 503)
+        let fetcher = URLSessionFeedFetcher(session: MockURLProtocol.session())
+
+        do {
+            _ = try await fetcher.fetch(url)
+            XCTFail("expected error")
+        } catch let error as FeedFetchError {
+            XCTAssertEqual(error, .serverError(status: 503))
+        } catch {
+            XCTFail("expected FeedFetchError, got \(error)")
+        }
+    }
+
     private func fixture(_ name: String, ext: String) throws -> Data {
         let url = Bundle(for: Self.self).url(forResource: name, withExtension: ext)!
         return try Data(contentsOf: url)
