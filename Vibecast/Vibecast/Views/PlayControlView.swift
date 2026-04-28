@@ -20,6 +20,13 @@ struct PlayControlView: View {
         return episode.listenedStatus == .played ? "arrow.clockwise" : "play.fill"
     }
 
+    private var playButtonAccessibilityLabel: String {
+        if isCurrent && isPlaying  { return "Pause \(episode.title)" }
+        if isCurrent && !isPlaying { return "Resume \(episode.title)" }
+        if episode.listenedStatus == .played { return "Replay \(episode.title)" }
+        return "Play \(episode.title)"
+    }
+
     private var durationLabel: String {
         switch episode.listenedStatus {
         case .unplayed:   return episode.formattedDuration
@@ -48,8 +55,11 @@ struct PlayControlView: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.primary)
                 }
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(playButtonAccessibilityLabel)
 
             Text(durationLabel)
                 .font(.system(size: 10))
