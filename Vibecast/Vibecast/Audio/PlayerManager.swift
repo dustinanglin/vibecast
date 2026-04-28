@@ -185,6 +185,39 @@ final class PlayerManager: PlaybackController {
         advanceToNextPodcast(after: episode)
     }
 
+    /// Mark an episode as played. If it's the currently-loaded episode,
+    /// pause playback, sync `elapsed` to the end of the track, and auto-advance
+    /// to the next podcast iff playback was active when this was invoked.
+    /// Otherwise just persist the played state without touching player state.
+    func markPlayed(_ episode: Episode) {
+        let isCurrent = episode.persistentModelID == currentEpisode?.persistentModelID
+        let wasCurrentlyPlaying = isCurrent && isPlaying
+
+        let canonicalDuration: Double
+        if isCurrent {
+            canonicalDuration = duration > 0 ? duration : Double(episode.durationSeconds)
+        } else {
+            canonicalDuration = Double(episode.durationSeconds)
+        }
+
+        episode.listenedStatus = .played
+        episode.playbackPosition = canonicalDuration
+
+        if isCurrent {
+            engine.pause()
+            elapsed = canonicalDuration
+            lastPersistedAt = canonicalDuration
+            isPlaying = false
+            publishNowPlaying()
+        }
+
+        try? modelContext.save()
+
+        if wasCurrentlyPlaying {
+            advanceToNextPodcast(after: episode)
+        }
+    }
+
     private func advanceToNextPodcast(after finishedEpisode: Episode) {
         guard let currentPodcast = finishedEpisode.podcast else { return }
         let currentPosition = currentPodcast.sortPosition

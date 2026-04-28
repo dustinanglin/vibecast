@@ -364,6 +364,70 @@ final class PlayerManagerTests: XCTestCase {
         XCTAssertEqual(manager.currentEpisode?.persistentModelID, episode.persistentModelID)
         XCTAssertFalse(manager.isPlaying)
     }
+
+    // MARK: - markPlayed
+
+    func test_markPlayed_onNonCurrentEpisode_marksStatusWithoutAffectingPlayer() throws {
+        let other = Podcast(title: "Other", author: "A", artworkURL: nil, feedURL: "https://x.com/o", sortPosition: 1)
+        let otherEp = Episode(podcast: other, title: "OtherEp", publishDate: .now, descriptionText: "", durationSeconds: 60, audioURL: "https://x.com/o.mp3")
+        context.insert(other)
+        context.insert(otherEp)
+        other.episodes.append(otherEp)
+        try context.save()
+
+        manager.play(episode)
+        let elapsedBefore = manager.elapsed
+        manager.markPlayed(otherEp)
+
+        XCTAssertEqual(otherEp.listenedStatus, .played)
+        XCTAssertEqual(otherEp.playbackPosition, 60, accuracy: 0.001)
+        XCTAssertEqual(manager.currentEpisode?.persistentModelID, episode.persistentModelID)
+        XCTAssertTrue(manager.isPlaying)
+        XCTAssertEqual(manager.elapsed, elapsedBefore, accuracy: 0.001)
+    }
+
+    func test_markPlayed_onPausedCurrentEpisode_completesEpisodeWithoutAdvancing() throws {
+        let nextPodcast = Podcast(title: "Next", author: "A", artworkURL: nil, feedURL: "https://x.com/n", sortPosition: 1)
+        let nextEp = Episode(podcast: nextPodcast, title: "NextEp", publishDate: .now, descriptionText: "", durationSeconds: 90, audioURL: "https://x.com/n.mp3")
+        context.insert(nextPodcast)
+        context.insert(nextEp)
+        nextPodcast.episodes.append(nextEp)
+        try context.save()
+
+        manager.play(episode)
+        engine.simulateTimeUpdate(30)
+        manager.togglePlayPause()  // pause
+        XCTAssertFalse(manager.isPlaying)
+
+        manager.markPlayed(episode)
+
+        XCTAssertEqual(episode.listenedStatus, .played)
+        XCTAssertEqual(episode.playbackPosition, Double(episode.durationSeconds), accuracy: 0.001)
+        XCTAssertEqual(manager.elapsed, Double(episode.durationSeconds), accuracy: 0.001)
+        XCTAssertFalse(manager.isPlaying)
+        XCTAssertEqual(manager.currentEpisode?.persistentModelID, episode.persistentModelID)
+    }
+
+    func test_markPlayed_onPlayingCurrentEpisode_advancesToNextPodcast() throws {
+        let nextPodcast = Podcast(title: "Next", author: "A", artworkURL: nil, feedURL: "https://x.com/n", sortPosition: 1)
+        let nextEp = Episode(podcast: nextPodcast, title: "NextEp", publishDate: .now, descriptionText: "", durationSeconds: 90, audioURL: "https://x.com/n.mp3")
+        context.insert(nextPodcast)
+        context.insert(nextEp)
+        nextPodcast.episodes.append(nextEp)
+        try context.save()
+
+        manager.play(episode)
+        engine.simulateTimeUpdate(30)
+        XCTAssertTrue(manager.isPlaying)
+
+        manager.markPlayed(episode)
+
+        XCTAssertEqual(episode.listenedStatus, .played)
+        XCTAssertEqual(episode.playbackPosition, Double(episode.durationSeconds), accuracy: 0.001)
+        XCTAssertEqual(manager.currentEpisode?.persistentModelID, nextEp.persistentModelID)
+        XCTAssertTrue(manager.isPlaying)
+        XCTAssertEqual(engine.loadedURL?.absoluteString, "https://x.com/n.mp3")
+    }
 }
 
 // MARK: - Test Double

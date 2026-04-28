@@ -127,9 +127,13 @@ struct SubscriptionsListView: View {
     }
 
     private func markPlayed(_ episode: Episode) {
-        episode.listenedStatus = .played
-        episode.playbackPosition = Double(episode.durationSeconds)
-        try? modelContext.save()
+        if let mgr = playerManager {
+            mgr.markPlayed(episode)
+        } else {
+            episode.listenedStatus = .played
+            episode.playbackPosition = Double(episode.durationSeconds)
+            try? modelContext.save()
+        }
     }
 
     private func move(from source: IndexSet, to destination: Int) {
