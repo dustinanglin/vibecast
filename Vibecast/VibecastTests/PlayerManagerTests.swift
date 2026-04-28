@@ -315,6 +315,55 @@ final class PlayerManagerTests: XCTestCase {
         XCTAssertEqual(manager.elapsed, 1234.0, accuracy: 0.001)
         XCTAssertEqual(episode.listenedStatus, .played)
     }
+
+    // MARK: - Auto-advance on playback end
+
+    func test_handlePlaybackEnd_advancesToNextPodcastLatestEpisode() throws {
+        let nextPodcast = Podcast(title: "Next", author: "A", artworkURL: nil, feedURL: "https://x.com/n", sortPosition: 1)
+        let nextEpisode = Episode(podcast: nextPodcast, title: "NextEp", publishDate: .now, descriptionText: "", durationSeconds: 90, audioURL: "https://x.com/n.mp3")
+        context.insert(nextPodcast)
+        context.insert(nextEpisode)
+        nextPodcast.episodes.append(nextEpisode)
+        try context.save()
+
+        manager.play(episode)
+        engine.simulatePlaybackEnd()
+
+        XCTAssertEqual(manager.currentEpisode?.persistentModelID, nextEpisode.persistentModelID)
+        XCTAssertTrue(manager.isPlaying)
+        XCTAssertEqual(engine.loadedURL?.absoluteString, "https://x.com/n.mp3")
+    }
+
+    func test_handlePlaybackEnd_skipsPodcastsWithPlayedLatestEpisode() throws {
+        let alreadyPlayedPodcast = Podcast(title: "Played", author: "A", artworkURL: nil, feedURL: "https://x.com/p", sortPosition: 1)
+        let playedEpisode = Episode(podcast: alreadyPlayedPodcast, title: "Done", publishDate: .now, descriptionText: "", durationSeconds: 60, audioURL: "https://x.com/p.mp3")
+        playedEpisode.listenedStatus = .played
+        context.insert(alreadyPlayedPodcast)
+        context.insert(playedEpisode)
+        alreadyPlayedPodcast.episodes.append(playedEpisode)
+
+        let nextPodcast = Podcast(title: "Next", author: "A", artworkURL: nil, feedURL: "https://x.com/n", sortPosition: 2)
+        let nextEpisode = Episode(podcast: nextPodcast, title: "Fresh", publishDate: .now, descriptionText: "", durationSeconds: 90, audioURL: "https://x.com/n.mp3")
+        context.insert(nextPodcast)
+        context.insert(nextEpisode)
+        nextPodcast.episodes.append(nextEpisode)
+        try context.save()
+
+        manager.play(episode)
+        engine.simulatePlaybackEnd()
+
+        XCTAssertEqual(manager.currentEpisode?.persistentModelID, nextEpisode.persistentModelID)
+        XCTAssertEqual(engine.loadedURL?.absoluteString, "https://x.com/n.mp3")
+    }
+
+    func test_handlePlaybackEnd_stopsWhenNoUnplayedEpisodesRemain() throws {
+        // Single podcast in the test setup → no next.
+        manager.play(episode)
+        engine.simulatePlaybackEnd()
+
+        XCTAssertEqual(manager.currentEpisode?.persistentModelID, episode.persistentModelID)
+        XCTAssertFalse(manager.isPlaying)
+    }
 }
 
 // MARK: - Test Double

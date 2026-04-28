@@ -178,6 +178,30 @@ final class PlayerManager: PlaybackController {
         try? modelContext.save()
         lastPersistedAt = elapsed
         publishNowPlaying()
+
+        // Auto-advance: walk the subscriptions list in sortPosition order and
+        // play the latest episode of the next podcast whose latest episode is
+        // not already .played. Stop if no such podcast exists.
+        advanceToNextPodcast(after: episode)
+    }
+
+    private func advanceToNextPodcast(after finishedEpisode: Episode) {
+        guard let currentPodcast = finishedEpisode.podcast else { return }
+        let currentPosition = currentPodcast.sortPosition
+
+        let descriptor = FetchDescriptor<Podcast>(
+            predicate: #Predicate { $0.sortPosition > currentPosition },
+            sortBy: [SortDescriptor(\.sortPosition)]
+        )
+        guard let candidates = try? modelContext.fetch(descriptor) else { return }
+
+        for podcast in candidates {
+            let latest = podcast.episodes.sorted { $0.publishDate > $1.publishDate }.first
+            guard let next = latest else { continue }
+            if next.listenedStatus == .played { continue }
+            play(next)
+            return
+        }
     }
 
     // MARK: - Persistence helper
