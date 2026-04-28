@@ -10,6 +10,7 @@ struct SubscriptionsListView: View {
     @State private var selectedPodcast: Podcast?
     @State private var showAddSheet = false
     @State private var showFullScreenPlayer = false
+    @State private var pendingDeletes: Set<PersistentIdentifier> = []
 
     var body: some View {
         NavigationStack {
@@ -50,6 +51,10 @@ struct SubscriptionsListView: View {
         }
     }
 
+    private var visiblePodcasts: [Podcast] {
+        podcasts.filter { !pendingDeletes.contains($0.persistentModelID) }
+    }
+
     @ViewBuilder
     private var listContent: some View {
         if podcasts.isEmpty {
@@ -60,7 +65,7 @@ struct SubscriptionsListView: View {
             )
         } else {
             List {
-                ForEach(podcasts) { podcast in
+                ForEach(visiblePodcasts) { podcast in
                     let snapshot = PodcastRowSnapshot(podcast)
                     let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
                     let isCurrent = latest != nil && latest?.persistentModelID == playerManager?.currentEpisode?.persistentModelID
@@ -111,8 +116,14 @@ struct SubscriptionsListView: View {
     }
 
     private func remove(_ podcast: Podcast) {
-        modelContext.delete(podcast)
-        try? modelContext.save()
+        let id = podcast.persistentModelID
+        pendingDeletes.insert(id)
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(400))
+            modelContext.delete(podcast)
+            try? modelContext.save()
+            pendingDeletes.remove(id)
+        }
     }
 
     private func markPlayed(_ episode: Episode) {
