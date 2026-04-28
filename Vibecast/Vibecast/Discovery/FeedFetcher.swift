@@ -19,7 +19,8 @@ final class URLSessionFeedFetcher: FeedFetcher {
     }
 
     func fetch(_ feedURL: URL) async throws -> ParsedFeed {
-        let (data, response) = try await session.data(from: feedURL)
+        let url = feedURL.upgradedToHTTPS()
+        let (data, response) = try await session.data(from: url)
         guard let http = response as? HTTPURLResponse else { throw FeedFetchError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
             throw FeedFetchError.serverError(status: http.statusCode)
