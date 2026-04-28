@@ -238,13 +238,17 @@ final class SubscriptionManagerTests: XCTestCase {
     }
 
     func test_importOPML_throwsOnMalformedFile() async {
-        importer.error = OPMLImportError.malformed
+        importer.error = OPMLImportError.malformed(line: 1, column: 1)
 
         do {
             try await manager.importOPML(from: Data())
             XCTFail("expected throw")
+        } catch let error as OPMLImportError {
+            if case .malformed = error { /* pass */ } else {
+                XCTFail("expected .malformed, got \(error)")
+            }
         } catch {
-            XCTAssertEqual(error as? OPMLImportError, .malformed)
+            XCTFail("expected OPMLImportError, got \(error)")
         }
     }
 

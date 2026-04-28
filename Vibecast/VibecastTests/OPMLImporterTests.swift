@@ -42,7 +42,37 @@ final class OPMLImporterTests: XCTestCase {
                 XCTFail("expected OPMLImportError, got \(error)")
                 return
             }
-            XCTAssertEqual(opmlError, .malformed)
+            if case .malformed = opmlError { /* pass */ } else {
+                XCTFail("expected .malformed, got \(opmlError)")
+            }
+        }
+    }
+
+    func test_importer_sanitizesUnescapedAmpersand_andSucceeds() throws {
+        let data = try fixture("opml-unescaped-ampersand", ext: "opml")
+
+        let importer = StandardOPMLImporter()
+        let urls = try importer.extractFeedURLs(from: data)
+
+        XCTAssertEqual(urls.count, 2)
+        XCTAssertTrue(urls.contains(URL(string: "https://example.com/g-and-d.rss")!))
+        XCTAssertTrue(urls.contains(URL(string: "https://example.com/hard-fork.rss")!))
+    }
+
+    func test_importer_throwsMalformedWithLineColumn_onUnrecoverableInput() throws {
+        let data = try fixture("opml-unrecoverable", ext: "opml")
+
+        let importer = StandardOPMLImporter()
+        do {
+            _ = try importer.extractFeedURLs(from: data)
+            XCTFail("expected error")
+        } catch let error as OPMLImportError {
+            if case .malformed(let line, let column) = error {
+                XCTAssertGreaterThan(line, 0)
+                XCTAssertGreaterThan(column, 0)
+            } else {
+                XCTFail("expected .malformed(line:column:), got \(error)")
+            }
         }
     }
 
