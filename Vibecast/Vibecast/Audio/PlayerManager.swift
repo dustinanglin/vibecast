@@ -4,7 +4,7 @@ import Observation
 
 @Observable
 @MainActor
-final class PlayerManager {
+final class PlayerManager: PlaybackController {
     private(set) var currentEpisode: Episode?
     private(set) var isPlaying: Bool = false
     private(set) var elapsed: TimeInterval = 0
@@ -19,13 +19,15 @@ final class PlayerManager {
 
     @ObservationIgnored private let engine: AudioEngine
     @ObservationIgnored private let modelContext: ModelContext
+    @ObservationIgnored private let nowPlaying: NowPlayingService
     @ObservationIgnored private var lastPersistedAt: TimeInterval = 0
     @ObservationIgnored private var wasPlayingBeforeInterruption = false
     @ObservationIgnored private static let saveIntervalSeconds: TimeInterval = 5
 
-    init(engine: AudioEngine, modelContext: ModelContext) {
+    init(engine: AudioEngine, modelContext: ModelContext, nowPlaying: NowPlayingService) {
         self.engine = engine
         self.modelContext = modelContext
+        self.nowPlaying = nowPlaying
 
         engine.onTimeUpdate = { [weak self] t in
             self?.handleTimeUpdate(t)
@@ -49,6 +51,7 @@ final class PlayerManager {
                   self.wasPlayingBeforeInterruption else { return }
             self.engine.play()
             self.isPlaying = true
+            self.publishNowPlaying()
         }
         engine.onRouteOldDeviceUnavailable = { [weak self] in
             self?.isPlaying = false
@@ -83,6 +86,7 @@ final class PlayerManager {
         engine.load(url: url, startAt: episode.playbackPosition)
         engine.play()
         isPlaying = true
+        publishNowPlaying()
     }
 
     func togglePlayPause() {
@@ -101,6 +105,7 @@ final class PlayerManager {
             engine.play()
             isPlaying = true
         }
+        publishNowPlaying()
     }
 
     private func resetIfComplete(_ episode: Episode) {
@@ -124,6 +129,7 @@ final class PlayerManager {
         engine.seek(to: clamped)
         elapsed = clamped
         persistCurrentPosition()
+        publishNowPlaying()
     }
 
     // MARK: - Engine callbacks
@@ -170,6 +176,7 @@ final class PlayerManager {
         isPlaying = false
         try? modelContext.save()
         lastPersistedAt = elapsed
+        publishNowPlaying()
     }
 
     // MARK: - Persistence helper
@@ -190,6 +197,23 @@ final class PlayerManager {
         }
         try? modelContext.save()
         lastPersistedAt = elapsed
+    }
+
+    private func publishNowPlaying() {
+        guard let episode = currentEpisode else {
+            nowPlaying.clear()
+            return
+        }
+        let state = PlaybackState(
+            episodeTitle: episode.title,
+            podcastTitle: episode.podcast?.title ?? "",
+            author: episode.podcast?.author ?? "",
+            duration: duration > 0 ? duration : Double(episode.durationSeconds),
+            elapsed: elapsed,
+            isPlaying: isPlaying,
+            artworkURL: episode.podcast?.artworkURL.flatMap(URL.init(string:))
+        )
+        nowPlaying.update(state: state)
     }
 }
 

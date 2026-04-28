@@ -31,7 +31,7 @@ final class PlayerManagerTests: XCTestCase {
         try context.save()
 
         engine = MockAudioEngine()
-        manager = PlayerManager(engine: engine, modelContext: context)
+        manager = PlayerManager(engine: engine, modelContext: context, nowPlaying: NowPlayingService())
     }
 
     func test_play_setsCurrentEpisodeAndStartsEngine() {

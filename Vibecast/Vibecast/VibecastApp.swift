@@ -24,7 +24,9 @@ struct VibecastApp: App {
         let player: PlayerManager
         let subs: SubscriptionManager
         (player, subs) = MainActor.assumeIsolated {
-            let p = PlayerManager(engine: AVPlayerAudioEngine(), modelContext: c.mainContext)
+            let nowPlaying = NowPlayingService()
+            let p = PlayerManager(engine: AVPlayerAudioEngine(), modelContext: c.mainContext, nowPlaying: nowPlaying)
+            nowPlaying.controller = p
             let s = SubscriptionManager(
                 searcher: iTunesSearchService(),
                 fetcher: URLSessionFeedFetcher(),

@@ -148,7 +148,7 @@ struct FullScreenPlayerView: View {
         let context = ModelContext(container)
         let episodes = try! context.fetch(FetchDescriptor<Episode>())
         let engine = PreviewAudioEngine()
-        let mgr = PlayerManager(engine: engine, modelContext: context)
+        let mgr = PlayerManager(engine: engine, modelContext: context, nowPlaying: NowPlayingService())
         if let ep = episodes.first {
             mgr.play(ep)
             engine.simulateTime(300)
