@@ -92,6 +92,16 @@ final class NowPlayingService {
     private func configureRemoteCommands() {
         let center = MPRemoteCommandCenter.shared()
 
+        // MPRemoteCommandCenter is a process singleton; addTarget appends.
+        // Clear any prior targets first so re-instantiating the service
+        // (especially in tests) doesn't stack stale closures.
+        center.playCommand.removeTarget(nil)
+        center.pauseCommand.removeTarget(nil)
+        center.togglePlayPauseCommand.removeTarget(nil)
+        center.skipForwardCommand.removeTarget(nil)
+        center.skipBackwardCommand.removeTarget(nil)
+        center.changePlaybackPositionCommand.removeTarget(nil)
+
         center.playCommand.isEnabled = true
         center.playCommand.addTarget { [weak self] _ in
             Task { @MainActor [weak self] in
@@ -136,12 +146,16 @@ final class NowPlayingService {
             return .success
         }
 
+        // Scrubber needs the seek to land before .success returns, otherwise
+        // the lock-screen scrubber visibly snaps back to the old elapsed for
+        // a frame. addTarget closures are dispatched on the main thread at
+        // runtime, so MainActor.assumeIsolated is safe and synchronous.
         center.changePlaybackPositionCommand.isEnabled = true
         center.changePlaybackPositionCommand.addTarget { [weak self] event in
             guard let pos = (event as? MPChangePlaybackPositionCommandEvent)?.positionTime else {
                 return .commandFailed
             }
-            Task { @MainActor [weak self] in
+            MainActor.assumeIsolated {
                 self?.controller?.seek(to: pos)
             }
             return .success

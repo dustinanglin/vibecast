@@ -55,6 +55,7 @@ final class PlayerManager: PlaybackController {
         }
         engine.onRouteOldDeviceUnavailable = { [weak self] in
             self?.isPlaying = false
+            self?.publishNowPlaying()
         }
     }
 
