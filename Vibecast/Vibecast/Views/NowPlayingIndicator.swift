@@ -9,9 +9,9 @@ struct NowPlayingIndicator: View {
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 1.5) {
-            Bar(isPlaying: isPlaying, durationSeconds: 0.62, phase: 0)
-            Bar(isPlaying: isPlaying, durationSeconds: 0.78, phase: 0.18)
-            Bar(isPlaying: isPlaying, durationSeconds: 0.94, phase: 0.32)
+            Bar(isPlaying: isPlaying, color: color, durationSeconds: 0.62, phase: 0)
+            Bar(isPlaying: isPlaying, color: color, durationSeconds: 0.78, phase: 0.18)
+            Bar(isPlaying: isPlaying, color: color, durationSeconds: 0.94, phase: 0.32)
         }
         .frame(width: 14, height: 14)
         .padding(2)
@@ -19,6 +19,7 @@ struct NowPlayingIndicator: View {
 
     private struct Bar: View {
         let isPlaying: Bool
+        let color: Color
         let durationSeconds: Double
         let phase: Double
 
@@ -26,7 +27,7 @@ struct NowPlayingIndicator: View {
 
         var body: some View {
             RoundedRectangle(cornerRadius: 1)
-                .fill(Brand.Color.accent)
+                .fill(color)
                 .frame(width: 2.5, height: atTop ? 12 : 4)
                 .animation(
                     isPlaying

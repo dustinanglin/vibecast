@@ -47,8 +47,6 @@ private struct InitialsTile: View {
                 .font(Brand.Font.serifTitle(size: initialFontSize))
                 .foregroundStyle(Brand.Color.paper)
         }
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: radius))
     }
 }
 
