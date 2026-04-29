@@ -27,6 +27,12 @@
 		<key>UISceneConfigurations</key>
 		<dict/>
 	</dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Fraunces[opsz,wght].ttf</string>
+		<string>InterVariable.ttf</string>
+		<string>JetBrainsMono[wght].ttf</string>
+	</array>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
