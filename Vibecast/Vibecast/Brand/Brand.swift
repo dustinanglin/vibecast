@@ -48,9 +48,10 @@ enum Brand {
             .custom(fraunces, size: size).weight(.medium)
         }
 
-        static func serifItalic(size: CGFloat = 19) -> SwiftUI.Font {
-            .custom("\(fraunces)-Italic", size: size).weight(.medium)
-        }
+        // Note: serifItalic deliberately omitted from Phase 1. The bundled Fraunces
+        // variable TTF doesn't include an italic axis (would require bundling a
+        // separate Fraunces-Italic[opsz,wght].ttf). Italics are barely used in
+        // Phase 1 per spec; add back when needed.
 
         static func uiBody(size: CGFloat = 14, weight: SwiftUI.Font.Weight = .regular) -> SwiftUI.Font {
             .custom(inter, size: size).weight(weight)
@@ -74,6 +75,7 @@ enum Brand {
     enum Layout {
         static let rowPadding: CGFloat = 12
         static let rowGap: CGFloat = 8
+        static let hairlineWidth: CGFloat = 1
         static let monoTracking: CGFloat = 0.9   // ≈ +0.10em at 9pt
         static let serifTracking: CGFloat = -0.35 // ≈ -0.025em at 14pt
     }
@@ -96,10 +98,6 @@ enum Brand {
         static let rowPlay: CGFloat = 56
         static let primaryPlay: CGFloat = 70
     }
-
-    // MARK: - Hairline
-
-    static let hairlineWidth: CGFloat = 1
 
     // MARK: - Cover artwork fallback palette
 
