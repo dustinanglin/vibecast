@@ -488,6 +488,197 @@ when paused. Tinted with Brand.Color.accent."
 
 ---
 
+## Task 3.5: Backfill — Fraunces italic + RowSliver + NowPlayingCard
+
+**Why this task:** A row-state iteration design pass after Tasks 1-3 landed introduced new vocabulary (started state, left-edge sliver attractor, now-playing card decoration with border + halo + top progress bar). Three additions needed before the per-screen migrations consume them in Task 5: (a) bundle the italic Fraunces variable so `Brand.Font.serifLightItalic` actually resolves; (b) `RowSliver` view for the unplayed attractor; (c) `NowPlayingCard` ViewModifier for the active-row card framing. Spec at `docs/superpowers/specs/2026-04-28-plan-6-visual-refresh-design.md` (commit `3e33a01` on main — read on main, not the worktree).
+
+**Files:**
+- Add: `Vibecast/Vibecast/Resources/Fonts/Fraunces-Italic[opsz,wght].ttf`
+- Modify: `Vibecast/Info.plist` (add italic to `UIAppFonts`)
+- Modify: `Vibecast/Vibecast/Brand/Brand.swift` (add `serifBodyLight` + `serifLightItalic`)
+- Add: `Vibecast/Vibecast/Views/RowSliver.swift`
+- Add: `Vibecast/Vibecast/Views/NowPlayingCard.swift`
+
+- [ ] **Step 3.5.1: Download the italic Fraunces variable**
+
+```bash
+cd /Users/dustinanglin/.config/superpowers/worktrees/Vibecast/plan-6-visual-refresh/Vibecast/Vibecast/Resources/Fonts
+
+curl -sL -o "Fraunces-Italic[opsz,wght].ttf" \
+  "https://github.com/undercase/fraunces/raw/main/fonts/variable/Fraunces-Italic%5Bopsz%2Cwght%5D.ttf"
+
+ls -lh "Fraunces-Italic[opsz,wght].ttf"
+```
+
+Expected: a TTF ~300-400KB. If the URL 404s, search Google Fonts (`fonts.google.com/specimen/Fraunces`) and grab the italic variant.
+
+- [ ] **Step 3.5.2: Register italic in Info.plist**
+
+Open `Vibecast/Info.plist`. Find the existing `UIAppFonts` array (set in Task 1) and add a fourth entry — bare filename per Task 1's discovered pattern:
+
+```xml
+<string>Fraunces-Italic[opsz,wght].ttf</string>
+```
+
+Place it next to the existing `Fraunces[opsz,wght].ttf` line.
+
+- [ ] **Step 3.5.3: Extend `Brand.Font` with light + light-italic roles**
+
+Open `Vibecast/Vibecast/Brand/Brand.swift`. In the `enum Font` block, add two new private static-let identifiers and two new static funcs. Family-name string for the italic — match what `UIFont.familyNames` returns; typically the italic registers under the same family `"Fraunces"` and is selected via the italic attribute. If `.custom("Fraunces", size:).italic()` doesn't engage the bundled italic file, try `"Fraunces-Italic"` as a separate family name.
+
+```swift
+enum Font {
+    private static let fraunces = "Fraunces"
+    private static let fraunces_italic = "Fraunces-Italic"  // adjust if the italic registers under "Fraunces"
+    private static let inter = "Inter"
+    private static let mono = "JetBrains Mono"
+
+    // ... existing static funcs unchanged ...
+
+    /// Started-row title: Fraunces 300 (Light), upright. Pairs with serifLightItalic
+    /// for the started state per spec § PodcastRowView.
+    static func serifBodyLight(size: CGFloat = 14) -> SwiftUI.Font {
+        .custom(fraunces, size: size).weight(.light)
+    }
+
+    /// Started-row title: Fraunces-Italic 300, italic. The carrier of the
+    /// "still here, not done" treatment per spec.
+    static func serifLightItalic(size: CGFloat = 14) -> SwiftUI.Font {
+        .custom(fraunces_italic, size: size).weight(.light)
+    }
+}
+```
+
+The variable Fraunces font's `wght` axis covers 100-900, so `.weight(.light)` (300) should drive the axis correctly. If the italic ships under family `"Fraunces"` (single family, italic-axis-flagged) rather than separate `"Fraunces-Italic"` family, adjust accordingly. The variable-font weight engagement caveat from Task 1 applies — verify on device at Task 13 manual verification.
+
+- [ ] **Step 3.5.4: Create `Vibecast/Vibecast/Views/RowSliver.swift`**
+
+```swift
+import SwiftUI
+
+/// A 3pt-wide vertical bar drawn at the leading edge of an unplayed row.
+/// Color in Phase 1 = Brand.fallbackColor(for: podcast.title) — per-show
+/// deterministic; produces a chromatic column down the library list.
+/// In Plan 7 (Vibes), color becomes the show's primary vibe color.
+struct RowSliver: View {
+    let color: Color
+
+    var body: some View {
+        Rectangle()
+            .fill(color)
+            .frame(width: 3)
+    }
+}
+
+#Preview {
+    HStack(spacing: 0) {
+        RowSliver(color: Brand.fallbackColor(for: "Hard Fork"))
+        Rectangle().fill(Brand.Color.paper).frame(height: 76).overlay(Text("row content").foregroundStyle(Brand.Color.ink))
+    }
+    .frame(height: 76)
+    .background(Brand.Color.bg)
+}
+```
+
+- [ ] **Step 3.5.5: Create `Vibecast/Vibecast/Views/NowPlayingCard.swift`**
+
+```swift
+import SwiftUI
+
+/// ViewModifier that wraps row content with the now-playing card decoration:
+/// 2pt accent border, halo shadow, 3pt top progress bar across the row's
+/// inner top edge. Used on the now-playing row in PodcastRowView (and later
+/// EpisodeRowView). Inputs:
+///   - progressFraction: 0...1 of how far through the episode we are
+///   - isPlaying: drives whether the halo glows; both playing and paused
+///     keep the card decoration (the design says "lifts off the list" for
+///     either state — only glyphs swap)
+struct NowPlayingCard: ViewModifier {
+    let progressFraction: Double
+    let isPlaying: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .background(Brand.Color.paper)
+            .overlay(alignment: .top) {
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Brand.Color.ink.opacity(0.08))
+                        .frame(height: 3)
+                    GeometryReader { geo in
+                        Rectangle()
+                            .fill(Brand.Color.accent)
+                            .frame(width: max(0, min(geo.size.width * progressFraction, geo.size.width)), height: 3)
+                    }
+                    .frame(height: 3)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: Brand.Radius.card))
+            .overlay {
+                RoundedRectangle(cornerRadius: Brand.Radius.card)
+                    .strokeBorder(Brand.Color.accent, lineWidth: 2)
+            }
+            .shadow(color: Brand.Color.accent.opacity(0.20), radius: 24, y: 8)
+    }
+}
+
+extension View {
+    func nowPlayingCard(progressFraction: Double, isPlaying: Bool) -> some View {
+        modifier(NowPlayingCard(progressFraction: progressFraction, isPlaying: isPlaying))
+    }
+}
+
+#Preview {
+    VStack(spacing: 16) {
+        Text("Now playing row content")
+            .padding()
+            .frame(maxWidth: .infinity)
+            .nowPlayingCard(progressFraction: 0.4, isPlaying: true)
+        Text("Inactive row")
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(Brand.Color.paper)
+            .clipShape(RoundedRectangle(cornerRadius: Brand.Radius.card))
+            .overlay(RoundedRectangle(cornerRadius: Brand.Radius.card).strokeBorder(Brand.Color.inkHairline, lineWidth: 1))
+    }
+    .padding()
+    .background(Brand.Color.bg)
+}
+```
+
+- [ ] **Step 3.5.6: Build + test — expect 101 passing**
+
+```bash
+xcodebuild test -project /Users/dustinanglin/.config/superpowers/worktrees/Vibecast/plan-6-visual-refresh/Vibecast/Vibecast.xcodeproj -scheme Vibecast -destination 'platform=iOS Simulator,name=iPhone 17 Pro' 2>&1 | grep -E "TEST SUCCEEDED|TEST FAILED|Executed [0-9]+ tests|error:" | tail -5
+```
+
+- [ ] **Step 3.5.7: Commit**
+
+```bash
+git -C /Users/dustinanglin/.config/superpowers/worktrees/Vibecast/plan-6-visual-refresh add Vibecast/Vibecast/Resources/Fonts Vibecast/Info.plist Vibecast/Vibecast/Brand/Brand.swift Vibecast/Vibecast/Views/RowSliver.swift Vibecast/Vibecast/Views/NowPlayingCard.swift
+git -C /Users/dustinanglin/.config/superpowers/worktrees/Vibecast/plan-6-visual-refresh commit -m "feat: bundle Fraunces italic, add RowSliver + NowPlayingCard helpers
+
+Backfill for the row-state iteration design pass that landed after
+Tasks 1-3. Three additions needed before the per-screen migrations
+consume them in Task 5:
+
+(1) Bundle Fraunces-Italic[opsz,wght].ttf alongside the roman variable
+    file so .custom('Fraunces-Italic', ...) resolves. Add to Info.plist
+    UIAppFonts. Add Brand.Font.serifBodyLight (Fraunces 300 upright)
+    and Brand.Font.serifLightItalic (Fraunces 300 italic) for the
+    started-row title treatment.
+
+(2) RowSliver — 3pt vertical bar at row leading edge. Color is passed
+    in (Phase 1: Brand.fallbackColor(for: title) for chromatic column).
+
+(3) NowPlayingCard ViewModifier — wraps row content with 2pt accent
+    border + accent-tinted halo shadow + 3pt top progress bar pinned
+    flush to the rounded card's inner top edge. Used on the now-playing
+    row in PodcastRowView."
+```
+
+---
+
 ## Task 4: Refresh `PlayControlView`
 
 **Why this task:** The right-side button on every row. 4 visual states per spec.
@@ -601,18 +792,38 @@ circle + paper pause/play (current), transparent + muted replay (played).
 
 ---
 
-## Task 5: Refresh `PodcastRowView`
+## Task 5: Refresh `PodcastRowView` with the four-state vocabulary
 
-**Why this task:** The most visible row in the app. Switches to Brand tokens, integrates `CoverArtwork`, adds played-state opacity dim + `✓ PLAYED` text, adds `NowPlayingIndicator` badge on cover for currently-playing row.
+**Why this task:** The most visible row in the app, and the centerpiece of Plan 6's visual refresh. Implements the four-state vocabulary from the row-state iteration design pass: **unplayed**, **started**, **now-playing**, **played**. Each state has its own typography, position-number opacity, sliver presence, eyebrow content, footnote, right-control treatment, and (for now-playing) card decoration. See spec § `PodcastRowView` for the full state matrix.
 
 **Files:**
-- Modify: `Vibecast/Vibecast/Views/PodcastRowView.swift`
+- Modify: `Vibecast/Vibecast/Views/PodcastRowView.swift` (substantial rewrite)
+- Modify: `Vibecast/Vibecast/Views/PodcastRowSnapshot.swift` (add `position` field; extend `EpisodeRowSnapshot` with `playbackPosition`, `totalDuration`, and a `formattedElapsed` helper)
+- Modify: `Vibecast/Vibecast/Views/SubscriptionsListView.swift` (pass `position` when constructing each snapshot in the ForEach)
 
-- [ ] **Step 5.1: Read the current file end-to-end**
+- [ ] **Step 5.1: Read all three files end-to-end**
 
-Note `EpisodeRowSnapshot` shape (used for episode metadata). Note current `artworkView`, `episodeMetadata`, `dateLabel`, `titleLabel`, `descriptionLabel` helpers.
+Read:
+- `Vibecast/Vibecast/Views/PodcastRowView.swift`
+- `Vibecast/Vibecast/Views/PodcastRowSnapshot.swift` (or wherever `EpisodeRowSnapshot` lives)
+- `Vibecast/Vibecast/Views/SubscriptionsListView.swift` (the ForEach that constructs snapshots)
 
-- [ ] **Step 5.2: Replace body + helpers**
+Note current shapes — particularly what fields `EpisodeRowSnapshot` already has (`progressFraction`, `formattedDuration`, `formattedRemaining` per Plan 5 Task 1 cont.). Verify before adding duplicates.
+
+- [ ] **Step 5.2: Extend snapshots with the missing fields**
+
+`PodcastRowSnapshot`: add `let position: Int`. The init from `Podcast` sets `position = podcast.sortPosition + 1` (1-indexed for human-readable display).
+
+`EpisodeRowSnapshot`: add `let playbackPosition: TimeInterval` and `let totalDuration: TimeInterval`. Add a computed `formattedElapsed: String` that formats `playbackPosition` like the existing `formattedDuration` — minutes only ("14M"). Update the init from `Episode`:
+
+```swift
+self.playbackPosition = episode.playbackPosition
+self.totalDuration = TimeInterval(episode.durationSeconds)
+```
+
+If `progressFraction` exists, leave it. If not, add: `var progressFraction: Double { totalDuration > 0 ? min(playbackPosition / totalDuration, 1) : 0 }`.
+
+- [ ] **Step 5.3: Replace `PodcastRowView` with four-state implementation**
 
 ```swift
 import SwiftUI
@@ -624,164 +835,323 @@ struct PodcastRowView: View {
     let onPlay: () -> Void
     let onOpenDetail: () -> Void
 
-    var body: some View {
-        VStack(spacing: 0) {
-            content
-                .padding(Brand.Layout.rowPadding)
-                .opacity(snapshot.latestEpisode?.listenedStatus == .played ? 0.55 : 1.0)
-            Rectangle()
-                .fill(Brand.Color.inkHairline)
-                .frame(height: Brand.hairlineWidth)
+    private enum RowState { case unplayed, started, nowPlaying, played }
+
+    /// State precedence: now-playing wins; otherwise listenedStatus drives.
+    private var rowState: RowState {
+        if isCurrent { return .nowPlaying }
+        guard let ep = snapshot.latestEpisode else { return .unplayed }
+        switch ep.listenedStatus {
+        case .unplayed:   return .unplayed
+        case .inProgress: return .started
+        case .played:     return .played
         }
-        .background(Brand.Color.bg)
     }
 
-    private var content: some View {
-        HStack(alignment: .center, spacing: 12) {
-            ZStack(alignment: .topTrailing) {
-                CoverArtwork(
-                    urlString: snapshot.artworkURL,
-                    title: snapshot.title,
-                    size: 44,
-                    radius: Brand.Radius.coverSmall
-                )
-                .onTapGesture { onOpenDetail() }
+    var body: some View {
+        cardWrapper
+            .padding(.vertical, Brand.Layout.rowGap / 2)
+            .opacity(rowState == .played ? 0.55 : 1.0)
+    }
 
-                if isCurrent {
-                    NowPlayingIndicator(isPlaying: isPlaying)
-                        .background(Brand.Color.paper.opacity(0.85))
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                        .offset(x: 4, y: -4)
-                }
+    /// Wraps the row content with the appropriate decoration:
+    /// - now-playing → 2pt accent border + halo + top progress bar (NowPlayingCard)
+    /// - unplayed → 3pt fallback-color sliver at leading edge + paper card + hairline border
+    /// - started, played → paper card + hairline border (no sliver)
+    @ViewBuilder
+    private var cardWrapper: some View {
+        switch rowState {
+        case .nowPlaying:
+            cardContent
+                .nowPlayingCard(progressFraction: progressFraction, isPlaying: isPlaying)
+        case .unplayed:
+            HStack(spacing: 0) {
+                RowSliver(color: Brand.fallbackColor(for: snapshot.title))
+                cardContent
+                    .frame(maxWidth: .infinity)
             }
+            .background(Brand.Color.paper)
+            .clipShape(RoundedRectangle(cornerRadius: Brand.Radius.card))
+            .overlay(
+                RoundedRectangle(cornerRadius: Brand.Radius.card)
+                    .strokeBorder(Brand.Color.inkHairline, lineWidth: Brand.Layout.hairlineWidth)
+            )
+        case .started, .played:
+            cardContent
+                .background(Brand.Color.paper)
+                .clipShape(RoundedRectangle(cornerRadius: Brand.Radius.card))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Brand.Radius.card)
+                        .strokeBorder(Brand.Color.inkHairline, lineWidth: Brand.Layout.hairlineWidth)
+                )
+        }
+    }
+
+    private var cardContent: some View {
+        HStack(alignment: .center, spacing: 12) {
+            leftSlot
+                .frame(width: 28)
+            CoverArtwork(
+                urlString: snapshot.artworkURL,
+                title: snapshot.title,
+                size: 44,
+                radius: Brand.Radius.coverSmall
+            )
+            .onTapGesture { onOpenDetail() }
 
             if let episode = snapshot.latestEpisode {
                 metadata(episode: episode)
                     .contentShape(Rectangle())
                     .onTapGesture { onOpenDetail() }
 
-                PlayControlView(
-                    episode: episode,
-                    isCurrent: isCurrent,
-                    isPlaying: isPlaying,
-                    onTap: onPlay
-                )
+                rightControl(episode: episode)
             } else {
                 Text("No episodes")
-                    .font(Brand.Font.serifItalic(size: 13))
+                    .font(Brand.Font.serifLightItalic(size: 13))
                     .foregroundStyle(Brand.Color.inkMuted)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+        }
+        .padding(Brand.Layout.rowPadding)
+    }
+
+    /// Position number, OR (for now-playing) a 20×20 accent circle with VU bars.
+    @ViewBuilder
+    private var leftSlot: some View {
+        switch rowState {
+        case .nowPlaying:
+            ZStack {
+                Circle()
+                    .fill(Brand.Color.accent)
+                    .frame(width: 20, height: 20)
+                NowPlayingIndicator(isPlaying: isPlaying, color: Brand.Color.paper)
+            }
+        case .unplayed:
+            Text(String(format: "%02d", snapshot.position))
+                .font(Brand.Font.monoEyebrow())
+                .tracking(Brand.Layout.monoTracking)
+                .foregroundStyle(Brand.Color.inkSecondary)
+        case .started, .played:
+            Text(String(format: "%02d", snapshot.position))
+                .font(Brand.Font.monoEyebrow())
+                .tracking(Brand.Layout.monoTracking)
+                .foregroundStyle(Brand.Color.ink.opacity(0.30))  // dimmed
         }
     }
 
     private func metadata(episode: EpisodeRowSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            showEyebrow(episode: episode)
-            Text(episode.title)
-                .font(Brand.Font.serifBody())
-                .foregroundStyle(Brand.Color.ink)
-                .lineLimit(2)
-            durationLabel(episode: episode)
+            eyebrow(episode: episode)
+            titleText(episode: episode)
+                .frame(minHeight: 14 * 1.22 * 2, alignment: .topLeading)  // 2-line reservation
+            footnote(episode: episode)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func showEyebrow(episode: EpisodeRowSnapshot) -> some View {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        let relative = formatter.localizedString(for: episode.publishDate, relativeTo: .now)
-        return HStack(spacing: 6) {
-            Text(snapshot.title)
-                .font(Brand.Font.monoEyebrow())
-                .tracking(Brand.Layout.monoTracking)
-                .textCase(.uppercase)
-                .foregroundStyle(Brand.Color.inkSecondary)
-                .lineLimit(1)
-            Text("·")
-                .font(Brand.Font.monoEyebrow())
-                .foregroundStyle(Brand.Color.inkFaint)
-            Text(relative)
-                .font(Brand.Font.monoEyebrow())
-                .tracking(Brand.Layout.monoTracking)
-                .textCase(.uppercase)
-                .foregroundStyle(Brand.Color.inkSecondary)
-            if episode.isExplicit {
-                Text("E")
-                    .font(Brand.Font.monoEyebrow())
-                    .padding(.horizontal, 3)
-                    .background(Brand.Color.inkHairline, in: RoundedRectangle(cornerRadius: 2))
-                    .foregroundStyle(Brand.Color.inkSecondary)
-            }
-        }
-    }
-
-    private func durationLabel(episode: EpisodeRowSnapshot) -> some View {
-        Group {
-            if episode.listenedStatus == .played {
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 9, weight: .semibold))
-                    Text("Played")
-                        .font(Brand.Font.monoEyebrow())
-                        .tracking(Brand.Layout.monoTracking)
-                        .textCase(.uppercase)
-                }
-                .foregroundStyle(Brand.Color.inkMuted)
-            } else {
-                Text(episode.formattedDuration.uppercased())
+    /// Eyebrow varies by state. Started includes inline progress ring + M LEFT.
+    /// Now-playing uses standard show eyebrow but with M IN highlighted in accent.
+    @ViewBuilder
+    private func eyebrow(episode: EpisodeRowSnapshot) -> some View {
+        switch rowState {
+        case .started:
+            HStack(spacing: 6) {
+                ProgressRing(fraction: episode.progressFraction, size: 11, color: Brand.Color.accent)
+                Text("\(minutesLeft(episode))M LEFT")
                     .font(Brand.Font.monoEyebrow())
                     .tracking(Brand.Layout.monoTracking)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Brand.Color.accent)
+                Text("· \(snapshot.title)")
+                    .font(Brand.Font.monoEyebrow())
+                    .tracking(Brand.Layout.monoTracking)
+                    .textCase(.uppercase)
                     .foregroundStyle(Brand.Color.inkMuted)
+                    .lineLimit(1)
             }
+        default:
+            HStack(spacing: 6) {
+                Text(snapshot.title)
+                    .foregroundStyle(Brand.Color.inkSecondary)
+                    .lineLimit(1)
+                Text("·")
+                    .foregroundStyle(Brand.Color.inkFaint)
+                Text(relativeDate(episode.publishDate))
+                    .foregroundStyle(Brand.Color.inkSecondary)
+                if episode.isExplicit {
+                    Text("E")
+                        .padding(.horizontal, 3)
+                        .background(Brand.Color.inkHairline, in: RoundedRectangle(cornerRadius: 2))
+                        .foregroundStyle(Brand.Color.inkSecondary)
+                }
+            }
+            .font(Brand.Font.monoEyebrow())
+            .tracking(Brand.Layout.monoTracking)
+            .textCase(.uppercase)
         }
     }
+
+    /// Title typography differs in started state.
+    @ViewBuilder
+    private func titleText(episode: EpisodeRowSnapshot) -> some View {
+        switch rowState {
+        case .started:
+            Text(episode.title)
+                .font(Brand.Font.serifLightItalic())
+                .foregroundStyle(Brand.Color.ink.opacity(0.78))
+                .lineLimit(2)
+        default:
+            Text(episode.title)
+                .font(Brand.Font.serifBody())
+                .foregroundStyle(Brand.Color.ink)
+                .lineLimit(2)
+        }
+    }
+
+    /// Footnote varies: started → "PAUSED AT NM · TOTAL MIN TOTAL"; now-playing → "TOTAL MIN · NM IN"; played → "✓ PLAYED"; unplayed → "TOTAL MIN".
+    @ViewBuilder
+    private func footnote(episode: EpisodeRowSnapshot) -> some View {
+        switch rowState {
+        case .played:
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 9, weight: .semibold))
+                Text("Played")
+                    .font(Brand.Font.monoEyebrow())
+                    .tracking(Brand.Layout.monoTracking)
+                    .textCase(.uppercase)
+            }
+            .foregroundStyle(Brand.Color.inkMuted)
+        case .started:
+            Text("PAUSED AT \(episode.formattedElapsed) · \(episode.formattedDuration.uppercased()) TOTAL")
+                .font(Brand.Font.monoEyebrow())
+                .tracking(Brand.Layout.monoTracking)
+                .foregroundStyle(Brand.Color.inkMuted)
+        case .nowPlaying:
+            HStack(spacing: 6) {
+                Text(episode.formattedDuration.uppercased())
+                    .foregroundStyle(Brand.Color.inkMuted)
+                Text("·")
+                    .foregroundStyle(Brand.Color.inkFaint)
+                Text("\(episode.formattedElapsed) IN")
+                    .foregroundStyle(Brand.Color.accent)
+            }
+            .font(Brand.Font.monoEyebrow())
+            .tracking(Brand.Layout.monoTracking)
+        case .unplayed:
+            Text(episode.formattedDuration.uppercased())
+                .font(Brand.Font.monoEyebrow())
+                .tracking(Brand.Layout.monoTracking)
+                .foregroundStyle(Brand.Color.inkMuted)
+        }
+    }
+
+    /// Right-side button. now-playing & started have specialized treatments;
+    /// otherwise delegate to PlayControlView.
+    @ViewBuilder
+    private func rightControl(episode: EpisodeRowSnapshot) -> some View {
+        switch rowState {
+        case .nowPlaying:
+            Button(action: onPlay) {
+                ZStack {
+                    Circle().fill(Brand.Color.accent).frame(width: 38, height: 38)
+                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Brand.Color.paper)
+                }
+                .frame(width: Brand.HitTarget.rowPlay, height: Brand.HitTarget.rowPlay)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        case .started:
+            // Accent-outlined resume (distinct from unplayed's paper-ring play and played's transparent replay)
+            Button(action: onPlay) {
+                ZStack {
+                    Circle().fill(Brand.Color.paper)
+                        .overlay(Circle().strokeBorder(Brand.Color.accent, lineWidth: 1.5))
+                        .frame(width: 30, height: 30)
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Brand.Color.accent)
+                }
+                .frame(width: Brand.HitTarget.rowPlay, height: Brand.HitTarget.rowPlay)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        case .unplayed, .played:
+            PlayControlView(
+                episode: episode,
+                isCurrent: false,
+                isPlaying: false,
+                onTap: onPlay
+            )
+        }
+    }
+
+    private var progressFraction: Double {
+        snapshot.latestEpisode?.progressFraction ?? 0
+    }
+
+    private func minutesLeft(_ episode: EpisodeRowSnapshot) -> Int {
+        let remaining = max(0, episode.totalDuration - episode.playbackPosition)
+        return Int(remaining / 60)
+    }
+
+    private func relativeDate(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: .now)
+    }
 }
-```
 
-This assumes `PodcastRowSnapshot` has a `title` field — verify against the existing struct. If it doesn't, the show name will need to come from a different field or be passed separately.
+/// Small inline progress ring used in the started-row eyebrow.
+private struct ProgressRing: View {
+    let fraction: Double
+    let size: CGFloat
+    let color: Color
 
-**Note:** Current `PodcastRowSnapshot` may already have or be missing `title`. Read the file `Vibecast/Vibecast/Views/PodcastRowSnapshot.swift` and add `title` to the struct + its initializer if needed. If you need to extend the snapshot, do so and add a brief commit note.
-
-- [ ] **Step 5.3: Update `PodcastRowSnapshot` if needed**
-
-If `PodcastRowSnapshot` doesn't include `title`, add it:
-
-```swift
-struct PodcastRowSnapshot: Identifiable, Hashable {
-    let id: PersistentIdentifier
-    let title: String                 // ADD THIS if missing
-    let artworkURL: String?
-    let latestEpisode: EpisodeRowSnapshot?
-}
-
-extension PodcastRowSnapshot {
-    init(_ podcast: Podcast) {
-        self.id = podcast.persistentModelID
-        self.title = podcast.title    // ADD THIS if missing
-        self.artworkURL = podcast.artworkURL
-        let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
-        self.latestEpisode = latest.map(EpisodeRowSnapshot.init)
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(color.opacity(0.25), lineWidth: 1.5)
+            Circle()
+                .trim(from: 0, to: fraction)
+                .stroke(color, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+        }
+        .frame(width: size, height: size)
     }
 }
 ```
 
-- [ ] **Step 5.4: Build + test — expect 90 passing**
+Note the `2-line reservation` line `frame(minHeight: 14 * 1.22 * 2, ...)` — this implements the fixed-row-height rule per spec. Title size 14pt × line-height 1.22 × 2 lines.
+
+- [ ] **Step 5.4: Update `SubscriptionsListView` ForEach to pass `position`**
+
+Find the ForEach in `SubscriptionsListView.swift` that builds `PodcastRowSnapshot`. The current init is `PodcastRowSnapshot(podcast)` — that still works because `position = podcast.sortPosition + 1` is set inside the init. No call-site change needed unless the snapshot's init signature changed; verify.
+
+- [ ] **Step 5.5: Build + test — expect 101 passing (unchanged from start of view migrations)**
 
 ```bash
 xcodebuild test -project /Users/dustinanglin/.config/superpowers/worktrees/Vibecast/plan-6-visual-refresh/Vibecast/Vibecast.xcodeproj -scheme Vibecast -destination 'platform=iOS Simulator,name=iPhone 17 Pro' 2>&1 | grep -E "TEST SUCCEEDED|TEST FAILED" | tail -3
 ```
 
-- [ ] **Step 5.5: Commit**
+- [ ] **Step 5.6: Commit**
 
 ```bash
-git -C /Users/dustinanglin/.config/superpowers/worktrees/Vibecast/plan-6-visual-refresh add Vibecast/Vibecast/Views/PodcastRowView.swift Vibecast/Vibecast/Views/PodcastRowSnapshot.swift
-git -C /Users/dustinanglin/.config/superpowers/worktrees/Vibecast/plan-6-visual-refresh commit -m "feat(visual): refresh PodcastRowView with Editorial language
+git -C /Users/dustinanglin/.config/superpowers/worktrees/Vibecast/plan-6-visual-refresh add Vibecast/Vibecast/Views/PodcastRowView.swift Vibecast/Vibecast/Views/PodcastRowSnapshot.swift Vibecast/Vibecast/Views/SubscriptionsListView.swift
+git -C /Users/dustinanglin/.config/superpowers/worktrees/Vibecast/plan-6-visual-refresh commit -m "feat(visual): refresh PodcastRowView with four-state vocabulary
 
-44pt cover at 4pt radius, mono show eyebrow + serif episode title +
-mono duration. Played-state opacity dim + ✓ PLAYED text. Currently-
-playing row shows NowPlayingIndicator badge on cover. Hairline
-separator below row. Bg = Brand.Color.bg."
+unplayed / started / now-playing / played. State precedence: now-playing
+wins, otherwise listenedStatus drives. Per-state typography (Fraunces
+500 vs Fraunces-Italic 300 at 78% ink for started), position number
+opacity (full vs 30%), eyebrow content (show name vs ring + M LEFT),
+footnote (TOTAL MIN vs PAUSED AT vs TOTAL MIN · M IN vs ✓ PLAYED), right
+control (paper-ring play vs accent-outlined resume vs accent-filled
+pause vs transparent replay). Now-playing row gets the NowPlayingCard
+decoration (border + halo + top progress bar) and a 20×20 accent circle
+with NowPlayingIndicator in the left slot. Unplayed row gets a 3pt
+fallback-color sliver on the leading edge."
 ```
 
 ---
