@@ -29,7 +29,7 @@ enum Brand {
         // Verify with `print(UIFont.familyNames.filter { $0.contains("Fraunces") })`
         // if needed.
         private static let fraunces = "Fraunces"
-        private static let fraunces_italic = "Fraunces-Italic"  // adjust if the italic registers under "Fraunces"
+        private static let frauncesItalic = "Fraunces-Italic"  // adjust if the italic registers under "Fraunces"
         private static let inter = "Inter"
         private static let mono = "JetBrains Mono"
 
@@ -58,7 +58,7 @@ enum Brand {
         /// Started-row title: Fraunces-Italic 300, italic. The carrier of the
         /// "still here, not done" treatment per spec.
         static func serifLightItalic(size: CGFloat = 14) -> SwiftUI.Font {
-            .custom(fraunces_italic, size: size).weight(.light)
+            .custom(frauncesItalic, size: size).weight(.light)
         }
 
         static func uiBody(size: CGFloat = 14, weight: SwiftUI.Font.Weight = .regular) -> SwiftUI.Font {

@@ -3,14 +3,11 @@ import SwiftUI
 /// ViewModifier that wraps row content with the now-playing card decoration:
 /// 2pt accent border, halo shadow, 3pt top progress bar across the row's
 /// inner top edge. Used on the now-playing row in PodcastRowView (and later
-/// EpisodeRowView). Inputs:
-///   - progressFraction: 0...1 of how far through the episode we are
-///   - isPlaying: drives whether the halo glows; both playing and paused
-///     keep the card decoration (the design says "lifts off the list" for
-///     either state — only glyphs swap)
+/// EpisodeRowView). The card decoration is identical for playing and paused
+/// per spec — only the parent row's glyphs (left-slot indicator + right-side
+/// pause/play) differ between those states. Input: `progressFraction` (0...1).
 struct NowPlayingCard: ViewModifier {
     let progressFraction: Double
-    let isPlaying: Bool
 
     func body(content: Content) -> some View {
         content
@@ -38,8 +35,8 @@ struct NowPlayingCard: ViewModifier {
 }
 
 extension View {
-    func nowPlayingCard(progressFraction: Double, isPlaying: Bool) -> some View {
-        modifier(NowPlayingCard(progressFraction: progressFraction, isPlaying: isPlaying))
+    func nowPlayingCard(progressFraction: Double) -> some View {
+        modifier(NowPlayingCard(progressFraction: progressFraction))
     }
 }
 
@@ -48,7 +45,7 @@ extension View {
         Text("Now playing row content")
             .padding()
             .frame(maxWidth: .infinity)
-            .nowPlayingCard(progressFraction: 0.4, isPlaying: true)
+            .nowPlayingCard(progressFraction: 0.4)
         Text("Inactive row")
             .padding()
             .frame(maxWidth: .infinity)
