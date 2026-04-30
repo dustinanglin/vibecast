@@ -29,6 +29,7 @@ enum Brand {
         // Verify with `print(UIFont.familyNames.filter { $0.contains("Fraunces") })`
         // if needed.
         private static let fraunces = "Fraunces"
+        private static let fraunces_italic = "Fraunces-Italic"  // adjust if the italic registers under "Fraunces"
         private static let inter = "Inter"
         private static let mono = "JetBrains Mono"
 
@@ -48,10 +49,17 @@ enum Brand {
             .custom(fraunces, size: size).weight(.medium)
         }
 
-        // Note: serifItalic deliberately omitted from Phase 1. The bundled Fraunces
-        // variable TTF doesn't include an italic axis (would require bundling a
-        // separate Fraunces-Italic[opsz,wght].ttf). Italics are barely used in
-        // Phase 1 per spec; add back when needed.
+        /// Started-row title: Fraunces 300 (Light), upright. Pairs with serifLightItalic
+        /// for the started state per spec § PodcastRowView.
+        static func serifBodyLight(size: CGFloat = 14) -> SwiftUI.Font {
+            .custom(fraunces, size: size).weight(.light)
+        }
+
+        /// Started-row title: Fraunces-Italic 300, italic. The carrier of the
+        /// "still here, not done" treatment per spec.
+        static func serifLightItalic(size: CGFloat = 14) -> SwiftUI.Font {
+            .custom(fraunces_italic, size: size).weight(.light)
+        }
 
         static func uiBody(size: CGFloat = 14, weight: SwiftUI.Font.Weight = .regular) -> SwiftUI.Font {
             .custom(inter, size: size).weight(weight)
