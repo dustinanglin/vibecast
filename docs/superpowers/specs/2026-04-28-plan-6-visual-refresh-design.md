@@ -14,21 +14,26 @@ This plan delivers Phase 1 only: visual tokens + screen refresh + library wordma
 
 ### In scope
 
-- Bundle Fraunces, Inter, JetBrains Mono TTF files; register via `UIAppFonts`; expose typed `Font` API.
+- Bundle Fraunces (roman + italic), Inter, JetBrains Mono TTF files; register via `UIAppFonts`; expose typed `Font` API.
 - Define color tokens in code (no Asset Catalog Color Sets needed for light-only).
 - Force light mode via `.preferredColorScheme(.light)` at app root.
 - Library header: replace `.navigationTitle("Subscriptions")` with custom Fraunces "Vibecast" wordmark + accent dot.
-- Row visual refresh: all 8 view files (`SubscriptionsListView`, `PodcastRowView`, `PlayControlView`, `PodcastDetailView`, `EpisodeRowView`, `SearchResultRow`, `AddPodcastSheet`, `MiniPlayerBar`, `FullScreenPlayerView`).
+- Row visual refresh: all view files (`SubscriptionsListView`, `PodcastRowView`, `PlayControlView`, `PodcastDetailView`, `EpisodeRowView`, `SearchResultRow`, `AddPodcastSheet`, `MiniPlayerBar`, `FullScreenPlayerView`).
+- **Four row states** with distinct visual hierarchies (unplayed / started / now-playing / played) — see `PodcastRowView` section for the full vocabulary.
+- **Started state** (Episode `listenedStatus == .inProgress`): Fraunces 300 italic title at 78% ink, inline progress ring + "M LEFT · Show" eyebrow, "PAUSED AT N M · TOTAL MIN" footnote, dimmed position number, accent-outlined resume button.
+- **Now-playing row card decoration**: 2pt accent border, accent-tinted halo box-shadow, 3pt top progress bar pinned to the row card's top edge, 20×20 accent circle replacing the position-number slot containing the 3-bar VU indicator, accent-filled right-side pause/play.
+- **Left-edge sliver attractor on unplayed rows**: 3pt vertical bar at the row's leading edge. Color in Phase 1 = `Brand.fallbackColor(for: title)` (per-show deterministic — gives the "chromatic column" effect the design intends for All Vibes view, which is functionally identical to the Phase 1 library list since vibes don't exist yet).
+- **Position numbers** (mono, 2-digit zero-padded) on every row, driven by `Podcast.sortPosition`. Dimmed to 30% on started/played rows so unplayed rows still win attention.
+- **Fixed row height** with `min-height: 2.44em` on the title slot so single-line and two-line titles share the same row height.
 - Played-state treatment: opacity 0.55 + `✓ PLAYED` mono text replacing duration on row.
-- Currently-playing indicator: 3-bar animated VU on the row that's playing.
 - Cover artwork fallback: serif-initials on a colored square (replaces `mic.fill` in `PodcastRowView` and detail view).
 - Hairline separators replacing system list dividers.
 
 ### Out of scope (explicit)
 
 - Vibes (data model, screens, filter pills) — Plan 7.
-- Pinning (data model, sheet, expiration) — Plan 8.
-- Position numbers, UP NEXT/NOW pills, tinted card backgrounds, multi-vibe gradients — all queue-dependent, ship with Plan 7.
+- Pinning (data model, sheet, expiration, drag handles) — Plan 8.
+- UP NEXT pills, tinted card backgrounds, multi-vibe gradients, swipe-between-vibes, "Start the vibe" CTA — all queue/vibe-dependent, ship with Plan 7.
 - App icon (`v + period` letterform) — Plan 6.5.
 - Splash screen (animated or static) — Plan 6.5.
 - TestFlight pipeline setup — Plan 6.5.
@@ -69,13 +74,14 @@ All sizes in Apple-points (SwiftUI default unit). Tracking values converted from
 | `display` | Fraunces | 500 | 28pt | -0.025em | — | Library header wordmark "Vibecast" |
 | `serifTitle` | Fraunces | 500 | 28pt | -0.02em | — | Detail view podcast title, large screen titles |
 | `serifSubtitle` | Fraunces | 500 | 22pt | -0.02em | — | Section headers (h3) |
-| `serifBody` | Fraunces | 500 | 14pt | normal | — | Episode title in row |
-| `serifItalic` | Fraunces | 500 | 19pt (default) | normal | italic | Lede captions, editorial flavor text (sparingly used in Phase 1) |
+| `serifBody` | Fraunces | 500 | 14pt | normal | — | Episode title in row (default / unplayed / now-playing) |
+| `serifBodyLight` | Fraunces | 300 | 14pt | normal | — | Episode title for **started** rows (paired with italic; see below) |
+| `serifLightItalic` | Fraunces-Italic | 300 | 14pt | normal | italic | Episode title for **started** rows. Light + italic = "still here, not done" |
 | `uiBody` | Inter | 400 | 14pt (default) | normal | — | Body UI text, search input |
 | `uiButtonLabel` | Inter | 600 | 14pt | -0.005em | — | Button labels |
 | `monoEyebrow` | JetBrains Mono | 600 | 9pt (rows) / 11pt (section eyebrows) | +0.10em | uppercase | Show name eyebrow, durations, listening progress, played-state text |
 
-Italic Fraunces is rarely used in Phase 1 — the design handoff uses it for editorial flavor in the marketing-style surfaces. Library + row + detail screens stay roman.
+Italic + light Fraunces is the carrier of the started-row treatment per the row-state iteration design pass — see Per-screen treatment §`PodcastRowView`. Roman Fraunces 500 carries everything else (default rows, now-playing, played, detail title, wordmark, sheet titles). Requires bundling **two** variable Fraunces files: `Fraunces[opsz,wght].ttf` (roman) and `Fraunces-Italic[opsz,wght].ttf` (italic).
 
 ### Spacing & radius
 
@@ -114,28 +120,97 @@ Italic Fraunces is rarely used in Phase 1 — the design handoff uses it for edi
 
 ### `PodcastRowView`
 
+Four states share the same card template (cover + meta + control on the right) and a fixed row height (`min-height: 2.44em` on the title slot reserves space for two lines so 1-line and 2-line titles produce uniform row heights). The **left slot** is a small column to the left of the cover that holds a position number (mono, 2-digit zero-padded) — its weight changes with state. State is derived from `Episode.listenedStatus` plus the player's current-episode/isPlaying flags:
+
+| Episode state | Player state | Row state |
+|---|---|---|
+| `.unplayed` | not current OR current+!playing | `unplayed` |
+| `.inProgress` | not current | `started` |
+| `.played` | not current | `played` |
+| any | current+playing | `now-playing` |
+| any | current+!playing (i.e., loaded but paused) | `now-playing` (paused variant — same card decoration, glyph swap) |
+
+State precedence: `now-playing` wins over everything else; otherwise listenedStatus drives.
+
+#### Common template
+
 ```
-┌───────────────────────────────────────────────────┐  ← cardRadius 14pt
-│ ┌─────┐                                           │
-│ │ Cov │   SHOW NAME · 9pt MONO · ink/0.62         │  ← row inner padding 12pt
-│ │ 44  │                                           │
-│ │ ×44 │   Episode Title (Fraunces 14pt 500)       │
-│ │ 4pt │                                           │
-│ └─────┘   62 MIN · 24M IN  (mono 9pt ink/0.40)    │
-│                                                   │
-│                                       ┌──────┐    │
-│                                       │  ▶/⏸  │   │  ← right control,
-│                                       └──────┘    │     56pt hit target
-└───────────────────────────────────────────────────┘
-        ↓ 8pt gap to next row
-─────────────────────────────────────────────────────  ← 1pt hairline ink/0.10
+┌─ leading edge ──────────────────────────────────────────────────┐
+│ │       ┌────┐                                                  │  ← cardRadius 14pt
+│ │  01   │Cov │   SHOW NAME · 9pt MONO · ink/0.62                │  ← rowPadding 12pt
+│s│       │ 44 │                                                  │
+│l│       │×44 │   Episode Title (Fraunces 14pt — weight/style    │
+│i│       │ 4pt│   varies by state)                               │
+│v│       └────┘                                                  │
+│e│            DURATION FOOTNOTE (mono 9pt ink/0.40)              │
+│r│                                                  ┌──────┐    │
+│ │                                                  │ ▶/⏸ │    │  ← right control,
+│ │                                                  └──────┘    │     56pt hit target
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-States:
-- **Default** — paper bg, ink text, accent dot in cover fallback if no artwork.
-- **Currently playing** — 3-bar animated VU indicator (~14×14pt) drawn as a top-right badge on the cover (small inset, accent color), right control shows pause icon in accent-filled circle. Bar heights animate independently 0.6-0.95s ease-in-out alternate. When the player is paused but this is the loaded episode, freeze the bar heights.
-- **Played** — entire row at opacity 0.55, duration text replaced with `✓ PLAYED` (mono 9pt, ink/0.40), right control shows replay glyph (transparent, muted).
-- **No latest episode** — fallback "No episodes" italic text where the title would be.
+The `sliver` channel (3pt wide, leading edge) is present only on **unplayed** rows. The position-number column is always present (with state-specific opacity).
+
+#### State details
+
+**`unplayed` (default attention-attractor)**
+- Background: `paper`
+- Border: 1pt `inkHairline`
+- **Left sliver**: 3pt × full row height, color = `Brand.fallbackColor(for: podcast.title)` (per-show deterministic from the existing 8-color palette; produces a chromatic column down the list — the design intends "primary vibe" but Phase 1 has no vibes, so per-show deterministic is the closest equivalent and behaves identically in this view)
+- Position number: mono 9pt, `inkSecondary` (62%)
+- Cover: 44×44, `coverRadiusSmall` (4pt), via `CoverArtwork` helper
+- Show name eyebrow: `monoEyebrow` 9pt uppercase, `inkSecondary`
+- Title: **`serifBody` Fraunces 500 14pt**, `ink` (full)
+- Footnote: `{TOTAL} MIN` in `monoEyebrow` 9pt, `inkMuted`
+- Right control: `paper` ring + `inkHairline` border + `play.fill` glyph in `ink`
+
+**`started` (downplayed — "still here, not done")**
+- Background: `paper`
+- Border: 1pt `inkHairline`
+- **No left sliver** (the sliver is reserved as the unplayed attractor — leaving it off makes started rows visibly quieter)
+- Position number: mono 9pt at **30% ink** (so unplayed rows still win attention)
+- Cover: same as unplayed (44×44, 4pt radius)
+- Show name eyebrow: includes a small inline progress ring (~11pt circle, `accent`-stroked, fill clockwise to `playbackPosition / duration`), then `{N}M LEFT` in `accent` ink color (Phase 1 single-color), then `· {Show name}` in `inkMuted`
+- Title: **`serifLightItalic` Fraunces-Italic 300 14pt at 78% ink**. Light + italic together is the carrier of the started state.
+- Footnote: `PAUSED AT {N}M · {TOTAL} MIN TOTAL` in `monoEyebrow` 9pt, `inkMuted`
+- Right control: `paper` ring + `accent` border + `arrow.clockwise` glyph in `accent` (resume — distinct from unplayed's `play.fill` and played's transparent-replay)
+
+**`now-playing` (active card — the only filled, framed row)**
+- Background: `paper`
+- **Border**: 2pt `accent` (vs 1pt hairline for inactive — doubles the edge weight)
+- **Halo**: `box-shadow` equivalent — 0pt offset Y +8pt blur 24pt color = `accent.opacity(0.20)`. SwiftUI uses `.shadow(color:radius:y:)` modifier.
+- **Top progress bar**: 3pt tall, pinned flush to the row card's top inner edge (clipped by the card's rounded corners — set `.clipShape(RoundedRectangle(cornerRadius: cardRadius))` on the card). Track: `ink.opacity(0.08)`, fill: `accent`, width: `playbackPosition / duration` of the row.
+- **Left slot**: position number is replaced by a 20×20pt `accent`-filled circle. **`now` (playing)**: contains `NowPlayingIndicator` (3-bar VU animation in `paper` color). **`now-paused`**: contains a static 2-bar pause glyph in `paper` color.
+- Cover: same as unplayed (44×44, 4pt radius). **No** VU badge on the cover — the card decoration is the dominant signal; the cover stays clean.
+- Show name eyebrow: `monoEyebrow` 9pt, `inkSecondary`
+- Title: **`serifBody` Fraunces 500 14pt**, `ink` (full)
+- Footnote: `{TOTAL} MIN · {N}M IN` — the `{N}M IN` half is rendered in `accent` ink so live progress reads twice (top progress bar visually + footnote numerically)
+- Right control: 38×38pt **`accent`-filled circle** with `paper`-color glyph. Playing → `pause.fill`. Paused → `play.fill`. The only filled-circle right-control in the row stack — everything else is outlined.
+
+**`played` (consumed — fades back)**
+- Background: `paper`
+- Border: 1pt `inkHairline`
+- **No left sliver**
+- Position number: mono 9pt at **30% ink**
+- Whole row: `opacity 0.55`
+- Cover: same (44×44, 4pt radius)
+- Show name eyebrow: same as unplayed but inheriting the row's 0.55 opacity
+- Title: `serifBody` Fraunces 500 14pt, `ink` (full — but inheriting row opacity)
+- Footnote: `✓ PLAYED` (with `checkmark` SF Symbol prefix) in `monoEyebrow` 9pt, `inkMuted`
+- Right control: transparent + `arrow.clockwise` glyph in `inkMuted`
+
+**Empty fallback** (`snapshot.latestEpisode == nil`)
+- Cover: same fallback rendering (CoverArtwork with no URL → initials)
+- "No episodes" in `serifLightItalic` 13pt, `inkMuted`, where the title would be
+- No footnote, no right control
+- No sliver
+
+#### The `RowSliver` and `NowPlayingCard` helper views
+
+To keep `PodcastRowView` readable, two small private helpers in `Vibecast/Vibecast/Views/`:
+
+- **`RowSliver`** — a 3pt-wide `Rectangle().fill(color)` aligned to the row card's leading edge, full row height. Used as a leading-aligned overlay or as the first child of an `HStack(spacing: 0)` ahead of the row content. Color is passed in (Phase 1 = `Brand.fallbackColor(for: title)`).
+- **`NowPlayingCard`** — a `ViewModifier` (or wrapping container) that adds the 2pt accent border + halo shadow + 3pt top progress bar overlay to whatever row content is inside. Takes `progressFraction: Double` and `isPlaying: Bool` as input. Encapsulates the "active card framing" so other surfaces can adopt it later.
 
 ### `PlayControlView`
 
@@ -156,7 +231,7 @@ The right-side button. 56pt hit target, ~30pt visible glyph circle.
 
 ### `EpisodeRowView`
 
-Re-styled to match the episode-row vocabulary in `PodcastDetailView`. Uses same date/title/duration layout.
+Same four-state vocabulary as `PodcastRowView` minus the cover (the podcast cover is up in the detail view's hero) and minus the show-name eyebrow (every row in the detail view shares the same show). Eyebrow becomes the publish date in `monoEyebrow`. Title weight/style follows the same state rules: roman 500 for unplayed/now-playing/played, light italic 300 at 78% ink for started. Footnote in `monoEyebrow`: `{TOTAL} MIN` (unplayed/now-playing), `PAUSED AT {N}M · {TOTAL} MIN TOTAL` (started), `✓ PLAYED` (played). Now-playing card decoration (border + halo + top progress bar) applies the same way. No left sliver in the detail view's episode list (the sliver lives only on the library list where it picks up the podcast's per-show fallback color; inside a detail view all episodes share one podcast so the sliver carries no information).
 
 ### `SearchResultRow`
 
@@ -278,12 +353,13 @@ Call sites: `.foregroundStyle(Brand.Color.ink)`, `.font(Brand.Font.serifBody())`
 ### Resources
 
 - `Vibecast/Vibecast/Resources/Fonts/` — bundled TTF files.
-  - `Fraunces[opsz,wght].ttf` (variable, opsz 9-144, wght 100-900)
+  - `Fraunces[opsz,wght].ttf` (variable, opsz 9-144, wght 100-900) — roman
+  - `Fraunces-Italic[opsz,wght].ttf` (variable, opsz 9-144, wght 100-900) — italic. Required for the started-row treatment (Fraunces 300 italic).
   - `Inter[wght].ttf` (variable, wght 100-900)
   - `JetBrainsMono[wght].ttf` (variable, wght 100-800)
-- `Info.plist` `UIAppFonts` array adds the three filenames.
+- `Info.plist` `UIAppFonts` array registers all four filenames.
 
-Bundle size impact: ~1.5 MB total (variable fonts include all weights).
+Bundle size impact: ~2 MB total (variable fonts include all weights, italic adds ~600 KB).
 
 ### Light mode enforcement
 
@@ -318,34 +394,44 @@ struct CoverArtwork: View {
 
 `CoverArtwork(urlString: podcast.artworkURL, title: podcast.title, size: 44, radius: 4)` replaces the current artwork-rendering blocks in `PodcastRowView`, `PodcastDetailView`, `MiniPlayerBar`, `FullScreenPlayerView`, `SearchResultRow`.
 
-### Now-playing VU indicator
+### Now-playing helpers
 
-New tiny view `Vibecast/Vibecast/Views/NowPlayingIndicator.swift`. 3 thin vertical bars, randomized 0.6-0.95s ease-in-out alternating heights via `withAnimation`. Tinted `accent`. Visible only when this row's episode is currently playing AND the player is in `isPlaying = true` state. When player is paused, freeze the bars at their current heights (visual hint that this is the loaded episode).
+Three small view files compose the now-playing treatment:
+
+**`Vibecast/Vibecast/Views/NowPlayingIndicator.swift`** — the 3-bar VU element. 3 thin vertical bars, phase-staggered 0.6-0.95s ease-in-out alternating heights. Color parameter (defaults to `Brand.Color.accent`). When `isPlaying = false`, freezes at current heights. **In Phase 1 it lives inside the now-playing row's left-slot 20×20 accent circle** (paper-tinted bars on accent background), not as a badge on the cover. The component is small enough (~14×14pt) to drop into the circle directly.
+
+**`Vibecast/Vibecast/Views/RowSliver.swift`** — a 3pt-wide vertical bar at row leading edge. Single property: `color: Color`. Only rendered for `unplayed` rows in `PodcastRowView`. Phase 1 callers pass `Brand.fallbackColor(for: podcast.title)` (the deterministic per-show palette pick from Task 1's `Brand.fallbackColor`).
+
+**`Vibecast/Vibecast/Views/NowPlayingCard.swift`** — a `ViewModifier` that adds the 2pt accent border + halo shadow + 3pt top progress bar to whatever row content is inside. Inputs: `progressFraction: Double`, `isPlaying: Bool`. Output: a card with `.overlay` shadow, `.shadow(color: accent.opacity(0.20), radius: 24, y: 8)`, and a top-edge progress overlay. The card uses `.clipShape(RoundedRectangle(cornerRadius: Brand.Radius.card))` so the top progress bar respects the row's rounded corners. Used as `.modifier(NowPlayingCard(progressFraction: ..., isPlaying: ...))` on the now-playing row's content.
 
 ## Verification
 
-This is a visual refresh — there are no behavioral assertions for unit tests to make. Existing tests should continue passing (84 baseline).
+This is a visual refresh — there are no behavioral assertions for unit tests to make. Existing tests (101 at the start of Plan 6 view migrations — 90 baseline + 11 BrandTests added in Task 1 cleanup) should continue passing.
 
 **Manual verification on real device:**
 
 1. Library: Fraunces "Vibecast" wordmark renders correctly with accent dot. Paper bg. Empty state styled.
-2. Subscribe to a few podcasts; rows show correct typography, 44×44 covers with initials fallback (or real artwork). Played episode rows are dimmed with `✓ PLAYED`.
-3. Currently-playing row shows VU bars; right control shows pause icon when playing.
-4. Open podcast detail: Fraunces 28pt title, mono publisher eyebrow, episode list styled correctly.
-5. Open Now Playing (full-screen): cover at 280, Fraunces title, accent-filled primary play button at 70×70.
-6. Mini player: paper bg, accent progress sliver, transport buttons at correct sizes.
-7. Open Search: subscribe states render correctly, in-flight spinner uses accent.
-8. Light-mode test: switch device to dark mode → app should still render in light editorial palette (no dark variant).
-9. Font test: rotate device, change Dynamic Type size — verify no layout breakage.
+2. Subscribe to a few podcasts; rows show correct typography, 44×44 covers with initials fallback (or real artwork). Position numbers visible on the leading edge.
+3. **Unplayed rows** show the left-edge sliver in a per-show fallback color (chromatic column down the list). Title in Fraunces 500 roman.
+4. **Played rows** dim to 0.55 opacity with `✓ PLAYED` footnote.
+5. **Started rows** (mark a podcast started by playing for a few seconds then switching): no left sliver; position number dimmed to 30%; title in Fraunces 300 italic at 78% ink; footnote shows `PAUSED AT N M · TOTAL MIN TOTAL`; eyebrow has the small inline progress ring + `M LEFT`.
+6. **Now-playing row** has the 2pt accent border + halo + 3pt top progress bar across the row card; left slot shows 20×20 accent circle with 3-bar VU; right control is accent-filled. Pause it: the bar animation freezes, glyph swaps to 2 white pause bars in the circle, right control's pause swaps to play.
+7. Fixed row height: long titles wrap to 2 lines, short titles still occupy the same row height with breathing room.
+8. Open podcast detail: Fraunces 28pt title, mono publisher eyebrow, episode list with the same four-state vocabulary as the library list (no left sliver in the detail view).
+9. Open Now Playing (full-screen): cover at 280, Fraunces title, accent-filled primary play button at 70×70.
+10. Mini player: paper bg, accent progress sliver, transport buttons at correct sizes.
+11. Open Search: subscribe states render correctly, in-flight spinner uses accent.
+12. Light-mode test: switch device to dark mode → app should still render in light editorial palette.
+13. Font test: rotate device, change Dynamic Type size — verify no layout breakage.
 
-**No automated visual regression tests** — too brittle for this scope. Re-run the existing 84-test suite to confirm no behavioral regressions.
+**No automated visual regression tests** — too brittle for this scope. Re-run the existing 101-test suite (or whatever the Plan 6 final count is — adding helpers may grow it) to confirm no behavioral regressions.
 
 ## Migration & commit strategy
 
 One branch (`feature/plan-6-visual-refresh`). Sequenced commits:
 
-1. **Foundation** — bundle TTFs, register in Info.plist, write `Brand.swift` (constants only, not yet used).
-2. **CoverArtwork + NowPlayingIndicator helpers** — new view files, not yet wired into existing screens.
+1. **Foundation** — bundle Fraunces (roman + italic), Inter, JetBrains Mono TTFs, register in Info.plist, write `Brand.swift` with all token constants and the new `serifBodyLight` / `serifLightItalic` font roles.
+2. **Helper views** — `CoverArtwork`, `NowPlayingIndicator`, **`RowSliver`**, **`NowPlayingCard` ViewModifier**. New view files, not yet wired into existing screens.
 3. **Per-screen migrations** — one commit per view file, bottom-up so each migration's dependencies are already refreshed: `PlayControlView` → `PodcastRowView` → `EpisodeRowView` → `PodcastDetailView` → `SearchResultRow` → `AddPodcastSheet` → `MiniPlayerBar` → `FullScreenPlayerView` → `SubscriptionsListView`. The list view is last because it's the visible parent that integrates the wordmark and the new row vocabulary.
 4. **App-root finishing** — `.preferredColorScheme(.light)` + any remaining loose ends.
 5. **Manual verification on device** — gate before merge.
