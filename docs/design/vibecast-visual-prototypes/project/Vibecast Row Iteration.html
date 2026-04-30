@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibecast — Row iteration</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>html,body{margin:0;background:#f0eee9}*{box-sizing:border-box}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="vibecast-shared.jsx"></script>
+<script type="text/babel" src="vibes-shared.jsx"></script>
+<script type="text/babel" src="vibes-row-iterate.jsx"></script>
+<script type="text/babel" data-presets="env,react">
+const T = window.VIBE_TOKENS;
+const around = window.VIBE_BY_ID.around;
+const PODS = window.PODCASTS.slice(0, 4);
+
+function StackHeader({ label }) {
+  return <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600, marginBottom: 12, padding: '0 4px' }}>{label}</div>;
+}
+
+function App() {
+  return (
+    <window.DesignCanvas
+      title="Row iteration"
+      subtitle="Two questions: (1) lighter Fraunces weight for started rows, and (2) attractor treatments to give unplayed rows more pull."
+    >
+      <window.DCSection
+        id="started" title="1 · Started — lighter weight"
+        subtitle="Three takes on the started row using Fraunces 300. Same 'quiet' baseline; just changing how the title sits."
+      >
+        <window.DCArtboard id="st-italic" label="Italic 500 (current quiet)" width={420} height={140}>
+          <div style={{ background: T.bg, height: '100%', padding: 16 }}>
+            <ItalicCurrent />
+          </div>
+        </window.DCArtboard>
+        <window.DCArtboard id="st-light-up" label="Light 300, upright" width={420} height={140}>
+          <div style={{ background: T.bg, height: '100%', padding: 16 }}>
+            <window.StartedLight pod={PODS[1]} pos={2} vibe={around} progressPct={36} italic={false} />
+          </div>
+        </window.DCArtboard>
+        <window.DCArtboard id="st-light-it" label="Light 300, italic" width={420} height={140}>
+          <div style={{ background: T.bg, height: '100%', padding: 16 }}>
+            <window.StartedLight pod={PODS[1]} pos={2} vibe={around} progressPct={36} italic={true} />
+          </div>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="unplayed" title="2 · Unplayed — attractor treatments"
+        subtitle="Six variants. Each shown in a 3-row stack (unplayed-X / started / unplayed-X) so you can see how it competes with started rows for attention."
+      >
+        {[
+          { id: 'A', label: 'A · Plain (baseline)', Comp: window.Unplayed_A },
+          { id: 'B', label: 'B · Vibe dot above number', Comp: window.Unplayed_B },
+          { id: 'C', label: 'C · Number in vibe ink', Comp: window.Unplayed_C },
+          { id: 'D', label: 'D · Left edge sliver', Comp: window.Unplayed_D },
+          { id: 'E', label: 'E · Play triangle', Comp: window.Unplayed_E },
+          { id: 'F', label: 'F · NEW badge (when fresh)', Comp: window.Unplayed_F },
+        ].map(({ id, label, Comp }) => (
+          <window.DCArtboard key={id} id={`up-${id}`} label={label} width={420} height={360}>
+            <div style={{ background: T.bg, height: '100%', padding: 16 }}>
+              <StackHeader label="AROUND TOWN" />
+              <Comp pod={PODS[0]} pos={1} vibe={around} />
+              <window.StartedLight pod={PODS[1]} pos={2} vibe={around} progressPct={36} italic={true} />
+              <Comp pod={PODS[2]} pos={3} vibe={around} />
+            </div>
+          </window.DCArtboard>
+        ))}
+      </window.DCSection>
+
+      <window.DCSection
+        id="full" title="3 · Full stack preview"
+        subtitle="Top picks combined: Light-italic for started + the chosen attractor for unplayed. Switch the attractor with the row picker per artboard."
+      >
+        <window.DCArtboard id="full-D" label="With · D · left sliver" width={420} height={460}>
+          <FullStack Variant={window.Unplayed_D} />
+        </window.DCArtboard>
+        <window.DCArtboard id="full-B" label="With · B · vibe dot" width={420} height={460}>
+          <FullStack Variant={window.Unplayed_B} />
+        </window.DCArtboard>
+        <window.DCArtboard id="full-C" label="With · C · ink number" width={420} height={460}>
+          <FullStack Variant={window.Unplayed_C} />
+        </window.DCArtboard>
+        <window.DCArtboard id="full-E" label="With · E · play triangle" width={420} height={460}>
+          <FullStack Variant={window.Unplayed_E} />
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="rec" title="My take">
+        <window.DCArtboard id="rec-card" label="Recommendation" width={620} height={360}>
+          <RecCard />
+        </window.DCArtboard>
+      </window.DCSection>
+    </window.DesignCanvas>
+  );
+}
+
+function ItalicCurrent() {
+  // Mimic the quiet variant we just locked
+  const pod = PODS[1];
+  const ep = pod.latest;
+  const v = around;
+  const progressPct = 36;
+  const minLeft = Math.max(1, Math.round(ep.total * (1 - progressPct / 100)));
+  const tintBg = `linear-gradient(105deg, ${v.chip} 0%, ${v.chip} 100%)`;
+  return (
+    <div style={{ display: 'flex', gap: 12, padding: 12, background: tintBg, borderRadius: 14, border: `1px solid ${T.hairline}` }}>
+      <div style={{ width: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.40)' }}>02</div>
+      <window.VibeCover pod={pod} size={56} radius={4} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: '0.10em', color: T.ink, textTransform: 'uppercase', fontWeight: 600 }}>
+          ◌ {minLeft}M LEFT · {pod.title}
+        </div>
+        <div style={{ fontFamily: T.serif, fontSize: 15, fontWeight: 500, fontStyle: 'italic', lineHeight: 1.22, marginTop: 3, color: 'rgba(26,23,20,0.72)' }}>{ep.title}</div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <button style={{ width: 38, height: 38, borderRadius: 999, background: T.paper, border: `1px solid ${T.hairline}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{window.Icon.play(13, T.ink)}</button>
+      </div>
+    </div>
+  );
+}
+
+function FullStack({ Variant }) {
+  return (
+    <div style={{ background: T.bg, height: '100%', padding: 16 }}>
+      <StackHeader label="AROUND TOWN · 4 SHOWS" />
+      <Variant pod={PODS[0]} pos={1} vibe={around} />
+      <window.StartedLight pod={PODS[1]} pos={2} vibe={around} progressPct={36} italic={true} />
+      <Variant pod={PODS[2]} pos={3} vibe={around} />
+      <window.PlayedRow pod={PODS[3]} />
+    </div>
+  );
+}
+
+function RecCard() {
+  return (
+    <div style={{ background: T.paper, height: '100%', padding: 24, fontFamily: T.sans }}>
+      <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600 }}>RECOMMENDATION</div>
+      <div style={{ fontFamily: T.serif, fontSize: 26, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 4, marginBottom: 10 }}>Light + italic for started · Left sliver for unplayed.</div>
+      <p style={{ fontSize: 14, lineHeight: 1.6, color: T.ink, margin: '0 0 8px' }}>
+        <b>Started · Light 300 italic.</b> Fraunces does ship a 300; combining it with italic keeps the same 'still here' tone we agreed on but goes another notch quieter. Light alone (upright) is too easy to confuse with played at a glance.
+      </p>
+      <p style={{ fontSize: 14, lineHeight: 1.6, color: T.ink, margin: '0 0 8px' }}>
+        <b>Unplayed · D · left edge sliver.</b> Adds a quiet vibe-colored cue without competing with the position number. Reads as 'this row belongs to your vibe', and stacks cleanly with started + played without bleeding noise.
+      </p>
+      <p style={{ fontSize: 14, lineHeight: 1.6, color: T.ink, margin: 0 }}>
+        Runner-up: <b>C · number in vibe ink</b> — the lightest-touch option. Skip the play triangle (E) and NEW badge (F) — the badge fights the editorial calm; the triangle reads too 'media app generic'.
+      </p>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

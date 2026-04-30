@@ -299,6 +299,31 @@
       </ul>
     </div>
   </div>
+
+  <h3 style="margin-top: 32px;">Started rows — partially played, not active</h3>
+  <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin: 0 0 14px;">A separate state from <em>now</em> and <em>played</em>. The user paused and may come back. The treatment downplays it relative to unplayed neighbors so the queue's CTA stays on the next thing to play.</p>
+  <div class="kv"><div class="k">Title</div><div class="v">Fraunces 300 italic at 78% ink (vs 500 upright at full ink for unplayed). The italic is the carrier of “in progress, not done.”</div></div>
+  <div class="kv"><div class="k">Eyebrow</div><div class="v">Inline progress ring (11px, vibe color) + <code>{N}M LEFT</code> in vibe ink, then <code>· {Show name}</code> in muted ink. “Left” reads more queue-useful than “in.”</div></div>
+  <div class="kv"><div class="k">Footnote</div><div class="v"><code>PAUSED AT {N}M · {TOTAL} MIN TOTAL</code> in muted mono beneath the title. Unplayed rows show the simpler <code>{TOTAL} MIN</code> in the same slot — same treatment, less data.</div></div>
+  <div class="kv"><div class="k">Position number</div><div class="v">Stays in the left slot (no progress ring there). Dimmed to 30% so unplayed rows still win attention. The number reinforces “you decided this order.”</div></div>
+  <div class="kv"><div class="k">No left sliver</div><div class="v">Started rows do <em>not</em> get the left-edge color sliver. The sliver is reserved as an attractor for unplayed rows.</div></div>
+
+  <h3 style="margin-top: 32px;">Left-edge sliver — the unplayed attractor</h3>
+  <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin: 0 0 14px;">A 3px vibe-colored bar inset from the row's left edge. Lives only on <b>unplayed</b> rows. Same component, two visual personalities depending on context:</p>
+  <div class="kv"><div class="k">All Vibes view</div><div class="v">Sliver uses each show's <em>primary vibe</em> (first item in its tags). The result is a chromatic column down the left edge — the home view feels like a paint chip lineup without shouting.</div></div>
+  <div class="kv"><div class="k">Specific vibe view</div><div class="v">Every row shares that vibe, so all slivers are uniform. Reads as a clean section marker.</div></div>
+  <div class="kv"><div class="k">Multi-vibe shows</div><div class="v">Use the primary only. A split sliver is too small to read as intentional at row scale; the chip-tint background already carries the second vibe.</div></div>
+  <div class="kv"><div class="k">No vibes</div><div class="v">Untagged shows fall back to ink. Same component, every state.</div></div>
+
+  <h3 style="margin-top: 32px;">Now-playing row — the active card</h3>
+  <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin: 0 0 14px;">When a row is the active item (status = <code>now</code> or <code>paused</code>), it lifts off the list with a vibe-color frame, a glow, and a live progress bar across the top edge. Same row template — the framing does the work.</p>
+  <div class="kv"><div class="k">Border</div><div class="v"><code>2px solid {vibe.color}</code> (vs <code>1px solid hairline</code> for inactive). Doubles up the edge weight so it reads as the focused row even at a glance.</div></div>
+  <div class="kv"><div class="k">Halo</div><div class="v"><code>box-shadow: 0 8px 24px {vibe.color}33</code> — a soft vibe-tinted lift. Inactive rows have no shadow.</div></div>
+  <div class="kv"><div class="k">Top progress bar</div><div class="v">3px sliver pinned to the row's top edge. Track is <code>rgba(0,0,0,0.08)</code>; fill is <code>{vibe.color}</code> at <code>width: {progressPct}%</code>. Lives flush with the row's rounded corners (<code>overflow: hidden</code> on the card).</div></div>
+  <div class="kv"><div class="k">Left slot</div><div class="v">Position number is replaced with a 20×20 vibe-color circle. <em>Now</em> shows a 3-bar VU animation in white inside it; <em>paused</em> shows two white bars. The circle stays the same size — only its glyph changes.</div></div>
+  <div class="kv"><div class="k">Right control</div><div class="v">Filled vibe-color circle (38×38) with white glyph — pause when playing, play when paused. The only filled circle in the row stack; everything else is outlined.</div></div>
+  <div class="kv"><div class="k">Eyebrow</div><div class="v"><code>{TOTAL} MIN · {N}M IN</code> — the <em>in</em> half is rendered in vibe ink so the live progress reads twice (top bar visually, eyebrow numerically).</div></div>
+  <div class="kv"><div class="k">Implementation</div><div class="v">See <code>PlaybackRow</code> in <code>vibes-playback.jsx</code>. The <code>isActive</code> branch covers both <em>now</em> and <em>paused</em> — only the glyph and right-button icon differ.</div></div>
 </section>
 
 <!-- ─── 6. Components ─────────────────────────────────── -->
@@ -446,6 +471,9 @@
     <p><b>Vibecast Podcast & Pinning.html</b> — podcast detail, pin sheet, On-a-plane mixed queue, reorder mode, post-play expiration.</p>
     <p><b>Vibecast Logo &amp; Splash.html</b> + <b>Vibecast Logo &amp; Splash v2.html</b> — wordmark explorations, V-letterform and dot-glyph app icon studies, static splash treatments. Locked: wordmark + accent dot, <b>v+period</b> app icon, bottom-horizon splash.</p>
     <p><b>Vibecast Animated Splash.html</b> — animated splash with live phone preview + replay button, side-by-side storyboards, animation spec card. Locked: <b>animated side bar</b>.</p>
+    <p><b>Vibecast Started Row.html</b> — spec for the partially-played row state (italic title, inline progress ring, paused-at footnote, position number stays).</p>
+    <p><b>Vibecast Started Row Compare.html</b> — side-by-side of Loud vs Quiet started-row treatments. Locked: <b>Quiet</b>.</p>
+    <p><b>Vibecast Sliver All Vibes.html</b> — explorations of the left-edge sliver across All Vibes vs a specific vibe view. Locked: <b>sliver = primary vibe color, lives on unplayed rows only</b>. Includes the fixed-height row treatment with 2-line title reservation.</p>
     <p style="margin-top: 16px; color: rgba(26,23,20,0.50);">All four canvases use a shared component vocabulary in <b>vibes-shared.jsx</b>, <b>vibes-rows.jsx</b>, <b>vibes-playback.jsx</b>, <b>vibes-vibing-screens.jsx</b>, and <b>vibes-detail-pin.jsx</b>. Cover artwork is colored placeholders with serif initials — replace with real artwork when available; the system already supports it.</p>
   </div>
 

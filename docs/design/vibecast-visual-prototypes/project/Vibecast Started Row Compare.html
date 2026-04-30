@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibecast — Started row compare</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>html,body{margin:0;background:#f0eee9}*{box-sizing:border-box}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="vibecast-shared.jsx"></script>
+<script type="text/babel" src="vibes-shared.jsx"></script>
+<script type="text/babel" src="vibes-started-compare.jsx"></script>
+<script type="text/babel" data-presets="env,react">
+const T = window.VIBE_TOKENS;
+const around = window.VIBE_BY_ID.around;
+
+// Take three podcasts from the dataset, fake them into a small queue
+const podcasts = window.PODCASTS.slice(0, 4);
+
+function StackHeader({ label }) {
+  return (
+    <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600, marginBottom: 12, padding: '0 4px' }}>{label}</div>
+  );
+}
+
+function App() {
+  return (
+    <window.DesignCanvas
+      title="Started row · loud vs quiet"
+      subtitle="Comparing two treatments for partially-played rows. The question is whether the row should compete with unplayed rows for attention, or sit quietly underneath."
+    >
+      <window.DCSection
+        id="loud" title="A · Loud (current)"
+        subtitle="Big progress ring in the position slot, ring + bottom progress sliver + outlined resume button. Three signals fighting for attention. Reads as 'pick me up' — but every started row screams the same."
+      >
+        <window.DCArtboard id="loud-stack" label="In context" width={420} height={420}>
+          <div style={{ background: T.bg, height: '100%', padding: 16 }}>
+            <StackHeader label="AROUND TOWN · 4 SHOWS" />
+            <window.NeighborRow pod={podcasts[0]} pos={1} kind="unplayed" />
+            <window.StartedRowLoud pod={podcasts[1]} vibe={around} progressPct={36} />
+            <window.NeighborRow pod={podcasts[2]} pos={3} kind="unplayed" />
+            <window.NeighborRow pod={podcasts[3]} pos={4} kind="played" />
+          </div>
+        </window.DCArtboard>
+        <window.DCArtboard id="loud-row" label="Detail" width={420} height={140}>
+          <div style={{ background: T.bg, height: '100%', padding: 16 }}>
+            <window.StartedRowLoud pod={podcasts[1]} vibe={around} progressPct={36} />
+          </div>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection
+        id="quiet" title="B · Quiet (proposed)"
+        subtitle="Position number stays in the slot, tiny ring inline with eyebrow text, italic title at 72% ink, no bottom sliver, neutral resume button. Reads as 'still here, not new.'"
+      >
+        <window.DCArtboard id="quiet-stack" label="In context" width={420} height={420}>
+          <div style={{ background: T.bg, height: '100%', padding: 16 }}>
+            <StackHeader label="AROUND TOWN · 4 SHOWS" />
+            <window.NeighborRow pod={podcasts[0]} pos={1} kind="unplayed" />
+            <window.StartedRowQuiet pod={podcasts[1]} pos={2} vibe={around} progressPct={36} />
+            <window.NeighborRow pod={podcasts[2]} pos={3} kind="unplayed" />
+            <window.NeighborRow pod={podcasts[3]} pos={4} kind="played" />
+          </div>
+        </window.DCArtboard>
+        <window.DCArtboard id="quiet-row" label="Detail" width={420} height={140}>
+          <div style={{ background: T.bg, height: '100%', padding: 16 }}>
+            <window.StartedRowQuiet pod={podcasts[1]} pos={2} vibe={around} progressPct={36} />
+          </div>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="rec" title="My take">
+        <window.DCArtboard id="rec-card" label="Recommendation" width={620} height={300}>
+          <div style={{ background: T.paper, height: '100%', padding: 24, fontFamily: T.sans }}>
+            <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600 }}>RECOMMENDATION</div>
+            <div style={{ fontFamily: T.serif, fontSize: 26, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 4, marginBottom: 10 }}>Quiet wins.</div>
+            <p style={{ fontSize: 14, lineHeight: 1.6, color: T.ink, margin: '0 0 8px' }}>
+              In the stack, your eye should still find the next <em>unplayed</em> row first. The Loud version pulls attention to the started row instead — three signals (ring, sliver, button border) all push back at once, and the row reads 'finish me' louder than the queue's actual call-to-action does.
+            </p>
+            <p style={{ fontSize: 14, lineHeight: 1.6, color: T.ink, margin: 0 }}>
+              The Quiet version keeps the queue's hierarchy intact. The italic title + 'NN MIN LEFT' eyebrow + tiny ring is enough to say 'partially played' without competing. Resume is still a tap, just not a shout.
+            </p>
+          </div>
+        </window.DCArtboard>
+      </window.DCSection>
+    </window.DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

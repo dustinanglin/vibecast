@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibecast — Started state sketch</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>html,body{margin:0;background:#f0eee9}*{box-sizing:border-box}@keyframes vb-bar{from{transform:scaleY(0.35)}to{transform:scaleY(1)}}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="vibecast-shared.jsx"></script>
+<script type="text/babel" src="vibes-shared.jsx"></script>
+<script type="text/babel" src="vibes-playback.jsx"></script>
+<script type="text/babel" src="vibes-started-row.jsx"></script>
+<script type="text/babel" data-presets="env,react">
+const T = window.VIBE_TOKENS;
+const around = window.VIBE_BY_ID.around;
+const PODS = window.PODCASTS;
+const ezra = PODS.find(p => p.vibes.includes('around')) || PODS[0];
+const search = PODS.find(p => p.id !== ezra.id && p.vibes.includes('around')) || PODS[1];
+const verge  = PODS.find(p => p.id !== ezra.id && p.id !== search.id) || PODS[2];
+
+function StatesStack() {
+  return (
+    <div style={{ background: T.paper, height: '100%', padding: 20, fontFamily: T.sans }}>
+      <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.55)', fontWeight: 600 }}>ALL ROW STATES · INCLUDING NEW: STARTED</div>
+      <div style={{ marginTop: 14 }}>
+        <Label k="01" txt="played" />
+        <window.PlaybackRow pod={verge} pos={0} vibe={around} status="played" />
+        <Label k="02" txt="started · 70% (NEW)" />
+        <window.StartedRow pod={ezra} pos={1} vibe={around} progressPct={70} />
+        <Label k="03" txt="started · 35% (NEW)" />
+        <window.StartedRow pod={search} pos={2} vibe={around} progressPct={35} />
+        <Label k="04" txt="now playing" />
+        <window.PlaybackRow pod={ezra} pos={3} vibe={around} status="now" progressPct={42} />
+        <Label k="05" txt="up next" />
+        <window.PlaybackRow pod={search} pos={4} vibe={around} status="next" />
+        <Label k="06" txt="queued" />
+        <window.PlaybackRow pod={verge} pos={5} vibe={around} status="queued" />
+      </div>
+    </div>
+  );
+}
+
+function Label({ k, txt }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '14px 0 6px' }}>
+      <span style={{ fontFamily: T.mono, fontSize: 9, color: 'rgba(0,0,0,0.40)', fontWeight: 600 }}>{k}</span>
+      <span style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.ink, fontWeight: 600 }}>{txt}</span>
+    </div>
+  );
+}
+
+function NotesCard() {
+  const Row = ({ k, v }) => (
+    <div style={{ display: 'flex', gap: 16, padding: '10px 0', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+      <div style={{ width: 130, fontFamily: T.mono, fontSize: 10, color: 'rgba(0,0,0,0.55)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2, fontWeight: 600 }}>{k}</div>
+      <div style={{ flex: 1, fontSize: 14, lineHeight: 1.55, color: T.ink }}>{v}</div>
+    </div>
+  );
+  return (
+    <div style={{ background: T.paper, height: '100%', padding: 24, fontFamily: T.sans }}>
+      <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600 }}>STARTED · SPEC</div>
+      <div style={{ fontFamily: T.serif, fontSize: 26, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 4, marginBottom: 6 }}>Partially played, not done.</div>
+      <Row k="Left slot" v="Vibe-color progress ring (22px) instead of position number. Arc = how far you got. Reads instantly as ‘in progress’." />
+      <Row k="Eyebrow" v="‘48M LEFT’ in vibe-ink mono next to show name. ‘Left’ feels more queue-useful than ‘in’." />
+      <Row k="Title" v="Full opacity. This isn't done — you might come back to it." />
+      <Row k="Footnote" v="‘PAUSED AT 28M · 40 MIN TOTAL’ in muted mono — full context if user wants it." />
+      <Row k="Right control" v="Vibe-color outlined ring with play glyph (vibe-ink). Tap = resume from saved position. Long-press = restart from zero." />
+      <Row k="Bottom sliver" v="Thin vibe-color bar (65% opacity) showing the same progress as the ring. Reinforces the meaning at a distance." />
+      <Row k="Becomes started" v="Plays >5s then user skips, exits vibe, or kills app. Stays started until resumed (→ now) or replayed-from-zero." />
+      <Row k="Auto-advance" v="‘Start the vibe’ resumes started rows in order rather than skipping. Manual queue order > freshness." />
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <window.DesignCanvas
+      title="Vibecast — Started row state"
+      subtitle="A new row state for partially-played episodes you've moved on from. Sits between ‘played’ and ‘queued/next’ in the vocabulary."
+    >
+      <window.DCSection id="states" title="1 · Full state vocabulary">
+        <window.DCArtboard id="stack" label="All states · stacked" width={460} height={780}>
+          <StatesStack />
+        </window.DCArtboard>
+        <window.DCArtboard id="phone" label="In context · Around" width={420} height={874}>
+          <window.IOSDevice width={402} height={874} dark={false}>
+            <div style={{ background: T.bg, height: '100%', padding: '60px 14px 0', overflow: 'hidden' }}>
+              <div style={{ fontFamily: T.serif, fontSize: 28, fontWeight: 500, letterSpacing: '-0.025em', color: T.ink, marginBottom: 4 }}>Around town</div>
+              <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 13, color: 'rgba(0,0,0,0.6)', marginBottom: 16 }}>3 of 6 · about 2.4h left</div>
+              <window.PlaybackRow pod={verge} pos={0} vibe={around} status="played" />
+              <window.StartedRow pod={ezra} pos={1} vibe={around} progressPct={70} />
+              <window.PlaybackRow pod={search} pos={2} vibe={around} status="now" progressPct={42} />
+              <window.PlaybackRow pod={verge} pos={3} vibe={around} status="next" />
+              <window.PlaybackRow pod={ezra} pos={4} vibe={around} status="queued" />
+            </div>
+          </window.IOSDevice>
+        </window.DCArtboard>
+      </window.DCSection>
+      <window.DCSection id="spec" title="2 · Spec">
+        <window.DCArtboard id="notes" label="Notes" width={620} height={620}>
+          <NotesCard />
+        </window.DCArtboard>
+      </window.DCSection>
+    </window.DesignCanvas>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

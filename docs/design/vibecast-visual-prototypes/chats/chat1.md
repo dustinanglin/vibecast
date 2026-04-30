@@ -930,3 +930,657 @@ _[tool: done]_
 
 Swapped — splash spec in the handoff now reads **animated side bar** (vertical band pinned to the left edge, ~11% viewport width, hairline divider on inner edge). Source-files entry updated to match.
 
+## User
+
+Looking at the "start vibing" views, it seems like we have a playing state, a paused state, a "played" state, but what does a partially played state look like (example, something that has been played through 70% of the episode and you move on to another podcast)
+
+## Assistant
+
+_[tool: snip]_
+
+_[tool: grep]_
+
+_[tool: read_file]_
+
+_[tool: snip]_
+
+Good question — we don't have one yet. Currently a partially-played episode that you skip away from would just look like an "up next" or "queued" row, with no signal that you're 70% through it. Let me design the partial state.
+
+My take: **a `started` row state** that visually slots between `played` (dim, done) and `next` (bright, fresh):
+
+- **Left slot** — a small circular **progress ring** in vibe-color, replacing the position number. The arc fills clockwise to show how far you got. Reads instantly as "in progress."
+- **Eyebrow flag** — `· 48M LEFT` in mono next to show name (or `· 12M IN`, depending on framing — "left" feels more useful for a podcast queue).
+- **Title strikethrough?** No — full opacity. This isn't done; you might come back to it.
+- **Right control** — same circle as queued, but glyph swaps to the **resume arrow** (the bent-arrow ↻ glyph we already use for replay, but in vibe-color outline instead of ink). Tap = resume from where you left off, not restart from zero.
+- **Progress sliver** — a thin vibe-color bar at the bottom of the row showing the same progress as the ring. Reinforces the meaning at a glance for users who don't notice the ring.
+- **Tint** — keep the full vibe tint background. It's still part of the vibe, just paused-in-time.
+
+**State map (updated):**
+```
+played    →  dimmed (.55), check ✓ "PLAYED",    transparent ↻ replay button
+started   →  full opacity, vibe ring in pos slot, "48M LEFT" eyebrow, vibe-outlined ↻ resume button, thin progress bar
+queued    →  full opacity, position number, total duration, paper ▶ play button
+next      →  full opacity, position number bold + colored, "UP NEXT" pill, paper ▶ play button
+paused    →  full opacity, animated bars (frozen), vibe-color border, vibe ⏸ button
+now       →  full opacity, animated bars (live), vibe-color border + glow, vibe ⏸ button
+```
+
+**Behavior — when does a row become `started`?**
+- You play >5 seconds and then either skip to another row, exit the vibe, or kill the app
+- It stays `started` until you either resume (becomes `now`) or replay-from-zero via long-press
+- If a `started` show item later gets a newer episode, the started episode wins — the resume position is per-episode, not per-show, so we keep showing the in-progress one until completed
+
+**One more question worth answering:** when "Start the vibe" auto-advances, does it skip past `started` rows or resume them? My read: **resume them.** Picking up where you left off is the more natural read of a manually-ordered queue. Otherwise we'd need separate "skip to next fresh" logic.
+
+Want me to mock this up as a new section on the Start Vibing canvas (and update the handoff)? Or sketch the resume-from-position interaction first?
+
+## User
+
+Sketch it up and if it looks good, let's update the start vibing canvas
+
+## Assistant
+
+_[tool: snip]_
+
+_[tool: read_file]_
+
+_[tool: snip]_
+
+_[tool: write_file]_
+
+_[tool: snip]_
+
+_[tool: write_file]_
+
+_[tool: done]_
+
+_[tool: snip]_
+
+Sketched it on **Vibecast Started Row.html**:
+
+- **Section 1** — full state vocabulary stacked side-by-side: played → started 70% → started 35% → now → next → queued. Plus a phone-in-context view showing how a started row reads inside an Around vibe screen.
+- **Section 2** — spec card covering left slot, eyebrow, footnote, right control, bottom sliver, when a row becomes started, and how auto-advance treats it.
+
+The progress ring + vibe-outlined resume button feel right to me — distinct from queued (paper-filled), distinct from now (vibe-filled), unmistakably "in progress." Take a look and tell me if you want me to refine before I fold it into the main Start Vibing canvas and update the handoff.
+
+## User
+
+I'm not seeing anything in the canvas, it looks blank, did something go wrong?
+
+## Assistant
+
+_[tool: snip]_
+
+_[tool: read_file]_
+
+_[tool: read_file]_
+
+_[tool: snip]_
+
+_[tool: eval_js]_
+
+_[tool: show_html]_
+
+_[tool: snip]_
+
+_[tool: show_html]_
+
+_[tool: snip]_
+
+_[tool: get_webview_logs]_
+
+_[tool: snip]_
+
+_[tool: snip]_
+
+_[tool: grep]_
+
+_[tool: grep]_
+
+<think>
+Icon is in vibecast-shared.jsx but not loaded by Vibecast Started Row.html. Need to add the script tag. Snip aggressively.
+</think>
+
+_[tool: snip]_
+
+_[tool: str_replace_edit]_
+
+_[tool: done]_
+
+_[tool: snip]_
+
+Fixed — was missing the `vibecast-shared.jsx` script tag (where `Icon` lives). Page renders clean now. Take a look at the canvas and let me know if the started state feels right; happy to refine before folding into the Start Vibing canvas and updating the handoff.
+
+## User
+
+Yeah, I think that's a good direction, I think the only challenge is that one of the visual goals is that the unplayed episodes should stand-out, as one of the core ideas is that recently updated podcasts should be easy to identify, and with the partially filled circle, partially advanced bar, there is almost more visual attractors on the partially played episodes than the new ones. So my question is do either make the unplayed podcasts stand out more, of the partially played episodes stand out less?
+
+## Assistant
+
+<think>
+Snip aggressively then answer the design question.
+</think>
+
+_[tool: snip]_
+
+<think>
+Need to answer the design question about visual hierarchy. The user is right — partial bar + ring + tint = more attractors than unplayed. My take: make partially played LESS prominent, not unplayed MORE. Reasoning: unplayed already gets full tint + serif title + duration; pumping it up further would push the calm editorial vibe into shoutiness. Better to dial down started.
+
+Concrete: drop the bottom progress sliver entirely. Shrink/quiet the ring. Drop the title to italic + slightly muted. Keep just the ring + "48m left" eyebrow as the signal. The row reads as "still here, not new" rather than competing for attention.
+
+Sketch both directions side by side so they can pick.
+</think>
+
+_[tool: snip]_
+
+_[tool: snip]_
+
+<think>
+Snip aggressively. Then answer the design question about visual hierarchy on partially-played rows.
+</think>
+
+You're right — and I'd lean on **dialing the started state down**, not pumping unplayed up. The editorial calm we locked is the reason the app feels good; making every state shout would erase it.
+
+**My take: the row is "still here, not new."** It should read quieter than unplayed, not louder. Concrete proposal:
+
+- **Drop the bottom progress sliver entirely.** It's the loudest of the three signals and adds graphic noise across a stack of rows.
+- **Shrink the ring** from ~36px → 22px and move it inline with the eyebrow text, not orbiting the cover.
+- **Keep the chip tint** — that's the "this row is in your queue" signal, no change.
+- **Demote the title** to italic Fraunces 500, ink at 72% — preserves the row hierarchy where unplayed > started > played.
+- **Eyebrow becomes the signal** — `48 MIN LEFT · 24% IN`. Mono, vibe-colored, that's where the eye lands.
+
+Net effect: stack five rows and your eye still goes to the *next unplayed* one. The started rows say "you can come back to me" without competing.
+
+Want me to mock both side-by-side on the canvas (current "loud" version vs. proposed "quiet" version) so you can compare?
+
+## User
+
+yeah, let's compare and see what works better
+
+## Assistant
+
+<think>
+Snip aggressively before continuing.
+</think>
+
+_[tool: snip]_
+
+_[tool: list_files]_
+
+_[tool: snip]_
+
+_[tool: read_file]_
+
+<think>
+Let me snip and continue. I need to write a quiet variant alongside the loud one and put them side-by-side on a canvas.
+</think>
+
+_[tool: snip]_
+
+_[tool: write_file]_
+
+_[tool: write_file]_
+
+_[tool: snip]_
+
+_[tool: done]_
+
+_[tool: snip]_
+
+_[tool: str_replace_edit]_
+
+_[tool: done]_
+
+_[tool: snip]_
+
+_[tool: fork_verifier_agent]_
+
+_[tool: snip]_
+
+_[tool: snip]_
+
+_[tool: snip]_
+
+_[tool: snip]_
+
+_[tool: snip]_
+
+_[tool: snip]_
+
+_[tool: snip]_
+
+**Vibecast Started Row Compare.html** is on canvas — Loud (current) and Quiet (proposed) treatments side-by-side, each shown both in a 4-row stack (so you can see hierarchy against unplayed/played neighbors) and as an isolated detail row.
+
+My call: Quiet wins. In the stacked view your eye still finds the unplayed row first, which is what the queue's call-to-action should be. Loud pulls focus to the started row even though it's not the next thing to play. Let me know which you prefer and I'll fold it into the Start Vibing canvas + handoff.
+
+## User
+
+yeah, I like the quiet version better. I wonder if we could also do a little more to distinguish the unplayed episodes.  2 things: the italic text does still stand out a bit, and I wonder is there just a lighter font weight we can use when partially played? (it not, we can stick with italic for now). 2nd thing, can we look at a couple iterations to make the unplayed episodes have a bit more of a visual attractor? Font weight and opacity are good, but I wonder if we do need something extra, or some kind of icon indicator, maybe something on or near the position number?
+
+## Assistant
+
+<think>
+Snip aggressively. Then build iterations on the unplayed-row attractor + a lighter weight option for started.
+</think>
+
+_[tool: snip]_
+
+_[tool: grep]_
+
+<think>
+Snip aggressively first. Then build the iterations: lighter weight for started + a few attractor variations for unplayed.
+
+Fraunces axis goes 100-900 in some implementations but the css link uses 400..600. Need to widen it to load 300 if I want lighter. Let me change it to include 300.
+
+Plan:
+1. Update font link to include weight 300.
+2. Build a new iteration file with several variants:
+   - Started Quiet v2: weight 300, no italic
+   - Started Quiet v3: italic + weight 300 (combined)
+3. Build unplayed attractor variants — 4-5 ideas:
+   - A: dot before position number (vibe-colored)
+   - B: small triangle/play glyph next to position
+   - C: subtle vibe-colored accent bar on left edge of row (just a sliver)
+   - D: position in vibe ink color instead of muted
+   - E: small "NEW" or chevron indicator after eyebrow
+
+Show them all stacked in context (with started + played neighbors so you can see hierarchy).
+</think>
+
+_[tool: snip]_
+
+_[tool: str_replace_edit]_
+
+_[tool: write_file]_
+
+_[tool: write_file]_
+
+_[tool: snip]_
+
+_[tool: done]_
+
+_[tool: snip]_
+
+_[tool: fork_verifier_agent]_
+
+_[tool: snip]_
+
+_[tool: snip]_
+
+What would you like me to do next? I can:
+
+- Fold the **Quiet started-row** treatment into the Start Vibing canvas + handoff doc
+- Update the handoff with the locked logo (v + period) and animated splash spec
+- Iterate further on something specific
+
+Let me know.
+
+## User
+
+Yeah, like the lighter weight with italic for quiet, let's go with that. For the bolder treatment, I like the left sliver, but how would it work in the "all vibes" view when there isn't a specific vibe color to pick from for the sliver?
+
+## Assistant
+
+<think>
+The user is in Vibecast Row Iteration.html. They like:
+- Lighter weight + italic for quiet
+- Left sliver for bolder treatment
+
+But asking: in the "all vibes" view, what color is the left sliver since there's no specific vibe?
+
+Good question. Options:
+1. Use the show's primary vibe color (each show has a designated vibe — its dominant one)
+2. Use ink/black sliver for All Vibes
+3. Use a graphite/neutral
+4. Show a thin gradient if multi-vibe
+5. The sliver matches whatever vibe context — in All Vibes, fall back to a per-show "home vibe"
+
+I think the cleanest answer is: each show has a "home vibe" (its primary). In All Vibes view, the sliver uses that. This actually reinforces the system — when you're in a specific vibe, the sliver matches the vibe context (uniform color, like a section marker). When you're in All Vibes, the sliver shows each show's home vibe, becoming a tiny rainbow column down the left.
+
+Let me check the existing files to know what's there.
+</think>
+
+Good catch — and there's a clean answer that actually makes the system stronger. Let me check the file structure quickly.
+
+_[tool: list_files]_
+
+<think>
+Good. Let me think about the design answer.
+
+In the All Vibes view, each show has a primary vibe (its "home"). The left sliver:
+- Inside a specific vibe view → all slivers are that vibe's color (uniform, like a section marker)
+- Inside All Vibes view → each row's sliver uses that show's primary vibe color (becomes a small chromatic column)
+
+For multi-vibe shows the sliver could split or use the primary one. Stay simple: just use primary.
+
+I'll build a quick comparison canvas: All Vibes with sliver vs. specific Vibe view with sliver, so the user can see how it reads.
+
+Let me check the existing files for reference.
+</think>
+
+_[tool: read_file]_
+
+_[tool: grep]_
+
+<think>
+Good — each podcast has a `vibes` array (1 or 2 items). The first item in the array can be treated as the "primary vibe." I'll build a comparison canvas:
+
+- All Vibes view with sliver = primary vibe per row → looks like a chromatic column down the left
+- Specific Vibe view (e.g., Around) with sliver = uniform vibe color (since all rows in that view are tagged with that vibe)
+- Multi-vibe show case: sliver shows two-color split or just primary
+
+Let me also explore alternatives:
+1. Sliver = primary vibe (default) — chromatic column in All Vibes, monotone in vibe view
+2. Sliver = ink/black in All Vibes (more reserved, but loses the "started" signal)
+3. Sliver gradient between two vibes for multi-vibe shows
+
+I'll show the user 3 options and recommend #1.
+</think>
+
+_[tool: snip]_
+
+<think>
+Let me build a focused canvas: all vibes view with sliver options, plus a vibe-specific view for comparison.
+
+I'll create a new file: Vibecast Sliver in All Vibes.html
+</think>
+
+Good question — and I think it's actually where the sliver gets *more* interesting, not less. Here's my proposal as a comparison.
+
+_[tool: write_file]_
+
+_[tool: done]_
+
+_[tool: fork_verifier_agent]_
+
+**Vibecast Sliver All Vibes.html** is on canvas. Three options, each with the All Vibes view paired against a vibe-specific (Around) view so you can see how the sliver behaves in both contexts:
+
+- **A · Primary vibe** (recommended) — sliver uses each show's primary/home vibe. All Vibes becomes a chromatic column down the left; a vibe view becomes a uniform stripe (since every row in that view shares the context vibe). Same rule, two visual personalities.
+- **B · Ink in All Vibes** — quieter, more conservative. The sliver goes neutral when there's no context. A bit safer but loses the brand thread.
+- **C · Split sliver for multi-vibe shows** — same as A but multi-vibe shows get a two-color split. My worry: the split is too small to read as intentional and may look like a glitch.
+
+My pick is A — the rule "sliver = primary vibe" is the same in both contexts; the visual outcome just naturally adapts. The chip-tint already handles the multi-vibe story on the row body.
+
+## User
+
+Oops, it's not rendering again, can you check what the issue is?
+
+## Assistant
+
+<think>
+Let me check what's wrong.
+</think>
+
+_[tool: show_html]_
+
+_[tool: get_webview_logs]_
+
+<think>
+The error is `window.Icon.play` is undefined. The vibes-shared.jsx exports may have been renamed. Let me check what icons are available.
+</think>
+
+_[tool: grep]_
+
+_[tool: snip]_
+
+_[tool: str_replace_edit]_
+
+<think>
+Fixed the missing Icon.play reference. The shared file doesn't expose an Icon object — replaced with inline SVG.
+</think>
+
+_[tool: done]_
+
+Fixed — `vibes-shared.jsx` doesn't expose an `Icon` global (that's in `vibecast-shared.jsx` from the early directions). Swapped to an inline play-glyph SVG. Page renders clean.
+
+## User
+
+yeah, I like using the primary vibe (first vibe the show is added to) as the color, though what I'm looking at the sliver is on the partially played podcasts rather than the unplayed, which is backwards from the design.
+
+## Assistant
+
+<think>
+The user is pointing out my design has the sliver on started/partially-played rows, but they want it on UNPLAYED rows. That makes sense — the sliver should be the attractor/CTA for things you haven't played yet, not a state indicator for partially-played. Let me re-read their previous notes.
+
+Looking back: in the row iteration, the user said "lighter weight with italic for quiet" for started rows (downplay them) and "left sliver" for the bolder treatment for unplayed rows (the attractor).
+
+I had it backwards in my Sliver All Vibes file. Let me fix:
+- Unplayed rows → get the sliver (attractor)
+- Started rows → get the quiet italic + ring treatment, NO sliver
+
+Let me update the file.
+</think>
+
+You're absolutely right — the sliver is the attractor for *unplayed*, the quiet italic is for *started*. Flipping it.
+
+_[tool: str_replace_edit]_
+
+<think>
+Now the recommendation card needs a subtle update too — but the rec text talks about "started shows" which is now wrong. Let me re-read it.
+
+Actually the current text talks about "started shows" — let me update.
+
+Looking at the rec card: "All Vibes the sliver uses each row's primary, becoming a chromatic column down the left edge — 'these are your started shows, here's their character.'"
+
+That should now read about unplayed shows. Let me also adjust the comment in section A's subtitle.
+
+But, more important: the user has more started rows than unplayed in my mock data, which made the sliver-on-started state look unbalanced. Let me check ROW_STATE: hard-fork started, daily unplayed, up-first unplayed, vergecast started, 99pi unplayed, planet-money started, huberman unplayed, rich-roll started, sleep-with-me unplayed, on-being unplayed.
+
+5 started, 5 unplayed. So 5 rows should now have slivers. That should look right.
+
+Let me just update the rec card text quickly.
+</think>
+
+_[tool: str_replace_edit]_
+
+_[tool: done]_
+
+Flipped — sliver now lives on the unplayed rows as the attractor. In All Vibes you get a chromatic column on the unplayed shows (each using its primary vibe color), and started rows stay quiet with their italic treatment. Updated the recommendation card to match.
+
+## User
+
+Cool, like what we've got. One thing though, should we also have the number on the all vibes view? I kind of like number to help reinforce that this is a fixed order you decided on.
+
+## Assistant
+
+<think>
+Yes, great point. The numbers reinforce the "you decided this order" idea. Currently the rows in this file don't have a position number column. Let me check.
+
+Looking at my Row component — there's no number/position. In the row-iterate file, the StartedLight had a position pad with `{String(pos).padStart(2, '0')}`. I dropped that here.
+
+Let me add it back. I'll add it to all rows with a small mono number on the left, before the cover. The All Vibes view would show 01, 02, 03... and within a specific vibe view (Around), it'd show the position within that vibe (01, 02, 03...).
+
+Actually wait — important question. When you're in the Around vibe, do the numbers show:
+- The Around-relative order (01-05)? OR
+- The All Vibes global order (01, 04, 05, 06, 08)?
+
+I think Around-relative makes more sense — each vibe has its own ordered list. The user explicitly orders shows within each vibe. So in Around view, hard-fork is #01 (first in Around's list), vergecast is #02, etc.
+
+Let me add the position prop and feed it through.
+</think>
+
+Yes — and they're functional, not just decorative. They reinforce "you decided this." Adding them.
+
+_[tool: str_replace_edit]_
+
+_[tool: done]_
+
+Numbers added. A few things worth noting in how I did it:
+
+- **Position is per-view, not global** — Around view shows 01–05 (positions within Around's ordered list), All Vibes shows 01–10. Each list is its own sequence, since the user can reorder within each.
+- **Numbers dim on started rows** — same hierarchy logic as the title; played-progress rows step back so unplayed rows are still where the eye lands.
+- **Mono font, two-digit zero-padded** — keeps the rail aligned and reinforces the editorial/index voice.
+
+## User
+
+Nice, one thing missing that I liked from Vibecast Started Row.html is the showing the time beneath episode title, let's bring that back.
+
+## Assistant
+
+<think>
+Let me check what the started row file showed for the time. Let me look.
+</think>
+
+_[tool: grep]_
+
+<think>
+Let me look at the StartedRow definition.
+</think>
+
+_[tool: grep]_
+
+<think>
+Let me see how the StartedRow shows its time/footnote text in vibes-shared.jsx or row-iterate file. Actually the "Vibecast Started Row.html" file is what the user is viewing. Let me check the actual row treatment shown there.
+</think>
+
+_[tool: grep]_
+
+<think>
+Now let me look at the StartedRow source for the time/footnote display, in vibes-started.jsx or similar.
+</think>
+
+_[tool: grep]_
+
+<think>
+Now let me look at the Sliver All Vibes Row component to see where to add the time/footnote and what data I have available.
+</think>
+
+_[tool: grep]_
+
+<think>
+Let me snip earlier resolved iterations and add the time/duration footnote to started rows in the sliver file.
+</think>
+
+_[tool: snip]_
+
+_[tool: read_file]_
+
+_[tool: snip]_
+
+_[tool: str_replace_edit]_
+
+<think>
+Now let me also bump line clamp on the title to 1 since we're adding another line below it. Actually, looking at it again, leaving it at 2 lines is fine — the clamp truncates if needed but most won't hit it. The footnote sits below.
+
+Done. Let me ship it.
+</think>
+
+_[tool: done]_
+
+Time footnote added beneath the title. Started rows show `PAUSED AT 14M · 40 MIN TOTAL`, unplayed rows just show `40 MIN` — same mono treatment as the started spec, so it carries across both states without feeling like a new element.
+
+## User
+
+Nice! One more thing to try, rather than having the row height change based on whether the episode title wraps to the 2nd line, let's see a variant with a fixed height that supports wrapped title and just doesn't use it when the title doesn't need to wrap.
+
+## Assistant
+
+<think>
+The user wants a fixed row height. Currently, rows wrap to 2 lines max but the row height varies based on whether the title is 1 or 2 lines. They want a consistent fixed row height that reserves space for 2 lines either way.
+
+The simplest fix: set `min-height` on the title element so it reserves 2 lines worth of space, OR set a min-height on the row container.
+
+Best approach: give the title block a fixed height of 2 lines, even if it only uses 1.
+
+Title is fontSize: 15, lineHeight: 1.22 → 18.3px per line, so 2 lines = ~36.6px.
+
+Let me set minHeight on the title div, or set explicit height. Actually, the cleanest is to ensure the title text container has a fixed minHeight regardless of content.
+
+Let me just add `minHeight: '2.44em'` (2 × 1.22) to the title div.
+
+Actually, looking again, the structure is:
+- eyebrow (mono fontSize 10)
+- title (fontSize 15, lineHeight 1.22, lineClamp 2)  
+- footnote (mono fontSize 9)
+
+If title is 1 line, total height differs from 2 lines. Setting `minHeight: '36.6px'` or similar on title should fix it.
+
+Let me use `minHeight: '2.44em'` on title.
+</think>
+
+_[tool: str_replace_edit]_
+
+_[tool: done]_
+
+Done — title now reserves 2 lines worth of vertical space (`minHeight: 2.44em` = 2 × 1.22 line-height) regardless of how long the title actually is. Single-line titles get the breathing room rather than collapsing the row, so heights are uniform across the list.
+
+## User
+
+Nice, let's lock that in and update the design/hand-off doc so I can send that over to Claude Code to update our visual refresh plan.
+
+## Assistant
+
+<think>
+Let me find the handoff doc and update it.
+</think>
+
+_[tool: list_files]_
+
+<think>
+Let me read the handoff doc to understand its structure and how to add the new sliver/numbering/fixed-height info.
+</think>
+
+_[tool: read_file]_
+
+<think>
+Let me snip the older resolved iterations and then update the handoff doc with the new sliver/numbering/fixed-height decisions.
+</think>
+
+_[tool: snip]_
+
+<think>
+Let me update the handoff doc with the recent decisions: position numbers stay on All Vibes view, sliver appears on UNPLAYED rows (not started), started rows use italic + ring, fixed row height with 2-line title reservation, time/duration footnote.
+
+I'll add a new subsection in section 05 (Row states) covering these decisions, and update the files list to include the new files.
+</think>
+
+_[tool: str_replace_edit]_
+
+_[tool: done]_
+
+<think>
+Snip earlier resolved work and continue.
+</think>
+
+_[tool: snip]_
+
+Handoff doc updated. Three new entries in the Row States section:
+
+- **Started rows** — full spec for the italic+ring quiet treatment, position-number-stays-but-dimmed, paused-at footnote.
+- **Left-edge sliver** — the unplayed-row attractor, with the All Vibes vs specific-vibe behavior split (primary color in All Vibes → chromatic column; uniform in a vibe view → section marker).
+- **Fixed row height** — the `min-height: 2.44em` rule on the title slot.
+
+Files list extended with the three new canvases (Started Row, Started Row Compare, Sliver All Vibes) and their locked decisions. Print-ready as before.
+
+## User
+
+One more thing, it doesn't seem like we captured the playing state in the design hand-off doc that notes the highlight around the edge and the progress bar at the top. Can you update the design doc to include those?
+
+## Assistant
+
+<think>
+Let me find the playing state details in the playback file or the start vibing canvas.
+</think>
+
+_[tool: snip]_
+
+_[tool: grep]_
+
+<think>
+Need to add the now-playing row spec to the handoff doc with: 2px vibe-color border, vibe-color shadow halo, top progress sliver. Let me also snip more.
+</think>
+
+_[tool: snip]_
+
+_[tool: str_replace_edit]_
+
+_[tool: snip]_
+
+_[tool: done]_
+
+_[tool: snip]_
+
+_[tool: snip]_
+
+Now-playing row spec added to the handoff doc — frames it with the 2px vibe-color border, the soft `{vibe.color}33` halo shadow, and the 3px top progress bar. Cross-references the eyebrow's `{N}M IN` so the live progress reads both visually and numerically.
+
