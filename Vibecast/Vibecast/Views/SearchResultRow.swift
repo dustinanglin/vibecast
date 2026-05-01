@@ -34,7 +34,7 @@ struct SearchResultRow: View {
             .padding(Brand.Layout.rowPadding)
 
             if isFailed {
-                Text("Couldn't subscribe — tap to try again")
+                Text("Couldn't add — try again")
                     .font(Brand.Font.uiBody(size: 12))
                     .foregroundStyle(.red)
                     .padding(.horizontal, Brand.Layout.rowPadding)

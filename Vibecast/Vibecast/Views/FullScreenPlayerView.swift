@@ -83,49 +83,46 @@ struct FullScreenPlayerView: View {
 
     private var scrubber: some View {
         VStack(spacing: 6) {
-            // Track + progress
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    // Hairline track
-                    Rectangle()
-                        .fill(Brand.Color.inkHairline)
-                        .frame(height: Brand.Layout.hairlineWidth)
-                    // Accent-filled progress
-                    Rectangle()
-                        .fill(Brand.Color.accent)
-                        .frame(width: max(0, geo.size.width * scrubFraction), height: Brand.Layout.hairlineWidth)
-                    // Draggable thumb
-                    Circle()
-                        .fill(Brand.Color.accent)
-                        .frame(width: 14, height: 14)
-                        .offset(x: max(0, min(geo.size.width * scrubFraction - 7, geo.size.width - 14)))
-                }
-            }
-            .frame(height: 14)
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        // Will be handled by the slider below for actual seeking
+            // Native Slider provides drag-to-seek behavior; rendered nearly transparent
+            // and layered behind a custom hairline+thumb visual that mirrors its value.
+            // The Slider intercepts touches; the custom visual is purely cosmetic.
+            ZStack {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        // Hairline track
+                        Rectangle()
+                            .fill(Brand.Color.inkHairline)
+                            .frame(height: Brand.Layout.hairlineWidth)
+                        // Accent-filled progress
+                        Rectangle()
+                            .fill(Brand.Color.accent)
+                            .frame(width: max(0, geo.size.width * scrubFraction), height: Brand.Layout.hairlineWidth)
+                        // Visual thumb (no hit testing — Slider handles touches)
+                        Circle()
+                            .fill(Brand.Color.accent)
+                            .frame(width: 14, height: 14)
+                            .offset(x: max(0, min(geo.size.width * scrubFraction - 7, geo.size.width - 14)))
                     }
-            )
+                    .frame(maxHeight: .infinity, alignment: .center)
+                }
+                .allowsHitTesting(false)
 
-            // Use a hidden Slider for actual seek interaction, overlay the custom visual above
-            Slider(
-                value: Binding(
-                    get: { scrubValue ?? player.elapsed },
-                    set: { scrubValue = $0 }
-                ),
-                in: 0...(max(player.duration, 1)),
-                onEditingChanged: { isEditing in
-                    if !isEditing, let v = scrubValue {
-                        player.seek(to: v)
-                        scrubValue = nil
+                Slider(
+                    value: Binding(
+                        get: { scrubValue ?? player.elapsed },
+                        set: { scrubValue = $0 }
+                    ),
+                    in: 0...(max(player.duration, 1)),
+                    onEditingChanged: { isEditing in
+                        if !isEditing, let v = scrubValue {
+                            player.seek(to: v)
+                            scrubValue = nil
+                        }
                     }
-                }
-            )
-            .tint(Brand.Color.accent)
-            .padding(.top, -20) // overlap the custom visual
+                )
+                .opacity(0.001)
+            }
+            .frame(height: 32)
 
             // Time labels
             HStack {

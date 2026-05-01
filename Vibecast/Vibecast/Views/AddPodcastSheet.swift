@@ -56,7 +56,6 @@ private struct LoadedSheet: View {
                     content
                 }
             }
-            .navigationTitle("Add Podcast")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Brand.Color.bg, for: .navigationBar)
             .toolbar {
@@ -103,6 +102,7 @@ private struct LoadedSheet: View {
             } message: {
                 Text("Couldn't parse OPML file. Make sure it's a valid OPML export.")
             }
+            .presentationDragIndicator(.hidden)
         }
     }
 
