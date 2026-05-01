@@ -66,6 +66,9 @@ struct SubscriptionsListView: View {
                 .frame(width: 5.5, height: 5.5)
                 .offset(y: 4)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Vibecast")
+        .accessibilityAddTraits(.isHeader)
     }
 
     private var visiblePodcasts: [Podcast] {
