@@ -6,104 +6,112 @@ struct MiniPlayerBar: View {
     let onTapBar: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            artwork
-                .frame(width: 44, height: 44)
+        ZStack(alignment: .bottom) {
+            // Main card content
+            VStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    // Left: 44×44 cover artwork
+                    CoverArtwork(
+                        urlString: player.currentEpisode?.podcast?.artworkURL,
+                        title: player.currentEpisode?.podcast?.title ?? "",
+                        size: 44,
+                        radius: Brand.Radius.coverSmall
+                    )
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(player.currentEpisode?.title ?? "")
-                    .font(.system(size: 13, weight: .semibold))
-                    .lineLimit(1)
-
-                progressRow
-            }
-
-            playPauseButton
-
-            skipForwardButton
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(.bar)
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onTapBar)
-    }
-
-    private var artwork: some View {
-        RoundedRectangle(cornerRadius: 8)
-            .fill(Color.secondary.opacity(0.25))
-            .overlay {
-                if let urlString = player.currentEpisode?.podcast?.artworkURL,
-                   let url = URL(string: urlString) {
-                    AsyncImage(url: url) { img in
-                        img.resizable().scaledToFill()
-                    } placeholder: {
-                        Color.clear
+                    // Center: podcast title + episode title
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(player.currentEpisode?.podcast?.title ?? "")
+                            .font(Brand.Font.monoEyebrow())
+                            .tracking(Brand.Layout.monoTracking)
+                            .textCase(.uppercase)
+                            .foregroundStyle(Brand.Color.inkSecondary)
+                            .lineLimit(1)
+                        Text(player.currentEpisode?.title ?? "")
+                            .font(Brand.Font.serifBody())
+                            .foregroundStyle(Brand.Color.ink)
+                            .lineLimit(1)
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                } else {
-                    Image(systemName: "mic.fill")
-                        .foregroundStyle(.tertiary)
-                }
-            }
-    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-    private var progressRow: some View {
-        VStack(spacing: 2) {
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.secondary.opacity(0.25))
-                    Capsule()
-                        .fill(Color.accentColor)
-                        .frame(width: geo.size.width * progressFraction)
+                    // Right: skip-back + play/pause + skip-forward
+                    HStack(spacing: 0) {
+                        Button {
+                            player.skipBack()
+                        } label: {
+                            Image(systemName: "gobackward.15")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(Brand.Color.ink)
+                                .frame(width: Brand.HitTarget.min, height: Brand.HitTarget.min)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            player.togglePlayPause()
+                        } label: {
+                            ZStack {
+                                if player.isPlaying {
+                                    Circle()
+                                        .fill(Brand.Color.accent)
+                                        .frame(width: 44, height: 44)
+                                    Image(systemName: "pause.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundStyle(Brand.Color.paper)
+                                } else {
+                                    Circle()
+                                        .fill(Brand.Color.paper)
+                                        .frame(width: 44, height: 44)
+                                        .overlay(Circle().strokeBorder(Brand.Color.inkHairline, lineWidth: Brand.Layout.hairlineWidth))
+                                    Image(systemName: "play.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundStyle(Brand.Color.ink)
+                                }
+                            }
+                            .frame(width: Brand.HitTarget.rowPlay, height: Brand.HitTarget.rowPlay)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            player.skipForward()
+                        } label: {
+                            Image(systemName: "goforward.30")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(Brand.Color.ink)
+                                .frame(width: Brand.HitTarget.min, height: Brand.HitTarget.min)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                // Reserve 2pt for the progress sliver at the bottom
+                .padding(.bottom, 2)
+            }
+
+            // Bottom edge: 2pt accent progress sliver across full width
+            GeometryReader { geo in
+                Rectangle()
+                    .fill(Brand.Color.accent)
+                    .frame(width: max(0, geo.size.width * progressFraction), height: 2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(height: 2)
-
-            HStack {
-                Text(format(player.elapsed))
-                Spacer()
-                Text("-" + format(max(0, player.duration - player.elapsed)))
-            }
-            .font(.system(size: 9))
-            .foregroundStyle(.secondary)
         }
-    }
-
-    private var playPauseButton: some View {
-        Button {
-            player.togglePlayPause()
-        } label: {
-            Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                .font(.system(size: 22))
-        }
-        .buttonStyle(.plain)
-        .frame(width: 32, height: 32)
-    }
-
-    private var skipForwardButton: some View {
-        Button {
-            player.skipForward()
-        } label: {
-            Image(systemName: "goforward.30")
-                .font(.system(size: 22))
-        }
-        .buttonStyle(.plain)
-        .frame(width: 32, height: 32)
+        .background(Brand.Color.paper)
+        .clipShape(RoundedRectangle(cornerRadius: Brand.Radius.card))
+        .overlay(
+            RoundedRectangle(cornerRadius: Brand.Radius.card)
+                .strokeBorder(Brand.Color.inkHairline, lineWidth: Brand.Layout.hairlineWidth)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTapBar)
     }
 
     private var progressFraction: Double {
         guard player.duration > 0 else { return 0 }
         return min(max(player.elapsed / player.duration, 0), 1)
-    }
-
-    private func format(_ seconds: TimeInterval) -> String {
-        let total = Int(seconds)
-        let h = total / 3600
-        let m = (total % 3600) / 60
-        let s = total % 60
-        if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
-        return String(format: "%d:%02d", m, s)
     }
 }
 
@@ -124,7 +132,10 @@ struct MiniPlayerBar: View {
     return VStack {
         Spacer()
         MiniPlayerBar(player: player, onTapBar: {})
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
     }
+    .background(Brand.Color.bg)
 }
 
 /// Preview-only engine so the mini-player renders with a non-zero elapsed/duration.
