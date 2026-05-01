@@ -140,6 +140,14 @@ struct PodcastRowView: View {
                     .textCase(.uppercase)
                     .foregroundStyle(Brand.Color.inkMuted)
                     .lineLimit(1)
+                if episode.isExplicit {
+                    Text("E")
+                        .font(Brand.Font.monoEyebrow())
+                        .tracking(Brand.Layout.monoTracking)
+                        .padding(.horizontal, 3)
+                        .background(Brand.Color.inkHairline, in: RoundedRectangle(cornerRadius: 2))
+                        .foregroundStyle(Brand.Color.inkSecondary)
+                }
             }
         default:
             HStack(spacing: 6) {

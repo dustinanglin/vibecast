@@ -87,8 +87,8 @@ struct PodcastDetailView: View {
 
             VStack(alignment: .center, spacing: 4) {
                 Text(podcast.author)
-                    .font(Brand.Font.monoEyebrow(size: 11))
-                    .tracking(0.9)
+                    .font(Brand.Font.monoEyebrowLarge())
+                    .tracking(Brand.Layout.monoTracking)
                     .textCase(.uppercase)
                     .foregroundStyle(Brand.Color.inkSecondary)
                     .lineLimit(1)
