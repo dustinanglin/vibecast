@@ -108,6 +108,7 @@ struct EpisodeRowView: View {
                 if episode.isExplicit {
                     Text("E")
                         .font(Brand.Font.monoEyebrow())
+                        .tracking(Brand.Layout.monoTracking)
                         .padding(.horizontal, 3)
                         .background(Brand.Color.inkHairline, in: RoundedRectangle(cornerRadius: 2))
                         .foregroundStyle(Brand.Color.inkSecondary)
@@ -163,7 +164,7 @@ struct EpisodeRowView: View {
             }
             .foregroundStyle(Brand.Color.inkMuted)
         case .started:
-            Text("PAUSED AT \(episode.formattedElapsed) · \(episode.formattedDuration.uppercased()) TOTAL")
+            Text("PAUSED AT \(episode.formattedElapsed.uppercased()) · \(episode.formattedDuration.uppercased()) TOTAL")
                 .font(Brand.Font.monoEyebrow())
                 .tracking(Brand.Layout.monoTracking)
                 .foregroundStyle(Brand.Color.inkMuted)
@@ -173,7 +174,7 @@ struct EpisodeRowView: View {
                     .foregroundStyle(Brand.Color.inkMuted)
                 Text("·")
                     .foregroundStyle(Brand.Color.inkFaint)
-                Text("\(episode.formattedElapsed) IN")
+                Text("\(episode.formattedElapsed.uppercased()) IN")
                     .foregroundStyle(Brand.Color.accent)
             }
             .font(Brand.Font.monoEyebrow())
