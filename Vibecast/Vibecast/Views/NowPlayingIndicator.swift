@@ -34,13 +34,17 @@ struct NowPlayingIndicator: View {
                         ? .easeInOut(duration: durationSeconds)
                             .repeatForever(autoreverses: true)
                             .delay(phase)
-                        : .default,
+                        : .easeOut(duration: 0.18),
                     value: atTop
                 )
-                .onAppear { if isPlaying { atTop.toggle() } }
+                .onAppear { if isPlaying { atTop = true } }
+                // Tie atTop directly to isPlaying. When playing, atTop goes
+                // true → repeatForever loops the visual height. When pausing,
+                // atTop goes false → the .animation modifier's finite easeOut
+                // takes over, cancels the running loop, and settles the bar
+                // at height 4 (the "quiet" state).
                 .onChange(of: isPlaying) { _, newValue in
-                    if newValue { atTop.toggle() }
-                    // Freezes at current height when paused (no further toggle).
+                    atTop = newValue
                 }
         }
     }

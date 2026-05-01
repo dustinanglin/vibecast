@@ -58,7 +58,7 @@ struct SubscriptionsListView: View {
                         )
                         .listRowBackground(Brand.Color.bg)
                         .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
+                        .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 14))
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             Button {
                                 if let ep = podcast.episodes
@@ -96,6 +96,18 @@ struct SubscriptionsListView: View {
                         move(from: source, to: destination)
                     }
                 }
+
+                // Reserve scroll-tail so the last row isn't permanently
+                // hidden behind the floating mini-player bar.
+                if playerManager?.currentEpisode != nil {
+                    Color.clear
+                        .frame(height: 80)
+                        .listRowBackground(Brand.Color.bg)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets())
+                        .moveDisabled(true)
+                        .deleteDisabled(true)
+                }
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
@@ -116,13 +128,19 @@ struct SubscriptionsListView: View {
             .navigationDestination(item: $selectedPodcast) { podcast in
                 PodcastDetailView(podcast: podcast)
             }
-            .safeAreaInset(edge: .bottom) {
-                if let playerManager, playerManager.currentEpisode != nil {
-                    MiniPlayerBar(
-                        player: playerManager,
-                        onTapBar: { showFullScreenPlayer = true }
-                    )
-                }
+        }
+        // Floating overlay (not safeAreaInset) so List content scrolls *under*
+        // the bar, giving the translucent paper a real "tracing paper" effect.
+        // Each List adds a transparent footer row when a player is loaded,
+        // so the bottom rows aren't permanently hidden behind the bar.
+        .overlay(alignment: .bottom) {
+            if let playerManager, playerManager.currentEpisode != nil {
+                MiniPlayerBar(
+                    player: playerManager,
+                    onTapBar: { showFullScreenPlayer = true }
+                )
+                .padding(.horizontal, 12)
+                .padding(.bottom, 8)
             }
         }
     }

@@ -188,7 +188,7 @@ struct EpisodeRowView: View {
     }
 
     /// Right-side control. now-playing → 38×38 accent-filled circle with pause/play.
-    /// started → paper + accent border + arrow.clockwise.
+    /// started → paper + accent border + play.fill.
     /// unplayed / played → delegate to PlayControlView.
     @ViewBuilder
     private var rightControl: some View {
@@ -212,7 +212,7 @@ struct EpisodeRowView: View {
                     Circle().fill(Brand.Color.paper)
                         .overlay(Circle().strokeBorder(Brand.Color.accent, lineWidth: 1.5))
                         .frame(width: 30, height: 30)
-                    Image(systemName: "arrow.clockwise")
+                    Image(systemName: "play.fill")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Brand.Color.accent)
                 }

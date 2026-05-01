@@ -5,6 +5,7 @@ struct PodcastDetailView: View {
     let podcast: Podcast
     @Environment(\.playerManager) private var playerManager
     @Environment(\.subscriptionManager) private var subscriptionManager
+    @Environment(\.modelContext) private var modelContext
     @State private var viewModel: PodcastDetailViewModel?
 
     var body: some View {
@@ -62,6 +63,22 @@ struct PodcastDetailView: View {
                         vm.loadNextPage()
                     }
                 }
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    Button {
+                        snapAfterCollapse { markPlayed(episode) }
+                    } label: {
+                        Label("Played", systemImage: "checkmark")
+                    }
+                    .tint(.green)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button {
+                        snapAfterCollapse { markUnplayed(episode) }
+                    } label: {
+                        Label("Unplayed", systemImage: "arrow.uturn.backward")
+                    }
+                    .tint(.blue)
+                }
             }
 
             if vm.isLoadingMore {
@@ -70,10 +87,55 @@ struct PodcastDetailView: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Brand.Color.bg)
             }
+
+            // Reserve scroll-tail so the last episode row isn't permanently
+            // hidden behind the floating mini-player bar.
+            if playerManager?.currentEpisode != nil {
+                Color.clear
+                    .frame(height: 80)
+                    .listRowBackground(Brand.Color.bg)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets())
+            }
         }
         .listStyle(.plain)
         .background(Brand.Color.bg)
         .scrollContentBackground(.hidden)
+    }
+
+    // MARK: - Episode mutations (mirrors SubscriptionsListView, with
+    // detail-view-appropriate auto-advance: walk down THIS podcast's
+    // episode list rather than jumping to the next podcast).
+
+    private func markPlayed(_ episode: Episode) {
+        if let mgr = playerManager {
+            mgr.markPlayed(episode, advance: .nextEpisodeInPodcast)
+        } else {
+            episode.listenedStatus = .played
+            episode.playbackPosition = Double(episode.durationSeconds)
+            try? modelContext.save()
+        }
+    }
+
+    private func markUnplayed(_ episode: Episode) {
+        episode.listenedStatus = .unplayed
+        episode.playbackPosition = 0
+        try? modelContext.save()
+    }
+
+    /// Wait for the swipe-action's collapse to complete, then snap-mutate
+    /// (no animation). Same pattern as SubscriptionsListView — avoids the
+    /// cross-fade phantom when an opacity-changing state transition overlaps
+    /// the system swipe-collapse.
+    private func snapAfterCollapse(_ mutate: @escaping () -> Void) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(220))
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                mutate()
+            }
+        }
     }
 
     private var podcastHeader: some View {

@@ -99,12 +99,13 @@ struct MiniPlayerBar: View {
             }
             .frame(height: 2)
         }
-        .background(Brand.Color.paper)
+        .background(Brand.Color.paper.opacity(0.85))
         .clipShape(RoundedRectangle(cornerRadius: Brand.Radius.card))
         .overlay(
             RoundedRectangle(cornerRadius: Brand.Radius.card)
                 .strokeBorder(Brand.Color.inkHairline, lineWidth: Brand.Layout.hairlineWidth)
         )
+        .shadow(color: .black.opacity(0.12), radius: 14, y: 5)
         .contentShape(Rectangle())
         .onTapGesture(perform: onTapBar)
     }

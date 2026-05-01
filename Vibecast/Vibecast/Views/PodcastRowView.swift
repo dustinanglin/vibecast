@@ -249,7 +249,7 @@ struct PodcastRowView: View {
                     Circle().fill(Brand.Color.paper)
                         .overlay(Circle().strokeBorder(Brand.Color.accent, lineWidth: 1.5))
                         .frame(width: 30, height: 30)
-                    Image(systemName: "arrow.clockwise")
+                    Image(systemName: "play.fill")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Brand.Color.accent)
                 }

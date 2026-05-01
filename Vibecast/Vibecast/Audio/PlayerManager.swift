@@ -185,11 +185,24 @@ final class PlayerManager: PlaybackController {
         advanceToNextPodcast(after: episode)
     }
 
-    /// Mark an episode as played. If it's the currently-loaded episode,
-    /// pause playback, sync `elapsed` to the end of the track, and auto-advance
-    /// to the next podcast iff playback was active when this was invoked.
-    /// Otherwise just persist the played state without touching player state.
-    func markPlayed(_ episode: Episode) {
+    /// Where playback should jump after marking the currently-playing
+    /// episode as played. Library list expects to flow into the next
+    /// podcast; podcast detail expects to flow into the next episode of
+    /// the same podcast.
+    enum AdvanceBehavior {
+        case nextPodcast
+        case nextEpisodeInPodcast
+    }
+
+    /// Mark an episode as played.
+    /// - If it's the currently-loaded episode AND was actively playing:
+    ///   pause the engine and auto-advance per `advance`.
+    /// - If it's the currently-loaded episode AND was paused: pause/sync,
+    ///   then release it (clear `currentEpisode`) so the row drops out of
+    ///   the now-playing state and the mini-player dismisses. Don't
+    ///   auto-advance — the user's pause was intentional.
+    /// - If it's not the currently-loaded episode: persist played state only.
+    func markPlayed(_ episode: Episode, advance: AdvanceBehavior = .nextPodcast) {
         let isCurrent = episode.persistentModelID == currentEpisode?.persistentModelID
         let wasCurrentlyPlaying = isCurrent && isPlaying
 
@@ -214,7 +227,33 @@ final class PlayerManager: PlaybackController {
         try? modelContext.save()
 
         if wasCurrentlyPlaying {
-            advanceToNextPodcast(after: episode)
+            switch advance {
+            case .nextPodcast:
+                advanceToNextPodcast(after: episode)
+            case .nextEpisodeInPodcast:
+                advanceToNextEpisodeInPodcast(after: episode)
+            }
+        } else if isCurrent {
+            currentEpisode = nil
+            elapsed = 0
+            lastPersistedAt = 0
+            publishNowPlaying()
+        }
+    }
+
+    /// Walk down the same podcast's publishDate-descending list and play the
+    /// next episode that hasn't been played yet. No-op if none remain.
+    private func advanceToNextEpisodeInPodcast(after finishedEpisode: Episode) {
+        guard let podcast = finishedEpisode.podcast else { return }
+        let sorted = podcast.episodes.sorted { $0.publishDate > $1.publishDate }
+        guard let idx = sorted.firstIndex(where: {
+            $0.persistentModelID == finishedEpisode.persistentModelID
+        }) else { return }
+
+        for episode in sorted.dropFirst(idx + 1) {
+            if episode.listenedStatus == .played { continue }
+            play(episode)
+            return
         }
     }
 

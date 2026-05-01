@@ -386,7 +386,7 @@ final class PlayerManagerTests: XCTestCase {
         XCTAssertEqual(manager.elapsed, elapsedBefore, accuracy: 0.001)
     }
 
-    func test_markPlayed_onPausedCurrentEpisode_completesEpisodeWithoutAdvancing() throws {
+    func test_markPlayed_onPausedCurrentEpisode_releasesEpisodeWithoutAdvancing() throws {
         let nextPodcast = Podcast(title: "Next", author: "A", artworkURL: nil, feedURL: "https://x.com/n", sortPosition: 1)
         let nextEp = Episode(podcast: nextPodcast, title: "NextEp", publishDate: .now, descriptionText: "", durationSeconds: 90, audioURL: "https://x.com/n.mp3")
         context.insert(nextPodcast)
@@ -401,11 +401,50 @@ final class PlayerManagerTests: XCTestCase {
 
         manager.markPlayed(episode)
 
+        // Episode itself reflects fully-played state, persisted to the duration.
         XCTAssertEqual(episode.listenedStatus, .played)
         XCTAssertEqual(episode.playbackPosition, Double(episode.durationSeconds), accuracy: 0.001)
-        XCTAssertEqual(manager.elapsed, Double(episode.durationSeconds), accuracy: 0.001)
+
+        // Player releases the loaded episode so the row drops out of the
+        // now-playing state (and the mini-player dismisses). Pause was
+        // intentional, so no auto-advance to next.
         XCTAssertFalse(manager.isPlaying)
-        XCTAssertEqual(manager.currentEpisode?.persistentModelID, episode.persistentModelID)
+        XCTAssertNil(manager.currentEpisode)
+        XCTAssertEqual(manager.elapsed, 0, accuracy: 0.001)
+    }
+
+    func test_markPlayed_withAdvanceWithinPodcast_playsNextUnplayedEpisodeInSamePodcast() throws {
+        // Sibling episode in the SAME podcast, older publishDate so it sits
+        // below `episode` in the detail view's reverse-chronological list.
+        let olderEp = Episode(podcast: podcast,
+                              title: "Older",
+                              publishDate: Date(timeIntervalSinceNow: -86_400),
+                              descriptionText: "",
+                              durationSeconds: 120,
+                              audioURL: "https://x.com/older.mp3")
+        context.insert(olderEp)
+        podcast.episodes.append(olderEp)
+
+        // A different podcast, just to confirm it doesn't get picked up.
+        let otherPodcast = Podcast(title: "Other", author: "B", artworkURL: nil, feedURL: "https://x.com/o", sortPosition: 1)
+        let otherEp = Episode(podcast: otherPodcast, title: "OtherEp", publishDate: .now, descriptionText: "", durationSeconds: 90, audioURL: "https://x.com/o.mp3")
+        context.insert(otherPodcast)
+        context.insert(otherEp)
+        otherPodcast.episodes.append(otherEp)
+        try context.save()
+
+        manager.play(episode)
+        engine.simulateTimeUpdate(30)
+        XCTAssertTrue(manager.isPlaying)
+
+        manager.markPlayed(episode, advance: .nextEpisodeInPodcast)
+
+        XCTAssertEqual(episode.listenedStatus, .played)
+        // Advanced to the older sibling in the same podcast — NOT to the
+        // other podcast's latest, which would happen with .nextPodcast.
+        XCTAssertEqual(manager.currentEpisode?.persistentModelID, olderEp.persistentModelID)
+        XCTAssertTrue(manager.isPlaying)
+        XCTAssertEqual(engine.loadedURL?.absoluteString, "https://x.com/older.mp3")
     }
 
     func test_markPlayed_onPlayingCurrentEpisode_advancesToNextPodcast() throws {
