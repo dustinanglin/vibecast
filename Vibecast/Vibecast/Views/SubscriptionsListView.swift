@@ -15,17 +15,21 @@ struct SubscriptionsListView: View {
     var body: some View {
         NavigationStack {
             listContent
-                .navigationTitle("Subscriptions")
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
+                    ToolbarItem(placement: .topBarLeading) {
+                        wordmark
+                    }
+                    ToolbarItem(placement: .topBarLeading) {
                         EditButton()
+                            .foregroundStyle(Brand.Color.ink)
+                            .font(Brand.Font.uiButton())
                     }
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            showAddSheet = true
-                        } label: {
+                        Button { showAddSheet = true } label: {
                             Image(systemName: "plus")
-                                .font(.title2.weight(.light))
+                                .font(.system(size: 18, weight: .light))
+                                .foregroundStyle(Brand.Color.ink)
                         }
                     }
                 }
@@ -51,6 +55,19 @@ struct SubscriptionsListView: View {
         }
     }
 
+    private var wordmark: some View {
+        HStack(spacing: 1.8) {
+            Text("Vibecast")
+                .font(Brand.Font.display(size: 22))
+                .tracking(-0.7)
+                .foregroundStyle(Brand.Color.ink)
+            Circle()
+                .fill(Brand.Color.accent)
+                .frame(width: 5.5, height: 5.5)
+                .offset(y: 4)
+        }
+    }
+
     private var visiblePodcasts: [Podcast] {
         podcasts.filter { !pendingDeletes.contains($0.persistentModelID) }
     }
@@ -58,11 +75,21 @@ struct SubscriptionsListView: View {
     @ViewBuilder
     private var listContent: some View {
         if podcasts.isEmpty {
-            ContentUnavailableView(
-                "No podcasts yet",
-                systemImage: "antenna.radiowaves.left.and.right",
-                description: Text("Tap + to search for podcasts or import an OPML file.")
-            )
+            ContentUnavailableView {
+                Label {
+                    Text("No podcasts yet")
+                        .font(Brand.Font.serifSubtitle())
+                        .foregroundStyle(Brand.Color.ink)
+                } icon: {
+                    Image(systemName: "antenna.radiowaves.left.and.right")
+                        .foregroundStyle(Brand.Color.accent)
+                }
+            } description: {
+                Text("Tap + to search for podcasts or import an OPML file.")
+                    .font(Brand.Font.uiBody())
+                    .foregroundStyle(Brand.Color.inkSecondary)
+            }
+            .background(Brand.Color.bg)
         } else {
             List {
                 ForEach(visiblePodcasts) { podcast in
@@ -83,7 +110,8 @@ struct SubscriptionsListView: View {
                         },
                         onOpenDetail: { selectedPodcast = podcast }
                     )
-                    .listRowSeparator(.visible)
+                    .listRowBackground(Brand.Color.bg)
+                    .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         Button {
@@ -109,6 +137,8 @@ struct SubscriptionsListView: View {
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Brand.Color.bg)
             .refreshable {
                 await subscriptionManager?.refreshAll()
             }

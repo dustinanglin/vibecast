@@ -44,6 +44,7 @@ struct VibecastApp: App {
             SubscriptionsListView()
                 .environment(\.playerManager, playerManager)
                 .environment(\.subscriptionManager, subscriptionManager)
+                .preferredColorScheme(.light)
         }
         .modelContainer(container)
         .onChange(of: scenePhase) { _, newPhase in
