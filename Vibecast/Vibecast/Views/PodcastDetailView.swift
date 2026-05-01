@@ -18,6 +18,7 @@ struct PodcastDetailView: View {
             }
             .navigationTitle(podcast.title)
             .navigationBarTitleDisplayMode(.inline)
+            .background(Brand.Color.bg)
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
@@ -35,6 +36,8 @@ struct PodcastDetailView: View {
         List {
             podcastHeader
                 .listRowSeparator(.hidden)
+                .listRowBackground(Brand.Color.bg)
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
 
             ForEach(vm.displayedEpisodes) { episode in
                 let isCurrent = episode.persistentModelID == playerManager?.currentEpisode?.persistentModelID
@@ -51,8 +54,9 @@ struct PodcastDetailView: View {
                         }
                     }
                 )
-                .listRowSeparator(.visible)
-                .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Brand.Color.bg)
+                .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 14))
                 .onAppear {
                     if episode.id == vm.displayedEpisodes.last?.id && vm.hasMore {
                         vm.loadNextPage()
@@ -64,43 +68,41 @@ struct PodcastDetailView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .listRowSeparator(.hidden)
+                    .listRowBackground(Brand.Color.bg)
             }
         }
         .listStyle(.plain)
+        .background(Brand.Color.bg)
+        .scrollContentBackground(.hidden)
     }
 
     private var podcastHeader: some View {
-        HStack(alignment: .top, spacing: 14) {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.secondary.opacity(0.2))
-                .frame(width: 88, height: 88)
-                .overlay {
-                    if let urlString = podcast.artworkURL,
-                       let url = URL(string: urlString) {
-                        AsyncImage(url: url) { img in
-                            img.resizable().scaledToFill()
-                        } placeholder: {
-                            Color.clear
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    } else {
-                        Image(systemName: "mic.fill")
-                            .font(.title2)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
+        VStack(alignment: .center, spacing: 12) {
+            CoverArtwork(
+                urlString: podcast.artworkURL,
+                title: podcast.title,
+                size: 120,
+                radius: Brand.Radius.coverMedium
+            )
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text(podcast.title)
-                    .font(.headline)
+            VStack(alignment: .center, spacing: 4) {
                 Text(podcast.author)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+                    .font(Brand.Font.monoEyebrow(size: 11))
+                    .tracking(0.9)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Brand.Color.inkSecondary)
+                    .lineLimit(1)
 
-            Spacer()
+                Text(podcast.title)
+                    .font(Brand.Font.serifTitle(size: 28))
+                    .foregroundStyle(Brand.Color.ink)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+            }
         }
-        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 20)
     }
 }
 
