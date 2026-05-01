@@ -270,10 +270,14 @@ struct PodcastRowView: View {
     }
 
     private func relativeDate(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: .now)
+        Self.relativeDateFormatter.localizedString(for: date, relativeTo: .now)
     }
+
+    private static let relativeDateFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .abbreviated
+        return f
+    }()
 }
 
 /// Small inline progress ring used in the started-row eyebrow.
