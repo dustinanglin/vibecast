@@ -73,7 +73,7 @@ struct EpisodeRowView: View {
         VStack(alignment: .leading, spacing: 3) {
             dateEyebrow
             titleText
-                .frame(minHeight: 14 * 1.22 * 2, alignment: .topLeading)  // 2-line reservation
+                .frame(minHeight: 16 * 1.22 * 2, alignment: .topLeading)  // 2-line reservation
             footnote
         }
     }

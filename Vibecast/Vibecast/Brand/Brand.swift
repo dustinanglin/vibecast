@@ -33,47 +33,52 @@ enum Brand {
         private static let inter = "Inter"
         private static let mono = "JetBrains Mono"
 
-        static func display(size: CGFloat = 28) -> SwiftUI.Font {
+        static func display(size: CGFloat = 30) -> SwiftUI.Font {
             .custom(fraunces, size: size).weight(.medium)
         }
 
-        static func serifTitle(size: CGFloat = 28) -> SwiftUI.Font {
+        static func serifTitle(size: CGFloat = 30) -> SwiftUI.Font {
             .custom(fraunces, size: size).weight(.medium)
         }
 
-        static func serifSubtitle(size: CGFloat = 22) -> SwiftUI.Font {
+        static func serifSubtitle(size: CGFloat = 24) -> SwiftUI.Font {
             .custom(fraunces, size: size).weight(.medium)
         }
 
-        static func serifBody(size: CGFloat = 14) -> SwiftUI.Font {
+        static func serifBody(size: CGFloat = 16) -> SwiftUI.Font {
             .custom(fraunces, size: size).weight(.medium)
         }
 
         /// Started-row title: Fraunces 300 (Light), upright. Pairs with serifLightItalic
         /// for the started state per spec § PodcastRowView.
-        static func serifBodyLight(size: CGFloat = 14) -> SwiftUI.Font {
+        static func serifBodyLight(size: CGFloat = 16) -> SwiftUI.Font {
             .custom(fraunces, size: size).weight(.light)
         }
 
         /// Started-row title: Fraunces-Italic 300, italic. The carrier of the
         /// "still here, not done" treatment per spec.
-        static func serifLightItalic(size: CGFloat = 14) -> SwiftUI.Font {
+        static func serifLightItalic(size: CGFloat = 16) -> SwiftUI.Font {
             .custom(frauncesItalic, size: size).weight(.light)
         }
 
-        static func uiBody(size: CGFloat = 14, weight: SwiftUI.Font.Weight = .regular) -> SwiftUI.Font {
+        /// Editorial subtitle / "Listening for X" copy: Fraunces-Italic 400, italic.
+        static func serifItalic(size: CGFloat = 16) -> SwiftUI.Font {
+            .custom(frauncesItalic, size: size).weight(.regular)
+        }
+
+        static func uiBody(size: CGFloat = 16, weight: SwiftUI.Font.Weight = .regular) -> SwiftUI.Font {
             .custom(inter, size: size).weight(weight)
         }
 
-        static func uiButton(size: CGFloat = 14) -> SwiftUI.Font {
+        static func uiButton(size: CGFloat = 15) -> SwiftUI.Font {
             .custom(inter, size: size).weight(.semibold)
         }
 
-        static func monoEyebrow(size: CGFloat = 9) -> SwiftUI.Font {
+        static func monoEyebrow(size: CGFloat = 11) -> SwiftUI.Font {
             .custom(mono, size: size).weight(.semibold)
         }
 
-        static func monoEyebrowLarge(size: CGFloat = 11) -> SwiftUI.Font {
+        static func monoEyebrowLarge(size: CGFloat = 13) -> SwiftUI.Font {
             .custom(mono, size: size).weight(.semibold)
         }
     }
@@ -84,8 +89,8 @@ enum Brand {
         static let rowPadding: CGFloat = 12
         static let rowGap: CGFloat = 8
         static let hairlineWidth: CGFloat = 1
-        static let monoTracking: CGFloat = 0.9   // ≈ +0.10em at 9pt
-        static let serifTracking: CGFloat = -0.35 // ≈ -0.025em at 14pt
+        static let monoTracking: CGFloat = 1.1    // ≈ +0.10em at 11pt
+        static let serifTracking: CGFloat = -0.4  // ≈ -0.025em at 16pt
     }
 
     // MARK: - Radius

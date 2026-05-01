@@ -31,15 +31,22 @@ struct PodcastRowView: View {
     /// - now-playing → 2pt accent border + halo + top progress bar (NowPlayingCard)
     /// - unplayed → 3pt fallback-color sliver at leading edge + paper card + hairline border
     /// - started, played → paper card + hairline border (no sliver)
+    ///
+    /// The non-now-playing branches share a single HStack with a fixed-position
+    /// sliver slot (zero-width when not unplayed). This keeps the cardContent's
+    /// identity stable across state transitions, so the inner AsyncImage doesn't
+    /// reload when, e.g., a played row becomes unplayed.
     @ViewBuilder
     private var cardWrapper: some View {
         switch rowState {
         case .nowPlaying:
             cardContent
                 .nowPlayingCard(progressFraction: progressFraction)
-        case .unplayed:
+        case .unplayed, .started, .played:
             HStack(spacing: 0) {
-                RowSliver(color: Brand.fallbackColor(for: snapshot.title))
+                Rectangle()
+                    .fill(rowState == .unplayed ? Brand.fallbackColor(for: snapshot.title) : Color.clear)
+                    .frame(width: rowState == .unplayed ? 3 : 0)
                 cardContent
                     .frame(maxWidth: .infinity)
             }
@@ -49,14 +56,6 @@ struct PodcastRowView: View {
                 RoundedRectangle(cornerRadius: Brand.Radius.card)
                     .strokeBorder(Brand.Color.inkHairline, lineWidth: Brand.Layout.hairlineWidth)
             )
-        case .started, .played:
-            cardContent
-                .background(Brand.Color.paper)
-                .clipShape(RoundedRectangle(cornerRadius: Brand.Radius.card))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Brand.Radius.card)
-                        .strokeBorder(Brand.Color.inkHairline, lineWidth: Brand.Layout.hairlineWidth)
-                )
         }
     }
 
@@ -116,7 +115,7 @@ struct PodcastRowView: View {
         VStack(alignment: .leading, spacing: 3) {
             eyebrow(episode: episode)
             titleText(episode: episode)
-                .frame(minHeight: 14 * 1.22 * 2, alignment: .topLeading)  // 2-line reservation
+                .frame(minHeight: 16 * 1.22 * 2, alignment: .topLeading)  // 2-line reservation
             footnote(episode: episode)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -11,141 +11,226 @@ struct SubscriptionsListView: View {
     @State private var showAddSheet = false
     @State private var showFullScreenPlayer = false
     @State private var pendingDeletes: Set<PersistentIdentifier> = []
+    @State private var editMode: EditMode = .inactive
 
     var body: some View {
         NavigationStack {
-            listContent
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        wordmark
-                    }
-                    ToolbarItem(placement: .topBarLeading) {
-                        EditButton()
-                            .foregroundStyle(Brand.Color.ink)
-                            .font(Brand.Font.uiButton())
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { showAddSheet = true } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 18, weight: .light))
-                                .foregroundStyle(Brand.Color.ink)
-                        }
-                    }
-                }
-                .sheet(isPresented: $showAddSheet) {
-                    AddPodcastSheet()
-                }
-                .sheet(isPresented: $showFullScreenPlayer) {
-                    if let playerManager, playerManager.currentEpisode != nil {
-                        FullScreenPlayerView(player: playerManager)
-                    }
-                }
-                .navigationDestination(item: $selectedPodcast) { podcast in
-                    PodcastDetailView(podcast: podcast)
-                }
-                .safeAreaInset(edge: .bottom) {
-                    if let playerManager, playerManager.currentEpisode != nil {
-                        MiniPlayerBar(
-                            player: playerManager,
-                            onTapBar: { showFullScreenPlayer = true }
-                        )
-                    }
-                }
-        }
-    }
-
-    private var wordmark: some View {
-        HStack(spacing: 1.8) {
-            Text("Vibecast")
-                .font(Brand.Font.display(size: 22))
-                .tracking(-0.7)
-                .foregroundStyle(Brand.Color.ink)
-            Circle()
-                .fill(Brand.Color.accent)
-                .frame(width: 5.5, height: 5.5)
-                .offset(y: 4)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Vibecast")
-        .accessibilityAddTraits(.isHeader)
-    }
-
-    private var visiblePodcasts: [Podcast] {
-        podcasts.filter { !pendingDeletes.contains($0.persistentModelID) }
-    }
-
-    @ViewBuilder
-    private var listContent: some View {
-        if podcasts.isEmpty {
-            ContentUnavailableView {
-                Label {
-                    Text("No podcasts yet")
-                        .font(Brand.Font.serifSubtitle())
-                        .foregroundStyle(Brand.Color.ink)
-                } icon: {
-                    Image(systemName: "antenna.radiowaves.left.and.right")
-                        .foregroundStyle(Brand.Color.accent)
-                }
-            } description: {
-                Text("Tap + to search for podcasts or import an OPML file.")
-                    .font(Brand.Font.uiBody())
-                    .foregroundStyle(Brand.Color.inkSecondary)
-            }
-            .background(Brand.Color.bg)
-        } else {
             List {
-                ForEach(visiblePodcasts) { podcast in
-                    let snapshot = PodcastRowSnapshot(podcast)
-                    let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
-                    let isCurrent = latest != nil && latest?.persistentModelID == playerManager?.currentEpisode?.persistentModelID
-                    PodcastRowView(
-                        snapshot: snapshot,
-                        isCurrent: isCurrent,
-                        isPlaying: isCurrent && (playerManager?.isPlaying ?? false),
-                        onPlay: {
-                            guard let ep = latest, let mgr = playerManager else { return }
-                            if mgr.currentEpisode?.persistentModelID == ep.persistentModelID {
-                                mgr.togglePlayPause()
-                            } else {
-                                mgr.play(ep)
-                            }
-                        },
-                        onOpenDetail: { selectedPodcast = podcast }
-                    )
+                masthead
+                    .listRowInsets(EdgeInsets(top: 24, leading: 22, bottom: 14, trailing: 22))
                     .listRowBackground(Brand.Color.bg)
                     .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
-                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        Button {
-                            if let ep = podcast.episodes
-                                .sorted(by: { $0.publishDate > $1.publishDate }).first {
-                                markPlayed(ep)
+                    .moveDisabled(true)
+                    .deleteDisabled(true)
+
+                sectionLabel
+                    .listRowInsets(EdgeInsets(top: 4, leading: 22, bottom: 8, trailing: 22))
+                    .listRowBackground(Brand.Color.bg)
+                    .listRowSeparator(.hidden)
+                    .moveDisabled(true)
+                    .deleteDisabled(true)
+
+                if visiblePodcasts.isEmpty {
+                    emptyStateRow
+                        .listRowInsets(EdgeInsets(top: 60, leading: 22, bottom: 60, trailing: 22))
+                        .listRowBackground(Brand.Color.bg)
+                        .listRowSeparator(.hidden)
+                        .moveDisabled(true)
+                        .deleteDisabled(true)
+                } else {
+                    ForEach(visiblePodcasts) { podcast in
+                        let snapshot = PodcastRowSnapshot(podcast)
+                        let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
+                        let isCurrent = latest != nil && latest?.persistentModelID == playerManager?.currentEpisode?.persistentModelID
+                        PodcastRowView(
+                            snapshot: snapshot,
+                            isCurrent: isCurrent,
+                            isPlaying: isCurrent && (playerManager?.isPlaying ?? false),
+                            onPlay: {
+                                guard let ep = latest, let mgr = playerManager else { return }
+                                if mgr.currentEpisode?.persistentModelID == ep.persistentModelID {
+                                    mgr.togglePlayPause()
+                                } else {
+                                    mgr.play(ep)
+                                }
+                            },
+                            onOpenDetail: { selectedPodcast = podcast }
+                        )
+                        .listRowBackground(Brand.Color.bg)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button {
+                                if let ep = podcast.episodes
+                                    .sorted(by: { $0.publishDate > $1.publishDate }).first {
+                                    snapAfterCollapse { markPlayed(ep) }
+                                }
+                            } label: {
+                                Label("Played", systemImage: "checkmark")
                             }
-                        } label: {
-                            Label("Played", systemImage: "checkmark")
+                            .tint(.green)
                         }
-                        .tint(.green)
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            remove(podcast)
-                        } label: {
-                            Label("Remove", systemImage: "trash")
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            // Debug-affordance: reset the latest episode to unplayed
+                            // (declared first so it sits at the trailing edge, to the
+                            // right of Remove). May be removed once we have a more
+                            // intentional "reset progress" affordance in detail view.
+                            Button {
+                                if let ep = podcast.episodes
+                                    .sorted(by: { $0.publishDate > $1.publishDate }).first {
+                                    snapAfterCollapse { markUnplayed(ep) }
+                                }
+                            } label: {
+                                Label("Unplayed", systemImage: "arrow.uturn.backward")
+                            }
+                            .tint(.blue)
+
+                            Button(role: .destructive) {
+                                remove(podcast)
+                            } label: {
+                                Label("Remove", systemImage: "trash")
+                            }
                         }
                     }
-                }
-                .onMove { source, destination in
-                    move(from: source, to: destination)
+                    .onMove { source, destination in
+                        move(from: source, to: destination)
+                    }
                 }
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Brand.Color.bg)
+            .environment(\.editMode, $editMode)
+            .toolbar(.hidden, for: .navigationBar)
             .refreshable {
                 await subscriptionManager?.refreshAll()
             }
+            .sheet(isPresented: $showAddSheet) {
+                AddPodcastSheet()
+            }
+            .sheet(isPresented: $showFullScreenPlayer) {
+                if let playerManager, playerManager.currentEpisode != nil {
+                    FullScreenPlayerView(player: playerManager)
+                }
+            }
+            .navigationDestination(item: $selectedPodcast) { podcast in
+                PodcastDetailView(podcast: podcast)
+            }
+            .safeAreaInset(edge: .bottom) {
+                if let playerManager, playerManager.currentEpisode != nil {
+                    MiniPlayerBar(
+                        player: playerManager,
+                        onTapBar: { showFullScreenPlayer = true }
+                    )
+                }
+            }
         }
+    }
+
+    // MARK: - Masthead (eyebrow + h1 + italic subtitle + add button)
+
+    private var masthead: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center) {
+                Text("SUBSCRIPTIONS")
+                    .font(Brand.Font.monoEyebrow())
+                    .tracking(Brand.Layout.monoTracking)
+                    .foregroundStyle(Brand.Color.inkMuted)
+                Spacer()
+                addButton
+            }
+            Text("Vibecast")
+                .font(Brand.Font.display(size: 56))
+                .tracking(-1.4)  // ≈ -0.025em at 56pt
+                .foregroundStyle(Brand.Color.ink)
+                .padding(.top, 10)
+            Text(subtitleText)
+                .font(Brand.Font.serifItalic(size: 18))
+                .foregroundStyle(Brand.Color.inkSecondary)
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var subtitleText: String {
+        visiblePodcasts.isEmpty ? "Add a podcast to get started" : "Your shows, in your order"
+    }
+
+    private var addButton: some View {
+        Button { showAddSheet = true } label: {
+            ZStack {
+                Circle()
+                    .fill(Brand.Color.paper)
+                    .frame(width: 36, height: 36)
+                    .overlay(
+                        Circle().strokeBorder(Brand.Color.inkHairline, lineWidth: Brand.Layout.hairlineWidth)
+                    )
+                Image(systemName: "plus")
+                    .font(.system(size: 17, weight: .light))
+                    .foregroundStyle(Brand.Color.ink)
+            }
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Add podcast")
+    }
+
+    // MARK: - Section label (count · MOST RECENT ——— EDIT ORDER)
+
+    private var sectionLabel: some View {
+        HStack(spacing: 10) {
+            Text(sectionLabelText)
+                .font(Brand.Font.monoEyebrow())
+                .tracking(Brand.Layout.monoTracking)
+                .foregroundStyle(Brand.Color.inkMuted)
+                .fixedSize(horizontal: true, vertical: false)
+            Rectangle()
+                .fill(Brand.Color.inkHairline)
+                .frame(height: Brand.Layout.hairlineWidth)
+                .frame(maxWidth: .infinity)
+            Button {
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    editMode = editMode.isEditing ? .inactive : .active
+                }
+            } label: {
+                Text(editMode.isEditing ? "DONE" : "EDIT ORDER")
+                    .font(Brand.Font.monoEyebrow())
+                    .tracking(Brand.Layout.monoTracking)
+                    .foregroundStyle(editMode.isEditing ? Brand.Color.accent : Brand.Color.inkMuted)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            .buttonStyle(.plain)
+            .disabled(visiblePodcasts.isEmpty && !editMode.isEditing)
+            .accessibilityLabel(editMode.isEditing ? "Done editing order" : "Edit subscription order")
+        }
+    }
+
+    private var sectionLabelText: String {
+        let count = visiblePodcasts.count
+        let countLabel = count == 1 ? "1 SHOW" : "\(count) SHOWS"
+        return "\(countLabel) · YOUR ORDER"
+    }
+
+    // MARK: - Empty state row (lives inside the List so masthead always shows)
+
+    private var emptyStateRow: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "antenna.radiowaves.left.and.right")
+                .font(.system(size: 36, weight: .light))
+                .foregroundStyle(Brand.Color.accent)
+            Text("No podcasts yet")
+                .font(Brand.Font.serifSubtitle())
+                .foregroundStyle(Brand.Color.ink)
+            Text("Tap + above to search or import an OPML file.")
+                .font(Brand.Font.uiBody())
+                .foregroundStyle(Brand.Color.inkSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var visiblePodcasts: [Podcast] {
+        podcasts.filter { !pendingDeletes.contains($0.persistentModelID) }
     }
 
     private func remove(_ podcast: Podcast) {
@@ -166,6 +251,28 @@ struct SubscriptionsListView: View {
             episode.listenedStatus = .played
             episode.playbackPosition = Double(episode.durationSeconds)
             try? modelContext.save()
+        }
+    }
+
+    private func markUnplayed(_ episode: Episode) {
+        episode.listenedStatus = .unplayed
+        episode.playbackPosition = 0
+        try? modelContext.save()
+    }
+
+    /// Wait for the swipe-action's collapse to complete, then snap-mutate
+    /// (no animation) so the new row state appears the instant the row
+    /// returns to its resting position. Avoids the cross-fade phantom that
+    /// happens when a state-driven opacity change overlaps the system
+    /// collapse animation.
+    private func snapAfterCollapse(_ mutate: @escaping () -> Void) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(220))
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                mutate()
+            }
         }
     }
 
