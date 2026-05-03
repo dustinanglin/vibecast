@@ -83,44 +83,42 @@ struct FullScreenPlayerView: View {
 
     private var scrubber: some View {
         VStack(spacing: 6) {
-            // Native Slider provides drag-to-seek behavior; rendered nearly transparent
-            // and layered behind a custom hairline+thumb visual that mirrors its value.
-            // The Slider intercepts touches; the custom visual is purely cosmetic.
-            ZStack {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        // Hairline track
-                        Rectangle()
-                            .fill(Brand.Color.inkHairline)
-                            .frame(height: Brand.Layout.hairlineWidth)
-                        // Accent-filled progress
-                        Rectangle()
-                            .fill(Brand.Color.accent)
-                            .frame(width: max(0, geo.size.width * scrubFraction), height: Brand.Layout.hairlineWidth)
-                        // Visual thumb (no hit testing — Slider handles touches)
-                        Circle()
-                            .fill(Brand.Color.accent)
-                            .frame(width: 14, height: 14)
-                            .offset(x: max(0, min(geo.size.width * scrubFraction - 7, geo.size.width - 14)))
-                    }
-                    .frame(maxHeight: .infinity, alignment: .center)
+            // Custom hairline + thumb. A DragGesture with minimumDistance 0
+            // on the full-height contentShape gives touch-and-scrub behavior
+            // (a tap-down also seeks). Replaced an earlier invisible-Slider
+            // approach where .opacity(0.001) caused unreliable hit testing.
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    // Hairline track
+                    Rectangle()
+                        .fill(Brand.Color.inkHairline)
+                        .frame(height: Brand.Layout.hairlineWidth)
+                    // Accent-filled progress
+                    Rectangle()
+                        .fill(Brand.Color.accent)
+                        .frame(width: max(0, geo.size.width * scrubFraction), height: Brand.Layout.hairlineWidth)
+                    // Visual thumb
+                    Circle()
+                        .fill(Brand.Color.accent)
+                        .frame(width: 14, height: 14)
+                        .offset(x: max(0, min(geo.size.width * scrubFraction - 7, geo.size.width - 14)))
                 }
-                .allowsHitTesting(false)
-
-                Slider(
-                    value: Binding(
-                        get: { scrubValue ?? player.elapsed },
-                        set: { scrubValue = $0 }
-                    ),
-                    in: 0...(max(player.duration, 1)),
-                    onEditingChanged: { isEditing in
-                        if !isEditing, let v = scrubValue {
-                            player.seek(to: v)
-                            scrubValue = nil
+                .frame(maxHeight: .infinity, alignment: .center)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            let x = max(0, min(value.location.x, geo.size.width))
+                            let fraction = geo.size.width > 0 ? Double(x / geo.size.width) : 0
+                            scrubValue = fraction * max(player.duration, 1)
                         }
-                    }
+                        .onEnded { _ in
+                            if let v = scrubValue {
+                                player.seek(to: v)
+                                scrubValue = nil
+                            }
+                        }
                 )
-                .opacity(0.001)
             }
             .frame(height: 32)
 
