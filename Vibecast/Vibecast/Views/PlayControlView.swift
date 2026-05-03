@@ -7,17 +7,51 @@ struct PlayControlView: View {
     var isPlaying: Bool = false
     let onTap: () -> Void
 
-    private var ringColor: Color {
-        switch episode.listenedStatus {
-        case .unplayed:   return .clear
-        case .inProgress: return .accentColor
-        case .played:     return .accentColor.opacity(0.35)
+    var body: some View {
+        Button(action: onTap) {
+            ZStack {
+                background
+                Image(systemName: iconName)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(iconColor)
+            }
+            .frame(width: Brand.HitTarget.rowPlay, height: Brand.HitTarget.rowPlay)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(playButtonAccessibilityLabel)
+    }
+
+    @ViewBuilder
+    private var background: some View {
+        let circleSize: CGFloat = 30
+        if isCurrent {
+            Circle()
+                .fill(Brand.Color.accent)
+                .frame(width: circleSize, height: circleSize)
+        } else if episode.listenedStatus == .played {
+            Circle()
+                .fill(Color.clear)
+                .frame(width: circleSize, height: circleSize)
+        } else {
+            Circle()
+                .fill(Brand.Color.paper)
+                .frame(width: circleSize, height: circleSize)
+                .overlay(Circle().stroke(Brand.Color.inkHairline, lineWidth: Brand.Layout.hairlineWidth))
         }
     }
 
     private var iconName: String {
         if isCurrent && isPlaying { return "pause.fill" }
-        return episode.listenedStatus == .played ? "arrow.clockwise" : "play.fill"
+        if isCurrent && !isPlaying { return "play.fill" }
+        if episode.listenedStatus == .played { return "arrow.clockwise" }
+        return "play.fill"
+    }
+
+    private var iconColor: Color {
+        if isCurrent { return Brand.Color.paper }
+        if episode.listenedStatus == .played { return Brand.Color.inkMuted }
+        return Brand.Color.ink
     }
 
     private var playButtonAccessibilityLabel: String {
@@ -25,46 +59,6 @@ struct PlayControlView: View {
         if isCurrent && !isPlaying { return "Resume \(episode.title)" }
         if episode.listenedStatus == .played { return "Replay \(episode.title)" }
         return "Play \(episode.title)"
-    }
-
-    private var durationLabel: String {
-        switch episode.listenedStatus {
-        case .unplayed:   return episode.formattedDuration
-        case .inProgress: return episode.formattedRemaining
-        case .played:     return episode.formattedDuration
-        }
-    }
-
-    var body: some View {
-        VStack(spacing: 4) {
-            Button(action: onTap) {
-                ZStack {
-                    Circle()
-                        .stroke(Color.secondary.opacity(0.2), lineWidth: 2.5)
-                        .frame(width: 36, height: 36)
-
-                    if episode.progressFraction > 0 {
-                        Circle()
-                            .trim(from: 0, to: episode.progressFraction)
-                            .stroke(ringColor, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                            .frame(width: 36, height: 36)
-                            .rotationEffect(.degrees(-90))
-                    }
-
-                    Image(systemName: iconName)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.primary)
-                }
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(playButtonAccessibilityLabel)
-
-            Text(durationLabel)
-                .font(.system(size: 10))
-                .foregroundStyle(.secondary)
-        }
     }
 }
 
@@ -74,11 +68,25 @@ struct PlayControlView: View {
     let unplayed = EpisodeRowSnapshot(episodes.first { $0.listenedStatus == .unplayed } ?? episodes[0])
     let inProgress = EpisodeRowSnapshot(episodes.first { $0.listenedStatus == .inProgress } ?? episodes[0])
     let played = EpisodeRowSnapshot(episodes.first { $0.listenedStatus == .played } ?? episodes[0])
-    HStack(spacing: 24) {
-        PlayControlView(episode: unplayed, onTap: {})
-        PlayControlView(episode: inProgress, onTap: {})
-        PlayControlView(episode: played, onTap: {})
+    VStack(spacing: 18) {
+        HStack(spacing: 16) {
+            PlayControlView(episode: unplayed, isCurrent: false, isPlaying: false, onTap: {})
+            Text("Unplayed · paper ring + ink play").font(.system(size: 11)).foregroundStyle(.secondary)
+        }
+        HStack(spacing: 16) {
+            PlayControlView(episode: inProgress, isCurrent: true, isPlaying: true, onTap: {})
+            Text("Current + playing · accent fill + paper pause").font(.system(size: 11)).foregroundStyle(.secondary)
+        }
+        HStack(spacing: 16) {
+            PlayControlView(episode: inProgress, isCurrent: true, isPlaying: false, onTap: {})
+            Text("Current + paused · accent fill + paper play").font(.system(size: 11)).foregroundStyle(.secondary)
+        }
+        HStack(spacing: 16) {
+            PlayControlView(episode: played, isCurrent: false, isPlaying: false, onTap: {})
+            Text("Played · transparent + muted replay").font(.system(size: 11)).foregroundStyle(.secondary)
+        }
     }
     .modelContainer(container)
-    .padding()
+    .padding(24)
+    .background(Brand.Color.bg)
 }

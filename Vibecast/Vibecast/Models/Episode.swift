@@ -48,6 +48,11 @@ final class Episode {
         Self.format(seconds: remainingSeconds)
     }
 
+    /// Elapsed playback time formatted like formattedDuration (e.g., "14m", "1h 2m").
+    var formattedElapsed: String {
+        Self.format(seconds: Int(playbackPosition))
+    }
+
     private static func format(seconds total: Int) -> String {
         let h = total / 3600
         let m = (total % 3600) / 60

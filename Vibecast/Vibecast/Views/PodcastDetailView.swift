@@ -5,6 +5,7 @@ struct PodcastDetailView: View {
     let podcast: Podcast
     @Environment(\.playerManager) private var playerManager
     @Environment(\.subscriptionManager) private var subscriptionManager
+    @Environment(\.modelContext) private var modelContext
     @State private var viewModel: PodcastDetailViewModel?
 
     var body: some View {
@@ -18,6 +19,7 @@ struct PodcastDetailView: View {
             }
             .navigationTitle(podcast.title)
             .navigationBarTitleDisplayMode(.inline)
+            .background(Brand.Color.bg)
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
@@ -35,6 +37,8 @@ struct PodcastDetailView: View {
         List {
             podcastHeader
                 .listRowSeparator(.hidden)
+                .listRowBackground(Brand.Color.bg)
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
 
             ForEach(vm.displayedEpisodes) { episode in
                 let isCurrent = episode.persistentModelID == playerManager?.currentEpisode?.persistentModelID
@@ -51,12 +55,29 @@ struct PodcastDetailView: View {
                         }
                     }
                 )
-                .listRowSeparator(.visible)
-                .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Brand.Color.bg)
+                .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 14))
                 .onAppear {
                     if episode.id == vm.displayedEpisodes.last?.id && vm.hasMore {
                         vm.loadNextPage()
                     }
+                }
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    Button {
+                        snapAfterCollapse { markPlayed(episode) }
+                    } label: {
+                        Label("Played", systemImage: "checkmark")
+                    }
+                    .tint(.green)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button {
+                        snapAfterCollapse { markUnplayed(episode) }
+                    } label: {
+                        Label("Unplayed", systemImage: "arrow.uturn.backward")
+                    }
+                    .tint(.blue)
                 }
             }
 
@@ -64,43 +85,86 @@ struct PodcastDetailView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .listRowSeparator(.hidden)
+                    .listRowBackground(Brand.Color.bg)
+            }
+
+            // Reserve scroll-tail so the last episode row isn't permanently
+            // hidden behind the floating mini-player bar.
+            if playerManager?.currentEpisode != nil {
+                Color.clear
+                    .frame(height: 80)
+                    .listRowBackground(Brand.Color.bg)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets())
             }
         }
         .listStyle(.plain)
+        .background(Brand.Color.bg)
+        .scrollContentBackground(.hidden)
+    }
+
+    // MARK: - Episode mutations (mirrors SubscriptionsListView, with
+    // detail-view-appropriate auto-advance: walk down THIS podcast's
+    // episode list rather than jumping to the next podcast).
+
+    private func markPlayed(_ episode: Episode) {
+        if let mgr = playerManager {
+            mgr.markPlayed(episode, advance: .nextEpisodeInPodcast)
+        } else {
+            episode.listenedStatus = .played
+            episode.playbackPosition = Double(episode.durationSeconds)
+            try? modelContext.save()
+        }
+    }
+
+    private func markUnplayed(_ episode: Episode) {
+        episode.listenedStatus = .unplayed
+        episode.playbackPosition = 0
+        try? modelContext.save()
+    }
+
+    /// Wait for the swipe-action's collapse to complete, then snap-mutate
+    /// (no animation). Same pattern as SubscriptionsListView — avoids the
+    /// cross-fade phantom when an opacity-changing state transition overlaps
+    /// the system swipe-collapse.
+    private func snapAfterCollapse(_ mutate: @escaping () -> Void) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(220))
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                mutate()
+            }
+        }
     }
 
     private var podcastHeader: some View {
-        HStack(alignment: .top, spacing: 14) {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.secondary.opacity(0.2))
-                .frame(width: 88, height: 88)
-                .overlay {
-                    if let urlString = podcast.artworkURL,
-                       let url = URL(string: urlString) {
-                        AsyncImage(url: url) { img in
-                            img.resizable().scaledToFill()
-                        } placeholder: {
-                            Color.clear
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    } else {
-                        Image(systemName: "mic.fill")
-                            .font(.title2)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
+        VStack(alignment: .center, spacing: 12) {
+            CoverArtwork(
+                urlString: podcast.artworkURL,
+                title: podcast.title,
+                size: 120,
+                radius: Brand.Radius.coverMedium
+            )
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text(podcast.title)
-                    .font(.headline)
+            VStack(alignment: .center, spacing: 4) {
                 Text(podcast.author)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+                    .font(Brand.Font.monoEyebrowLarge())
+                    .tracking(Brand.Layout.monoTracking)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Brand.Color.inkSecondary)
+                    .lineLimit(1)
 
-            Spacer()
+                Text(podcast.title)
+                    .font(Brand.Font.serifTitle(size: 28))
+                    .foregroundStyle(Brand.Color.ink)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+            }
         }
-        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 20)
     }
 }
 

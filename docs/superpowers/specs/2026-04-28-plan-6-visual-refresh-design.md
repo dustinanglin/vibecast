@@ -441,3 +441,15 @@ Each per-screen commit independently builds + passes existing tests. Branch ship
 ## Open questions
 
 None at design-spec time. Implementation will surface a few oklch → sRGB conversions and font-metric tuning calls that the implementer makes per spec values.
+
+## Deferred to later plans
+
+**Plan 8 (Pinning) revises the podcast detail page beyond Plan 6's scope.**
+Plan 6's detail-page work is purely a typography/palette refresh — same hero,
+same episode list, same affordances, just brought into the editorial language.
+
+The richer detail layout in `docs/design/vibecast-visual-prototypes/project/Vibecast Podcast & Pinning.html`
+(vibe membership chips, Play / Pin / Subscribed action triad, pin-to-vibe
+action sheet, pinned-episode pill states with expiry-on-play, queue position
+chrome, the "on a plane" pinning use case) lands with Plan 8. When Plan 8
+brainstorming begins, treat that design file as a primary source.

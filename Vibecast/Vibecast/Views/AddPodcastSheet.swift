@@ -16,6 +16,7 @@ struct AddPodcastSheet: View {
                 systemImage: "exclamationmark.triangle",
                 description: Text("Subscription manager wasn't injected. This is a bug.")
             )
+            .font(Brand.Font.serifSubtitle())
         }
     }
 }
@@ -40,45 +41,68 @@ private struct LoadedSheet: View {
 
     var body: some View {
         NavigationStack {
-            content
-                .navigationTitle("Add Podcast")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { dismiss() }
-                    }
+            ZStack(alignment: .top) {
+                Brand.Color.bg
+                    .ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    // Custom drag handle
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Brand.Color.inkHairline)
+                        .frame(width: 36, height: 4)
+                        .padding(.top, 8)
+                        .padding(.bottom, 12)
+
+                    content
                 }
-                .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search podcasts")
-                .safeAreaInset(edge: .top) {
-                    importButton
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Brand.Color.bg, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .font(Brand.Font.uiButton())
+                        .foregroundStyle(Brand.Color.ink)
                 }
-                .task(id: query) {
-                    try? await Task.sleep(nanoseconds: 300_000_000)
-                    if Task.isCancelled { return }
-                    await runSearch()
+                ToolbarItem(placement: .principal) {
+                    Text("Add Podcast")
+                        .font(Brand.Font.serifSubtitle())
+                        .foregroundStyle(Brand.Color.ink)
                 }
-                .fileImporter(
-                    isPresented: $showFileImporter,
-                    allowedContentTypes: [
-                        UTType(filenameExtension: "opml") ?? .xml,
-                        .xml,
-                    ],
-                    allowsMultipleSelection: false
-                ) { result in
-                    handleFileImport(result)
-                }
-                .alert("Import Result", isPresented: $showImportSummaryAlert, presenting: manager.lastImportSummary) { _ in
-                    Button("OK") { dismiss() }
-                } message: { summary in
-                    Text(importSummaryMessage(summary))
-                }
-                .alert("Couldn't Import", isPresented: $showImportFailureAlert) {
-                    Button("OK", role: .cancel) {}
-                } message: {
-                    Text("Couldn't parse OPML file. Make sure it's a valid OPML export.")
-                }
+            }
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search podcasts")
+            .safeAreaInset(edge: .top) {
+                importButton
+                    .padding(.horizontal, Brand.Layout.rowPadding)
+                    .padding(.bottom, 8)
+                    .background(Brand.Color.bg)
+            }
+            .task(id: query) {
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                if Task.isCancelled { return }
+                await runSearch()
+            }
+            .fileImporter(
+                isPresented: $showFileImporter,
+                allowedContentTypes: [
+                    UTType(filenameExtension: "opml") ?? .xml,
+                    .xml,
+                ],
+                allowsMultipleSelection: false
+            ) { result in
+                handleFileImport(result)
+            }
+            .alert("Import Result", isPresented: $showImportSummaryAlert, presenting: manager.lastImportSummary) { _ in
+                Button("OK") { dismiss() }
+            } message: { summary in
+                Text(importSummaryMessage(summary))
+            }
+            .alert("Couldn't Import", isPresented: $showImportFailureAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Couldn't parse OPML file. Make sure it's a valid OPML export.")
+            }
+            .presentationDragIndicator(.hidden)
         }
     }
 
@@ -88,10 +112,11 @@ private struct LoadedSheet: View {
             VStack(spacing: 12) {
                 ProgressView().controlSize(.large)
                 Text("Importing podcasts…")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(Brand.Font.uiBody())
+                    .foregroundStyle(Brand.Color.inkSecondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Brand.Color.bg)
         } else {
             switch phase {
             case .idle:
@@ -100,17 +125,24 @@ private struct LoadedSheet: View {
                     systemImage: "magnifyingglass",
                     description: Text("Search by title, author, or topic.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Brand.Color.bg)
             case .searching:
                 ProgressView().controlSize(.large)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Brand.Color.bg)
             case .empty:
                 ContentUnavailableView.search(text: lastSubmittedQuery)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Brand.Color.bg)
             case .error:
                 ContentUnavailableView(
                     "Couldn't reach iTunes",
                     systemImage: "wifi.exclamationmark",
                     description: Text("Check your connection and try again.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Brand.Color.bg)
             case .results:
                 List(results) { result in
                     SearchResultRow(
@@ -122,9 +154,13 @@ private struct LoadedSheet: View {
                             Task { await manager.subscribe(to: result) }
                         }
                     )
-                    .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
+                    .listRowBackground(Brand.Color.bg)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                 }
                 .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .background(Brand.Color.bg)
             }
         }
     }
@@ -134,9 +170,18 @@ private struct LoadedSheet: View {
             showFileImporter = true
         } label: {
             Label("Import from File", systemImage: "square.and.arrow.down")
+                .font(Brand.Font.uiButton())
+                .foregroundStyle(Brand.Color.ink)
                 .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Brand.Color.paper)
+                .clipShape(RoundedRectangle(cornerRadius: Brand.Radius.inline))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Brand.Radius.inline)
+                        .strokeBorder(Brand.Color.inkHairline, lineWidth: Brand.Layout.hairlineWidth)
+                )
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.plain)
         .disabled(manager.isImportingOPML)
     }
 
