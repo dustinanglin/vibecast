@@ -99,7 +99,11 @@ struct MiniPlayerBar: View {
             }
             .frame(height: 2)
         }
-        .background(Brand.Color.paper.opacity(0.85))
+        // Two-layer background: paper warmth on top, real backdrop blur
+        // beneath. The blur (BackdropBlur — UIVisualEffectView bridge) is the
+        // deepest layer, so it samples the rows scrolling behind the bar.
+        .background(Brand.Color.paper.opacity(0.22))
+        .background(BackdropBlur())
         .clipShape(RoundedRectangle(cornerRadius: Brand.Radius.card))
         .overlay(
             RoundedRectangle(cornerRadius: Brand.Radius.card)
