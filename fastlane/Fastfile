@@ -32,6 +32,14 @@ platform :ios do
     # diff in the working tree and sidesteps the Info.plist substitution
     # that happens when fastlane's increment_build_number runs against a
     # project whose Info.plist references $(CURRENT_PROJECT_VERSION).
+    # Forward App Store Connect API auth to xcodebuild. fastlane 2.230 doesn't
+    # accept api_key on build_app; we pass the underlying flags by hand.
+    auth_xcargs = [
+      "-authenticationKeyID #{ENV.fetch('APP_STORE_CONNECT_API_KEY_ID')}",
+      "-authenticationKeyIssuerID #{ENV.fetch('APP_STORE_CONNECT_API_KEY_ISSUER_ID')}",
+      "-authenticationKeyPath #{ENV.fetch('APP_STORE_CONNECT_API_KEY_PATH')}",
+    ].join(' ')
+
     build_app(
       project: "Vibecast/Vibecast.xcodeproj",
       scheme: "Vibecast",
@@ -39,14 +47,13 @@ platform :ios do
       output_directory: "build",
       output_name: "Vibecast.ipa",
       export_method: "app-store",
-      # Pass the API key into xcodebuild as -authenticationKey* so Xcode
-      # can fetch/create signing assets without an Apple ID account in
-      # the runner's keychain.
-      api_key: api_key,
       # CURRENT_PROJECT_VERSION → CFBundleVersion via the Info.plist variable.
       # -allowProvisioningUpdates → Xcode auto-registers/refreshes signing
       # assets through the API key (no fastlane match repo needed).
-      xcargs: "CURRENT_PROJECT_VERSION=#{next_build} -allowProvisioningUpdates"
+      # -authenticationKey* → API-key auth, so xcodebuild can talk to App
+      # Store Connect without an Apple ID in the runner's keychain.
+      xcargs: "CURRENT_PROJECT_VERSION=#{next_build} -allowProvisioningUpdates #{auth_xcargs}",
+      export_xcargs: auth_xcargs
     )
 
     upload_to_testflight(
