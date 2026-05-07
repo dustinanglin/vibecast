@@ -48,7 +48,8 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.2"
-          bundler-cache: true   # caches gems based on Gemfile.lock
+          bundler: latest        # ignore the local 1.17.2 (no `untaint` on Ruby 3+)
+          bundler-cache: true    # caches gems based on Gemfile.lock
 
       - name: Materialise App Store Connect API key
         env:
