@@ -1,0 +1,6 @@
+app_identifier("AnglinVibes.Vibecast")
+team_id("KLUX3TMK5S")          # Apple Developer Program team
+itc_team_id("KLUX3TMK5S")      # App Store Connect team (same here)
+
+# apple_id intentionally omitted — auth is via App Store Connect API key,
+# not Apple ID + 2FA. See fastlane/Fastfile.

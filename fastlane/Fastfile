@@ -1,0 +1,52 @@
+default_platform(:ios)
+
+# Vibecast — fastlane lanes for TestFlight distribution.
+#
+# Auth is via App Store Connect API key (.p8). Required env vars:
+#   APP_STORE_CONNECT_API_KEY_ID         e.g. ABCD1234EF
+#   APP_STORE_CONNECT_API_KEY_ISSUER_ID  the team's issuer UUID
+#   APP_STORE_CONNECT_API_KEY_PATH       absolute path to the .p8 file
+#
+# Locally: keep the .p8 outside the repo, e.g. ~/.appstoreconnect/AuthKey_*.p8.
+# In CI: the .p8 is materialised from a base64-encoded GitHub secret into
+# a temp file before the lane runs.
+
+platform :ios do
+  desc "Build and upload a new TestFlight beta"
+  lane :beta do
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ISSUER_ID"),
+      key_filepath: ENV.fetch("APP_STORE_CONNECT_API_KEY_PATH"),
+      duration: 1200,
+      in_house: false
+    )
+
+    # Bump the build number to one past the most recent TestFlight build for
+    # the current marketing version. No-ops if Apple hasn't seen the version
+    # yet (returns 0 → next = 1).
+    next_build = latest_testflight_build_number(api_key: api_key) + 1
+    increment_build_number(
+      build_number: next_build,
+      xcodeproj: "Vibecast/Vibecast.xcodeproj"
+    )
+
+    build_app(
+      project: "Vibecast/Vibecast.xcodeproj",
+      scheme: "Vibecast",
+      configuration: "Release",
+      output_directory: "build",
+      output_name: "Vibecast.ipa",
+      export_method: "app-store",
+      # Let Xcode register/refresh signing assets via the API key.
+      # No fastlane match repo needed for a solo-dev workflow.
+      xcargs: "-allowProvisioningUpdates"
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      changelog: ENV["CHANGELOG"] || "Latest from main."
+    )
+  end
+end
