@@ -52,7 +52,12 @@ platform :ios do
       # assets through the API key (no fastlane match repo needed).
       # -authenticationKey* → API-key auth, so xcodebuild can talk to App
       # Store Connect without an Apple ID in the runner's keychain.
-      xcargs: "CURRENT_PROJECT_VERSION=#{next_build} -allowProvisioningUpdates #{auth_xcargs}"
+      xcargs: "CURRENT_PROJECT_VERSION=#{next_build} -allowProvisioningUpdates #{auth_xcargs}",
+      # Export needs -allowProvisioningUpdates too. Auth flags are NOT
+      # repeated here — fastlane gym injects the API key onto the export
+      # command on its own from the env vars set by app_store_connect_api_key.
+      # Adding them here causes 'option may only be provided once'.
+      export_xcargs: "-allowProvisioningUpdates"
     )
 
     upload_to_testflight(
