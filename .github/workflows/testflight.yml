@@ -58,17 +58,20 @@ jobs:
         env:
           KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
         run: |
-          mkdir -p "$HOME/private_keys"
-          echo -n "$KEY_BASE64" | base64 --decode > "$HOME/private_keys/AuthKey.p8"
-          chmod 600 "$HOME/private_keys/AuthKey.p8"
-          # Sanity-check that the file looks like a PEM key.
-          head -1 "$HOME/private_keys/AuthKey.p8"
+          KEY_PATH="$HOME/private_keys/AuthKey.p8"
+          mkdir -p "$(dirname "$KEY_PATH")"
+          echo -n "$KEY_BASE64" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          head -1 "$KEY_PATH"   # sanity check: should print "-----BEGIN PRIVATE KEY-----"
+          echo "APP_STORE_CONNECT_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Run fastlane beta
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY_PATH: ${{ env.HOME }}/private_keys/AuthKey.p8
+          # APP_STORE_CONNECT_API_KEY_PATH inherited from $GITHUB_ENV (set by
+          # the previous step). Hard-coding a path here would be brittle since
+          # ${{ env.HOME }} doesn't expand to the runner's $HOME.
           CHANGELOG: ${{ inputs.changelog || format('Build from main — commit {0}', github.sha) }}
           # Suppress fastlane's interactive prompts.
           FASTLANE_HIDE_CHANGELOG: "0"
@@ -77,4 +80,4 @@ jobs:
 
       - name: Cleanup API key
         if: always()
-        run: rm -f "$HOME/private_keys/AuthKey.p8"
+        run: rm -f "${APP_STORE_CONNECT_API_KEY_PATH:-$HOME/private_keys/AuthKey.p8}"
