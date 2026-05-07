@@ -47,7 +47,10 @@ jobs:
       - name: Set up Ruby + cache bundler
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.2"
+          # 3.1 matches the upper bound of the dep tree resolved against the
+          # local system Ruby 2.6 (CFPropertyList 3.0.9 requires Ruby < 3.2).
+          # Bump to 3.2 once we regenerate Gemfile.lock with a newer Ruby.
+          ruby-version: "3.1"
           bundler: latest        # ignore the local 1.17.2 (no `untaint` on Ruby 3+)
           bundler-cache: true    # caches gems based on Gemfile.lock
 
