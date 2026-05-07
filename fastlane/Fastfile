@@ -57,6 +57,13 @@ platform :ios do
       api_key: api_key
     )
 
+    # match installs the profile under its actual stored name (sometimes
+    # suffixed with a timestamp by Apple's API). Read the real name from
+    # the env vars match exports rather than hard-coding "match AppStore
+    # <bundle>" — that pattern doesn't match if there's a suffix.
+    bundle_id = "AnglinVibes.Vibecast"
+    profile_name = ENV.fetch("sigh_#{bundle_id}_appstore_profile-name")
+
     build_app(
       project: "Vibecast/Vibecast.xcodeproj",
       scheme: "Vibecast",
@@ -64,23 +71,19 @@ platform :ios do
       output_directory: "build",
       output_name: "Vibecast.ipa",
       export_method: "app-store",
-      # match installed the signing assets into the keychain. We switch to
-      # manual signing for the build so Xcode picks the match profile by
-      # name rather than trying to fetch a fresh one from Apple. With
-      # manual signing the project doesn't carry the profile/cert names,
-      # so pass them as build-setting overrides.
+      # Manual signing pinned to the exact profile match installed.
       xcargs: [
         "CURRENT_PROJECT_VERSION=#{next_build}",
         "CODE_SIGN_STYLE=Manual",
         "DEVELOPMENT_TEAM=KLUX3TMK5S",
-        "PROVISIONING_PROFILE_SPECIFIER=\"match AppStore AnglinVibes.Vibecast\"",
+        "PROVISIONING_PROFILE_SPECIFIER=\"#{profile_name}\"",
         "CODE_SIGN_IDENTITY=\"Apple Distribution\""
       ].join(' '),
       export_options: {
         method: "app-store",
         signingStyle: "manual",
         provisioningProfiles: {
-          "AnglinVibes.Vibecast" => "match AppStore AnglinVibes.Vibecast"
+          bundle_id => profile_name
         }
       }
     )
