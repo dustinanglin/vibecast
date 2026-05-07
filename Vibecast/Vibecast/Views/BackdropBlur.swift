@@ -51,29 +51,64 @@ final class TunableBlurView: UIVisualEffectView {
         applyRadius()
     }
 
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        guard window != nil else { return }
+        // Cold-launch fix. UIVisualEffectView caches its first backdrop
+        // render at view appearance time; setting `inputRadius` afterward
+        // updates the filter but not the cached render, leaving the
+        // visible blur at the system default until something invalidates
+        // (background/foreground does it for free, which is the bug we
+        // saw). Toggling `effect` off→on forces UIKit to rebuild the
+        // backdrop with our radius applied.
+        if let savedEffect = effect {
+            effect = nil
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.effect = savedEffect
+                self.applyRadius()
+            }
+        } else {
+            applyRadius()
+        }
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         applyRadius()
     }
 
-    private func applyRadius() {
-        // Walk the view hierarchy and adjust the inputRadius of any
-        // gaussianBlur filter we find on a CALayer.
+    /// UIVisualEffectView creates its backdrop subview + gaussianBlur filter
+    /// lazily. On a fresh app launch the filter often doesn't exist yet when
+    /// the first applyRadius runs, so we retry on the run-loop until it
+    /// appears (or we hit the cap). Once we land it once, the radius sticks.
+    private func applyRadius(retriesLeft: Int = 30) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.adjust(view: self, radius: self.blurRadius)
+            if self.adjust(view: self, radius: self.blurRadius) { return }
+            guard retriesLeft > 0 else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.016) { [weak self] in
+                self?.applyRadius(retriesLeft: retriesLeft - 1)
+            }
         }
     }
 
-    private func adjust(view: UIView, radius: CGFloat) {
+    /// Returns true if at least one gaussianBlur filter was found and updated.
+    @discardableResult
+    private func adjust(view: UIView, radius: CGFloat) -> Bool {
+        var found = false
         view.subviews.forEach { sub in
             sub.layer.filters?.forEach { filter in
                 guard let nsf = filter as? NSObject,
                       nsf.value(forKey: "name") as? String == "gaussianBlur"
                 else { return }
                 nsf.setValue(radius, forKey: "inputRadius")
+                found = true
             }
-            adjust(view: sub, radius: radius)
+            if adjust(view: sub, radius: radius) {
+                found = true
+            }
         }
+        return found
     }
 }
