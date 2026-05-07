@@ -26,8 +26,11 @@ platform :ios do
     # the current marketing version. No-ops if Apple hasn't seen the version
     # yet (returns 0 → next = 1).
     next_build = latest_testflight_build_number(api_key: api_key) + 1
-    increment_build_number(
-      build_number: next_build,
+    # Note: increment_build_number_in_xcodeproj (not increment_build_number) —
+    # the latter also substitutes the literal value into Info.plist's
+    # CFBundleVersion, which we want to keep as $(CURRENT_PROJECT_VERSION).
+    increment_build_number_in_xcodeproj(
+      build_number: next_build.to_s,
       xcodeproj: "Vibecast/Vibecast.xcodeproj"
     )
 
