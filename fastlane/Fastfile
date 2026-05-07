@@ -26,14 +26,12 @@ platform :ios do
     # the current marketing version. No-ops if Apple hasn't seen the version
     # yet (returns 0 → next = 1).
     next_build = latest_testflight_build_number(api_key: api_key) + 1
-    # Note: increment_build_number_in_xcodeproj (not increment_build_number) —
-    # the latter also substitutes the literal value into Info.plist's
-    # CFBundleVersion, which we want to keep as $(CURRENT_PROJECT_VERSION).
-    increment_build_number_in_xcodeproj(
-      build_number: next_build.to_s,
-      xcodeproj: "Vibecast/Vibecast.xcodeproj"
-    )
 
+    # Pass the build number as a build-time setting override rather than
+    # modifying project.pbxproj on disk. This avoids leaving a transient
+    # diff in the working tree and sidesteps the Info.plist substitution
+    # that happens when fastlane's increment_build_number runs against a
+    # project whose Info.plist references $(CURRENT_PROJECT_VERSION).
     build_app(
       project: "Vibecast/Vibecast.xcodeproj",
       scheme: "Vibecast",
@@ -41,9 +39,10 @@ platform :ios do
       output_directory: "build",
       output_name: "Vibecast.ipa",
       export_method: "app-store",
-      # Let Xcode register/refresh signing assets via the API key.
-      # No fastlane match repo needed for a solo-dev workflow.
-      xcargs: "-allowProvisioningUpdates"
+      # CURRENT_PROJECT_VERSION → CFBundleVersion via the Info.plist variable.
+      # -allowProvisioningUpdates → Xcode auto-registers/refreshes signing
+      # assets through the API key (no fastlane match repo needed).
+      xcargs: "CURRENT_PROJECT_VERSION=#{next_build} -allowProvisioningUpdates"
     )
 
     upload_to_testflight(
