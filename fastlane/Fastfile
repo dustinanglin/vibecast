@@ -39,6 +39,10 @@ platform :ios do
       output_directory: "build",
       output_name: "Vibecast.ipa",
       export_method: "app-store",
+      # Pass the API key into xcodebuild as -authenticationKey* so Xcode
+      # can fetch/create signing assets without an Apple ID account in
+      # the runner's keychain.
+      api_key: api_key,
       # CURRENT_PROJECT_VERSION → CFBundleVersion via the Info.plist variable.
       # -allowProvisioningUpdates → Xcode auto-registers/refreshes signing
       # assets through the API key (no fastlane match repo needed).
