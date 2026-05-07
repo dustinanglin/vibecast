@@ -52,8 +52,7 @@ platform :ios do
       # assets through the API key (no fastlane match repo needed).
       # -authenticationKey* → API-key auth, so xcodebuild can talk to App
       # Store Connect without an Apple ID in the runner's keychain.
-      xcargs: "CURRENT_PROJECT_VERSION=#{next_build} -allowProvisioningUpdates #{auth_xcargs}",
-      export_xcargs: auth_xcargs
+      xcargs: "CURRENT_PROJECT_VERSION=#{next_build} -allowProvisioningUpdates #{auth_xcargs}"
     )
 
     upload_to_testflight(
