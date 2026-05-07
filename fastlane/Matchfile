@@ -1,0 +1,14 @@
+storage_mode("git")
+git_url("https://github.com/dustinanglin/vibecast-certs")
+
+# Pin to App Store distribution profiles + cert. Using match for development
+# profiles isn't required — local dev keeps using the Apple ID account, only
+# the CI build needs the App Store cert from this repo.
+type("appstore")
+
+app_identifier(["AnglinVibes.Vibecast"])
+team_id("KLUX3TMK5S")
+
+# fastlane 2.230 + system Ruby 2.6 hits an OpenSSL/AES-GCM bug that
+# breaks the new encryption format. Pin to legacy CBC encryption.
+force_legacy_encryption(true)

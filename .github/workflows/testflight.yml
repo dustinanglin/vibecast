@@ -72,6 +72,9 @@ jobs:
           # APP_STORE_CONNECT_API_KEY_PATH inherited from $GITHUB_ENV (set by
           # the previous step). Hard-coding a path here would be brittle since
           # ${{ env.HOME }} doesn't expand to the runner's $HOME.
+          # match (signing assets) reads these:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
           CHANGELOG: ${{ inputs.changelog || format('Build from main — commit {0}', github.sha) }}
           # Suppress fastlane's interactive prompts.
           FASTLANE_HIDE_CHANGELOG: "0"

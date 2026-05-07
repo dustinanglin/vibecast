@@ -12,6 +12,19 @@ default_platform(:ios)
 # a temp file before the lane runs.
 
 platform :ios do
+  desc "Bootstrap or rotate the App Store cert+profile in the vibecast-certs repo. Run once locally."
+  lane :setup_certs do
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ISSUER_ID"),
+      key_filepath: ENV.fetch("APP_STORE_CONNECT_API_KEY_PATH")
+    )
+    # match's api_key_path parameter auto-binds to APP_STORE_CONNECT_API_KEY_PATH,
+    # which conflicts with the api_key: hash we pass. Clear it for the call.
+    ENV.delete("APP_STORE_CONNECT_API_KEY_PATH")
+    match(type: "appstore", readonly: false, api_key: api_key)
+  end
+
   desc "Build and upload a new TestFlight beta"
   lane :beta do
     api_key = app_store_connect_api_key(
@@ -32,13 +45,17 @@ platform :ios do
     # diff in the working tree and sidesteps the Info.plist substitution
     # that happens when fastlane's increment_build_number runs against a
     # project whose Info.plist references $(CURRENT_PROJECT_VERSION).
-    # Forward App Store Connect API auth to xcodebuild. fastlane 2.230 doesn't
-    # accept api_key on build_app; we pass the underlying flags by hand.
-    auth_xcargs = [
-      "-authenticationKeyID #{ENV.fetch('APP_STORE_CONNECT_API_KEY_ID')}",
-      "-authenticationKeyIssuerID #{ENV.fetch('APP_STORE_CONNECT_API_KEY_ISSUER_ID')}",
-      "-authenticationKeyPath #{ENV.fetch('APP_STORE_CONNECT_API_KEY_PATH')}",
-    ].join(' ')
+    # Pull the App Store distribution cert + provisioning profile out of the
+    # vibecast-certs repo (managed by match). readonly: true so CI never
+    # tries to mutate the cert pool — local creation/rotation is a separate
+    # `bundle exec fastlane setup_certs` invocation.
+    # See setup_certs note re: clearing APP_STORE_CONNECT_API_KEY_PATH.
+    ENV.delete("APP_STORE_CONNECT_API_KEY_PATH")
+    match(
+      type: "appstore",
+      readonly: true,
+      api_key: api_key
+    )
 
     build_app(
       project: "Vibecast/Vibecast.xcodeproj",
@@ -47,17 +64,17 @@ platform :ios do
       output_directory: "build",
       output_name: "Vibecast.ipa",
       export_method: "app-store",
-      # CURRENT_PROJECT_VERSION → CFBundleVersion via the Info.plist variable.
-      # -allowProvisioningUpdates → Xcode auto-registers/refreshes signing
-      # assets through the API key (no fastlane match repo needed).
-      # -authenticationKey* → API-key auth, so xcodebuild can talk to App
-      # Store Connect without an Apple ID in the runner's keychain.
-      xcargs: "CURRENT_PROJECT_VERSION=#{next_build} -allowProvisioningUpdates #{auth_xcargs}",
-      # Export needs -allowProvisioningUpdates too. Auth flags are NOT
-      # repeated here — fastlane gym injects the API key onto the export
-      # command on its own from the env vars set by app_store_connect_api_key.
-      # Adding them here causes 'option may only be provided once'.
-      export_xcargs: "-allowProvisioningUpdates"
+      # match installed the signing assets into the keychain. We switch to
+      # manual signing for the build so Xcode picks the match profile by
+      # name rather than trying to fetch a fresh one from Apple.
+      xcargs: "CURRENT_PROJECT_VERSION=#{next_build} CODE_SIGN_STYLE=Manual",
+      export_options: {
+        method: "app-store",
+        signingStyle: "manual",
+        provisioningProfiles: {
+          "AnglinVibes.Vibecast" => "match AppStore AnglinVibes.Vibecast"
+        }
+      }
     )
 
     upload_to_testflight(
