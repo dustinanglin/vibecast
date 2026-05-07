@@ -51,11 +51,35 @@ platform :ios do
     # `bundle exec fastlane setup_certs` invocation.
     # See setup_certs note re: clearing APP_STORE_CONNECT_API_KEY_PATH.
     ENV.delete("APP_STORE_CONNECT_API_KEY_PATH")
-    match(
-      type: "appstore",
-      readonly: true,
-      api_key: api_key
-    )
+
+    # In CI, install match's cert into a fresh ephemeral keychain we own.
+    # Otherwise codesign later prompts for keychain unlock and hangs forever
+    # because there's no UI on the runner.
+    if ENV["CI"] == "true"
+      keychain_name = "vibecast_ci_keychain"
+      keychain_password = "vibecast-ephemeral-keychain"
+      create_keychain(
+        name: keychain_name,
+        password: keychain_password,
+        default_keychain: true,
+        unlock: true,
+        timeout: 3600,
+        lock_when_sleeps: false
+      )
+      match(
+        type: "appstore",
+        readonly: true,
+        api_key: api_key,
+        keychain_name: keychain_name,
+        keychain_password: keychain_password
+      )
+    else
+      match(
+        type: "appstore",
+        readonly: true,
+        api_key: api_key
+      )
+    end
 
     # match installs the profile under its actual stored name (sometimes
     # suffixed with a timestamp by Apple's API). Read the real name from
