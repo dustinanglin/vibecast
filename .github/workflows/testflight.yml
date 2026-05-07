@@ -38,10 +38,16 @@ jobs:
 
       - name: Select Xcode
         run: |
-          # Pin to the latest stable Xcode on the macos-15 image. Adjust
-          # if the runner image rotates and our Swift code starts failing
-          # under a newer version's stricter checks.
-          sudo xcode-select -s /Applications/Xcode_16.4.app
+          # Apple requires builds with Xcode 26+ / iOS 26 SDK to be
+          # accepted by App Store Connect. Pick the latest Xcode 26.x
+          # the runner has installed; fail loudly if none.
+          XCODE_PATH=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XCODE_PATH" ]; then
+            echo "ERROR: no Xcode 26.x on this runner"
+            ls /Applications | grep -i xcode
+            exit 1
+          fi
+          sudo xcode-select -s "$XCODE_PATH"
           xcodebuild -version
 
       - name: Set up Ruby + cache bundler
