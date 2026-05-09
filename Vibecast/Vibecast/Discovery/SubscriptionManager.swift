@@ -194,7 +194,21 @@ final class SubscriptionManager {
         for podcast in podcasts {
             await fetchAndMerge(podcast)
         }
+        lastFullRefreshAt = .now
     }
+
+    /// Foreground-return refresh. Skips if the last full refresh attempt
+    /// happened within `staleAfter` seconds — so flipping into the app for
+    /// a few seconds and back doesn't pummel feeds.
+    func refreshAllIfStale(staleAfter: TimeInterval = 300) async {
+        if let last = lastFullRefreshAt,
+           Date().timeIntervalSince(last) < staleAfter {
+            return
+        }
+        await refreshAll()
+    }
+
+    @ObservationIgnored private var lastFullRefreshAt: Date?
 
     /// Detail-open refresh. No-op if the podcast was fetched within the last
     /// `refreshDebounceSeconds` seconds — prevents in/out navigation from

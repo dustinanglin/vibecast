@@ -5,6 +5,7 @@ struct SubscriptionsListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.playerManager) private var playerManager
     @Environment(\.subscriptionManager) private var subscriptionManager
+    @Environment(\.scenePhase) private var scenePhase
     @Query(sort: [SortDescriptor(\Podcast.sortPosition)]) private var podcasts: [Podcast]
 
     @State private var selectedPodcast: Podcast?
@@ -114,6 +115,10 @@ struct SubscriptionsListView: View {
             .background(Brand.Color.bg)
             .environment(\.editMode, $editMode)
             .toolbar(.hidden, for: .navigationBar)
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                Task { await subscriptionManager?.refreshAllIfStale() }
+            }
             .refreshable {
                 await subscriptionManager?.refreshAll()
             }
