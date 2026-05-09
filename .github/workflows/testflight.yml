@@ -60,6 +60,25 @@ jobs:
           bundler: latest        # ignore the local 1.17.2 (no `untaint` on Ruby 3+)
           bundler-cache: true    # caches gems based on Gemfile.lock
 
+      - name: Compute TestFlight changelog
+        id: changelog
+        env:
+          INPUT_CHANGELOG: ${{ inputs.changelog }}
+        run: |
+          # Manual workflow_dispatch can override; otherwise use the full
+          # commit message (subject + body) of the commit that triggered
+          # this run. Far more useful than "Build from main — commit <sha>".
+          if [ -n "$INPUT_CHANGELOG" ]; then
+            MSG="$INPUT_CHANGELOG"
+          else
+            MSG="$(git log -1 --pretty=%B)"
+          fi
+          {
+            echo "value<<EOF"
+            echo "$MSG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Materialise App Store Connect API key
         env:
           KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
@@ -81,7 +100,7 @@ jobs:
           # match (signing assets) reads these:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
-          CHANGELOG: ${{ inputs.changelog || format('Build from main — commit {0}', github.sha) }}
+          CHANGELOG: ${{ steps.changelog.outputs.value }}
           # Suppress fastlane's interactive prompts.
           FASTLANE_HIDE_CHANGELOG: "0"
           FASTLANE_DISABLE_COLORS: "1"
