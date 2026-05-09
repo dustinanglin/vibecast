@@ -453,3 +453,23 @@ The richer detail layout in `docs/design/vibecast-visual-prototypes/project/Vibe
 action sheet, pinned-episode pill states with expiry-on-play, queue position
 chrome, the "on a plane" pinning use case) lands with Plan 8. When Plan 8
 brainstorming begins, treat that design file as a primary source.
+
+**Download management — open question, lands with Plan 8 (or its own plan).**
+Default behavior to design for: each subscribed podcast auto-downloads its
+single most-recent episode; when a newer episode lands the older one is
+evicted (one-deep cache per show). From the detail page, the user can
+manually download older episodes — an explicit retain.
+
+The unanswered design call: **does pinning subsume downloads?** A pinned
+episode is already "specific, expires on play" per the Plan 8 design. If
+pin = download, the model collapses cleanly: the user's manual-download
+gesture is the same as their pin-to-vibe gesture, just without a vibe
+target. The eviction rule then becomes "auto-evict on play" instead of
+"keep one most recent". Decide during Plan 8 brainstorming.
+
+Either way, model surface this needs:
+- Episode.downloadState (notDownloaded / downloading(progress) / downloaded(localURL) / failed)
+- Per-show "auto-download latest" toggle (default on for new subs)
+- Eviction policy (one-deep, or pin-driven)
+- Storage budget surfacing (how much disk are downloads using; user-visible)
+- Cleanup when a show is unsubscribed
