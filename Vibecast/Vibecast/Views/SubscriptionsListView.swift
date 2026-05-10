@@ -14,6 +14,7 @@ struct SubscriptionsListView: View {
 
     @State private var selectedPodcast: Podcast?
     @State private var showAddSheet = false
+    @State private var showManageVibes = false
     @State private var showFullScreenPlayer = false
     @State private var pendingDeletes: Set<PersistentIdentifier> = []
     @State private var editMode: EditMode = .inactive
@@ -30,7 +31,7 @@ struct SubscriptionsListView: View {
                             toastCenter.show("All caught up on this vibe")
                         }
                     },
-                    onTapStack: { /* TODO(plan-7-task-13): present ManageVibesView */ },
+                    onTapStack: { showManageVibes = true },
                     onTapAdd: { showAddSheet = true }
                 )
                 .listRowInsets(EdgeInsets())
@@ -176,6 +177,9 @@ struct SubscriptionsListView: View {
             }
             .refreshable {
                 await subscriptionManager?.refreshAll()
+            }
+            .sheet(isPresented: $showManageVibes) {
+                ManageVibesView()
             }
             .sheet(isPresented: $showAddSheet) {
                 AddPodcastSheet()
