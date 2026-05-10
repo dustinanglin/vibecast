@@ -266,7 +266,7 @@ Toasts use the existing transient toast surface (whatever Plan 6 / earlier shipp
 
 ### Testing
 
-In `Vibecast/VibecastTests/`, expand using the existing in-memory `ModelContainer` pattern from Plan 3+:
+In `Vibecast/VibecastTests/`, expand using the existing **XCTest** + in-memory `ModelContainer` pattern from Plan 3+:
 
 - **`VibeTests`**
   - Seeding inserts 5 vibes when `Vibe.count == 0` and flag is false.
