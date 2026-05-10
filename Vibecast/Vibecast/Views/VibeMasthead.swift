@@ -2,10 +2,19 @@ import SwiftUI
 import SwiftData
 
 /// Swipeable masthead. The wordmark slides horizontally between slots (All
-/// plus one per vibe); the rest of the masthead (subtitle, pagination dots,
-/// CTA pill) stays pinned and updates with quick cross-fades on state change.
-/// Swiping wraps circularly past either end. Background color band fades
-/// implicitly on `activeIndex` change.
+/// plus one per vibe) on an infinite carousel — swiping past either end
+/// loops cleanly back to the other side. The eyebrow, subtitle, pagination
+/// dots, and CTA pill stay pinned and cross-fade on state change. The
+/// background color band fades implicitly on `activeIndex` change.
+///
+/// **Infinite carousel mechanics.** The wordmark HStack contains `slotCount + 2`
+/// panels — a phantom of the last real slot at position 0, the real slots at
+/// positions 1..slotCount, and a phantom of the first real slot at position
+/// slotCount+1. The visible offset uses `displayIndex` (the position in the
+/// padded array). Logical state (`activeVibe`, dot color, subtitle, CTA) is
+/// derived from `logicalIndex(for: displayIndex)`. When a swipe lands on a
+/// phantom, we let the slide animation play through, then jump displayIndex
+/// to the mirror position without animation. The user never sees the seam.
 struct VibeMasthead: View {
     let vibes: [Vibe]
     @Binding var activeVibe: Vibe?
@@ -14,32 +23,50 @@ struct VibeMasthead: View {
     let onTapStack: () -> Void
     let onTapAdd: () -> Void
 
-    @State private var activeIndex: Int = 0
+    /// 1-based index into the padded HStack. Real range is 1...slotCount;
+    /// 0 and slotCount+1 are phantoms used during wrap animations.
+    @State private var displayIndex: Int = 1
     /// Width of one slot, measured at first layout via PreferenceKey.
-    /// Seeded with a sane iPhone default so first-render shows the wordmark
-    /// at correct position rather than collapsed to zero-width.
+    /// Seeded with a sane iPhone default so first render isn't collapsed.
     @State private var slotWidth: CGFloat = 320
     @GestureState private var dragOffset: CGFloat = 0
     private let swipeThreshold: CGFloat = 50
 
     private var slotCount: Int { vibes.count + 1 } // All + N vibes
 
+    /// Logical slot index (0...slotCount-1) for a given padded position.
+    private func logicalIndex(for display: Int) -> Int {
+        if display == 0 { return slotCount - 1 }       // left phantom mirrors last real
+        if display == slotCount + 1 { return 0 }       // right phantom mirrors first real
+        return display - 1
+    }
+
+    /// Wordmark for a padded slot. Position 0 mirrors the last real slot;
+    /// position slotCount+1 mirrors the first real slot.
+    private func paddedWordmark(at paddedIndex: Int) -> String {
+        wordmark(at: logicalIndex(for: paddedIndex))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Row 1: corner buttons pinned right (no eyebrow text — moved to
-            // the section label above the list).
-            HStack {
-                Spacer()
-                StackIcon(action: onTapStack)
-                    .padding(.trailing, 4)
-                AddIconButton(action: onTapAdd)
+            // Row 1: eyebrow + corner buttons. Eyebrow fade-transitions on
+            // state change; corner buttons stay pinned right.
+            ZStack(alignment: .topTrailing) {
+                eyebrow
+                    .id("eyebrow-\(activeIndex)")
+                    .transition(.opacity)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 4) {
+                    StackIcon(action: onTapStack)
+                    AddIconButton(action: onTapAdd)
+                }
+                .offset(y: -8) // center 44pt buttons against the 22pt eyebrow
             }
-            .frame(height: 44)
 
-            // Row 2: wordmark — the only thing that slides on swipe.
+            // Row 2: wordmark — infinite-carousel sliding HStack.
             HStack(spacing: 0) {
-                ForEach(0..<slotCount, id: \.self) { idx in
-                    Text(wordmark(at: idx))
+                ForEach(0..<(slotCount + 2), id: \.self) { paddedIdx in
+                    Text(paddedWordmark(at: paddedIdx))
                         .font(Brand.Font.display(size: 56))
                         .tracking(-1.4)
                         .foregroundStyle(Brand.Color.ink)
@@ -48,11 +75,12 @@ struct VibeMasthead: View {
                         .frame(width: slotWidth, alignment: .leading)
                 }
             }
-            .offset(x: -CGFloat(activeIndex) * slotWidth + dragOffset)
+            .offset(x: -CGFloat(displayIndex) * slotWidth + dragOffset)
             .frame(width: slotWidth, alignment: .leading)
             .clipped()
+            .padding(.top, 10)
 
-            // Row 3: subtitle — fades on state change.
+            // Row 3: subtitle — pinned, fade on state change.
             Text(subtitleText)
                 .font(Brand.Font.serifItalic(size: 18))
                 .foregroundStyle(Brand.Color.inkSecondary)
@@ -71,8 +99,7 @@ struct VibeMasthead: View {
             }
             .padding(.top, 14)
 
-            // Row 5: Start pill — always present so the masthead height
-            // doesn't change between states. Color and copy adapt.
+            // Row 5: Start pill — always present, color/copy adapt.
             Button {
                 if let vibe = currentVibe {
                     onStartVibe(vibe)
@@ -130,20 +157,71 @@ struct VibeMasthead: View {
                     let dx = value.translation.width
                     guard abs(dx) > swipeThreshold else { return }
                     let step = dx < 0 ? 1 : -1
-                    let next = ((activeIndex + step) % slotCount + slotCount) % slotCount
-                    withAnimation(.easeInOut(duration: 0.28)) {
-                        activeIndex = next
-                        activeVibe = currentVibe(at: next)
-                    }
+                    advance(by: step)
                 }
         )
         .animation(.easeInOut(duration: 0.28), value: activeIndex)
     }
 
+    // MARK: - Carousel mechanics
+
+    private var activeIndex: Int {
+        logicalIndex(for: displayIndex)
+    }
+
+    private func advance(by step: Int) {
+        let nextDisplay = displayIndex + step
+        let nextLogical = logicalIndex(for: nextDisplay)
+
+        // Animate the wordmark slide AND the logical-state change together.
+        withAnimation(.easeInOut(duration: 0.28)) {
+            displayIndex = nextDisplay
+            activeVibe = currentVibe(at: nextLogical)
+        } completion: {
+            // If we landed on a phantom, jump to its mirror position so the
+            // next swipe in either direction has real slots to either side.
+            if nextDisplay == 0 {
+                snapWithoutAnimation(to: slotCount)
+            } else if nextDisplay == slotCount + 1 {
+                snapWithoutAnimation(to: 1)
+            }
+        }
+    }
+
+    private func snapWithoutAnimation(to display: Int) {
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) {
+            displayIndex = display
+        }
+    }
+
+    // MARK: - Eyebrow
+
+    @ViewBuilder
+    private var eyebrow: some View {
+        if let vibe = currentVibe {
+            HStack(spacing: 7) {
+                Circle()
+                    .fill(vibe.colorKey.band)
+                    .frame(width: 8, height: 8)
+                Text("VIBE")
+                    .font(Brand.Font.monoEyebrow())
+                    .tracking(Brand.Layout.monoTracking)
+                    .foregroundStyle(vibe.colorKey.ink)
+            }
+        } else {
+            Text("SUBSCRIPTIONS")
+                .font(Brand.Font.monoEyebrow())
+                .tracking(Brand.Layout.monoTracking)
+                .foregroundStyle(Brand.Color.inkMuted)
+        }
+    }
+
     // MARK: - Derived state
 
-    private func wordmark(at index: Int) -> String {
-        currentVibe(at: index)?.name ?? "Vibecast"
+    private func wordmark(at logical: Int) -> String {
+        currentVibe(at: logical)?.name ?? "Vibecast"
     }
 
     private var subtitleText: String {
@@ -193,9 +271,9 @@ struct VibeMasthead: View {
         currentVibe(at: activeIndex)
     }
 
-    private func currentVibe(at index: Int) -> Vibe? {
-        guard index > 0 else { return nil }
-        let i = index - 1
+    private func currentVibe(at logical: Int) -> Vibe? {
+        guard logical > 0 else { return nil }
+        let i = logical - 1
         return i < vibes.count ? vibes[i] : nil
     }
 }

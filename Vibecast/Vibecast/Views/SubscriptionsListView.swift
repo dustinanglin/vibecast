@@ -128,11 +128,11 @@ struct SubscriptionsListView: View {
                         }
                     }
                     .onMove { source, destination in
-                        // Reorder is only meaningful on the All view (per-vibe ordering
-                        // is not user-editable in v1). Limit by setting moveDisabled at
-                        // the row level when activeVibe != nil.
-                        guard activeVibe == nil else { return }
-                        move(from: source, to: destination)
+                        if let active = activeVibe {
+                            moveInVibe(active, from: source, to: destination)
+                        } else {
+                            move(from: source, to: destination)
+                        }
                     }
                     // Trailing add-show ghost row when in a non-empty vibe.
                     if let active = activeVibe {
@@ -220,66 +220,57 @@ struct SubscriptionsListView: View {
         .environment(\.toastCenter, toastCenter)
     }
 
-    // MARK: - Section label
+    // MARK: - Section label ("N SHOWS · YOUR ORDER ——— EDIT ORDER")
     //
-    // On All view: "N SHOWS · YOUR ORDER ——— EDIT ORDER" (existing).
-    // On a vibe:   "N SHOWS · ● MORNING ———" (vibe-color dot before the
-    // name, no EDIT ORDER since per-vibe reordering isn't editable in v1).
+    // Identical format on All and vibe views. EDIT ORDER is always available;
+    // the .onMove handler dispatches to global or per-vibe reorder based on
+    // activeVibe (vibe identity itself is conveyed by the masthead eyebrow).
 
     private var sectionLabel: some View {
         HStack(spacing: 10) {
-            HStack(spacing: 8) {
-                Text(sectionLabelCountText)
-                    .font(Brand.Font.monoEyebrow())
-                    .tracking(Brand.Layout.monoTracking)
-                    .foregroundStyle(Brand.Color.inkMuted)
-                Text("·")
-                    .font(Brand.Font.monoEyebrow())
-                    .foregroundStyle(Brand.Color.inkMuted)
-                if let vibe = activeVibe {
-                    Circle()
-                        .fill(vibe.colorKey.band)
-                        .frame(width: 7, height: 7)
-                    Text(vibe.name.uppercased())
-                        .font(Brand.Font.monoEyebrow())
-                        .tracking(Brand.Layout.monoTracking)
-                        .foregroundStyle(vibe.colorKey.ink)
-                } else {
-                    Text("YOUR ORDER")
-                        .font(Brand.Font.monoEyebrow())
-                        .tracking(Brand.Layout.monoTracking)
-                        .foregroundStyle(Brand.Color.inkMuted)
-                }
-            }
-            .fixedSize(horizontal: true, vertical: false)
-
+            Text(sectionLabelText)
+                .font(Brand.Font.monoEyebrow())
+                .tracking(Brand.Layout.monoTracking)
+                .foregroundStyle(Brand.Color.inkMuted)
+                .fixedSize(horizontal: true, vertical: false)
             Rectangle()
                 .fill(Brand.Color.inkHairline)
                 .frame(height: Brand.Layout.hairlineWidth)
                 .frame(maxWidth: .infinity)
-
-            if activeVibe == nil {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.18)) {
-                        editMode = editMode.isEditing ? .inactive : .active
-                    }
-                } label: {
-                    Text(editMode.isEditing ? "DONE" : "EDIT ORDER")
-                        .font(Brand.Font.monoEyebrow())
-                        .tracking(Brand.Layout.monoTracking)
-                        .foregroundStyle(editMode.isEditing ? Brand.Color.accent : Brand.Color.inkMuted)
-                        .fixedSize(horizontal: true, vertical: false)
+            Button {
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    editMode = editMode.isEditing ? .inactive : .active
                 }
-                .buttonStyle(.plain)
-                .disabled(visiblePodcasts.isEmpty && !editMode.isEditing)
-                .accessibilityLabel(editMode.isEditing ? "Done editing order" : "Edit subscription order")
+            } label: {
+                Text(editMode.isEditing ? "DONE" : "EDIT ORDER")
+                    .font(Brand.Font.monoEyebrow())
+                    .tracking(Brand.Layout.monoTracking)
+                    .foregroundStyle(editMode.isEditing ? Brand.Color.accent : Brand.Color.inkMuted)
+                    .fixedSize(horizontal: true, vertical: false)
             }
+            .buttonStyle(.plain)
+            .disabled(filteredPodcasts.isEmpty && !editMode.isEditing)
+            .accessibilityLabel(editMode.isEditing ? "Done editing order" : "Edit order")
         }
     }
 
-    private var sectionLabelCountText: String {
+    private var sectionLabelText: String {
         let count = activeVibe == nil ? visiblePodcasts.count : filteredPodcasts.count
-        return count == 1 ? "1 SHOW" : "\(count) SHOWS"
+        let countLabel = count == 1 ? "1 SHOW" : "\(count) SHOWS"
+        return "\(countLabel) · YOUR ORDER"
+    }
+
+    /// Start playback from the first podcast in global sort order whose
+    /// latest episode hasn't been played. Falls back to a toast on empty.
+    private func startNextUnplayed() {
+        guard let mgr = playerManager else { return }
+        for podcast in visiblePodcasts {
+            let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
+            guard let episode = latest, episode.listenedStatus != .played else { continue }
+            mgr.play(episode)
+            return
+        }
+        toastCenter.show("All caught up")
     }
 
     /// Start playback from the first podcast in global sort order whose
@@ -376,6 +367,18 @@ struct SubscriptionsListView: View {
         reordered.move(fromOffsets: source, toOffset: destination)
         for (index, podcast) in reordered.enumerated() {
             podcast.sortPosition = index
+        }
+        try? modelContext.save()
+    }
+
+    /// Reorder podcasts within `vibe`. Rewrites every membership's `position`
+    /// contiguously from 0 so the per-vibe ordering stays dense (no gaps from
+    /// untag/retag history).
+    private func moveInVibe(_ vibe: Vibe, from source: IndexSet, to destination: Int) {
+        var reordered = vibe.memberships.sorted(by: { $0.position < $1.position })
+        reordered.move(fromOffsets: source, toOffset: destination)
+        for (index, membership) in reordered.enumerated() {
+            membership.position = index
         }
         try? modelContext.save()
     }
