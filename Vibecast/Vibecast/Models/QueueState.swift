@@ -6,9 +6,13 @@ import Foundation
 /// the helper.
 @Model
 final class QueueState {
-    var sourceVibe: Vibe?
-    var currentPodcast: Podcast?
-    var currentEpisode: Episode?
+    // Explicit `.nullify` rules so deleting a Vibe / Podcast / Episode
+    // cleanly clears the matching pointer here without dragging the
+    // singleton row down with it. Default for to-one relationships is
+    // already nullify, but stating it removes ambiguity for the next reader.
+    @Relationship(deleteRule: .nullify) var sourceVibe: Vibe?
+    @Relationship(deleteRule: .nullify) var currentPodcast: Podcast?
+    @Relationship(deleteRule: .nullify) var currentEpisode: Episode?
     var lastUpdated: Date
 
     init() {
