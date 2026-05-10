@@ -34,6 +34,10 @@ extension EnvironmentValues {
 
 struct ToastView: View {
     let message: String
+    /// Distance from the bottom of the parent container. Caller chooses based
+    /// on whether the mini-player is on-screen — typically ~100pt above the
+    /// mini-player, ~24pt above the safe area otherwise.
+    var bottomInset: CGFloat = 24
 
     var body: some View {
         Text(message)
@@ -44,7 +48,7 @@ struct ToastView: View {
             .background(
                 Capsule().fill(Brand.Color.ink.opacity(0.92))
             )
-            .padding(.bottom, 100) // sit above mini-player
+            .padding(.bottom, bottomInset)
             .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 }
