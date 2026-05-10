@@ -5,6 +5,7 @@ struct PodcastRowView: View {
     let snapshot: PodcastRowSnapshot
     var isCurrent: Bool = false
     var isPlaying: Bool = false
+    var vibeDots: [VibeColorKey] = []
     let onPlay: () -> Void
     let onOpenDetail: () -> Void
 
@@ -116,6 +117,9 @@ struct PodcastRowView: View {
             eyebrow(episode: episode)
             titleText(episode: episode)
                 .frame(minHeight: 16 * 1.22 * 2, alignment: .topLeading)  // 2-line reservation
+            if !vibeDots.isEmpty {
+                VibeDotsRow(keys: vibeDots)
+            }
             footnote(episode: episode)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -303,6 +307,26 @@ private struct ProgressRing: View {
                 .rotationEffect(.degrees(-90))
         }
         .frame(width: size, height: size)
+    }
+}
+
+private struct VibeDotsRow: View {
+    let keys: [VibeColorKey]
+    private let maxVisible = 3
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(Array(keys.prefix(maxVisible).enumerated()), id: \.offset) { _, key in
+                Circle()
+                    .fill(key.band)
+                    .frame(width: 6, height: 6)
+            }
+            if keys.count > maxVisible {
+                Text("+\(keys.count - maxVisible)")
+                    .font(Brand.Font.monoEyebrow(size: 9))
+                    .foregroundStyle(Brand.Color.inkMuted)
+            }
+        }
     }
 }
 
