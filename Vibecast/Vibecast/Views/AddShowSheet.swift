@@ -115,8 +115,11 @@ struct AddShowSheet: View {
     }
 
     private func addSelectionAndDismiss() {
-        let basePosition = vibe.memberships.count
-        var counter = basePosition
+        // Use max-position-plus-one rather than count so deletions in earlier
+        // sessions don't produce duplicate positions when re-tagged later.
+        // Positions are append-only and monotonically increasing; resolver
+        // sorts by position so duplicates would yield nondeterministic order.
+        var counter = (vibe.memberships.map(\.position).max() ?? -1) + 1
         for podcast in allPodcasts where selected.contains(podcast.persistentModelID) {
             modelContext.insert(VibeMembership(vibe: vibe, podcast: podcast, position: counter))
             counter += 1
