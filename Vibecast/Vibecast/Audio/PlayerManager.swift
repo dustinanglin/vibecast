@@ -57,11 +57,35 @@ final class PlayerManager: PlaybackController {
             self?.isPlaying = false
             self?.publishNowPlaying()
         }
+
+        // Restore current episode + queue source from QueueState. Do not
+        // auto-resume playback — restoration just re-attaches the mini-player
+        // and keeps the queue alive for the next end-of-episode advance.
+        if let state = try? QueueState.fetchOrCreate(in: modelContext),
+           let restoredEpisode = state.currentEpisode {
+            self.currentEpisode = restoredEpisode
+            self.elapsed = restoredEpisode.playbackPosition
+            self.lastPersistedAt = restoredEpisode.playbackPosition
+            self.isPlaying = false
+        }
     }
 
     // MARK: - Transport
 
     func play(_ episode: Episode) {
+        play(episode, clearQueueSource: true)
+    }
+
+    private func play(_ episode: Episode, clearQueueSource: Bool) {
+        if clearQueueSource {
+            if let state = try? QueueState.fetchOrCreate(in: modelContext) {
+                state.sourceVibe = nil
+                state.currentPodcast = nil
+                // currentEpisode is updated below for both paths
+                try? modelContext.save()
+            }
+        }
+
         // Stop any in-flight audio before switching or restarting.
         engine.pause()
 
@@ -69,6 +93,14 @@ final class PlayerManager: PlaybackController {
         persistCurrentPosition()
 
         currentEpisode = episode
+
+        // Mirror to QueueState so restart can recover.
+        if let state = try? QueueState.fetchOrCreate(in: modelContext) {
+            state.currentEpisode = episode
+            state.currentPodcast = episode.podcast
+            state.lastUpdated = .now
+            try? modelContext.save()
+        }
 
         guard let url = URL(string: episode.audioURL), !episode.audioURL.isEmpty else {
             // No URL — keep state, do not start the engine.
@@ -194,6 +226,48 @@ final class PlayerManager: PlaybackController {
         case nextEpisodeInPodcast
     }
 
+    /// Result of attempting to start a vibe queue.
+    enum StartVibeResult: Equatable {
+        case started
+        case allCaughtUp
+    }
+
+    /// The vibe currently driving the queue, if any. Reads from QueueState.
+    /// Nil means single-episode mode (existing behavior).
+    var queueSourceVibe: Vibe? {
+        (try? QueueState.fetchOrCreate(in: modelContext))?.sourceVibe
+    }
+
+    /// Start sequential playback through `vibe`'s podcasts (latest unplayed
+    /// per show, in vibe-position order). If `from` is supplied, the queue
+    /// begins at that podcast and continues forward.
+    @discardableResult
+    func startVibe(_ vibe: Vibe, from start: Podcast? = nil) -> StartVibeResult {
+        let queue = VibeQueueResolver.resolve(vibe: vibe, from: start)
+        guard let first = queue.first else { return .allCaughtUp }
+
+        guard let state = try? QueueState.fetchOrCreate(in: modelContext) else {
+            // QueueState fetch failed — degrade to single-episode play, no queue.
+            play(first.episode)
+            return .started
+        }
+        state.sourceVibe = vibe
+        state.currentPodcast = first.podcast
+        state.currentEpisode = first.episode
+        state.lastUpdated = .now
+        try? modelContext.save()
+
+        playQueueItem(first.episode)
+        return .started
+    }
+
+    /// Internal play-without-clearing-queue helper. The public `play(_:)`
+    /// clears `sourceVibe` (out-of-band tap = single episode); the queue
+    /// path needs a way to play that preserves source.
+    private func playQueueItem(_ episode: Episode) {
+        play(episode, clearQueueSource: false)
+    }
+
     /// Mark an episode as played.
     /// - If it's the currently-loaded episode AND was actively playing:
     ///   pause the engine and auto-advance per `advance`.
@@ -258,6 +332,38 @@ final class PlayerManager: PlaybackController {
     }
 
     private func advanceToNextPodcast(after finishedEpisode: Episode) {
+        if let state = try? QueueState.fetchOrCreate(in: modelContext),
+           let vibe = state.sourceVibe,
+           let currentPodcast = finishedEpisode.podcast {
+            // Vibe-driven queue: advance per vibe position, skipping shows
+            // with no remaining unplayed episodes.
+            // Build the ordered podcast list for the vibe (no slice/from filter).
+            let orderedPodcasts = vibe.memberships
+                .sorted(by: { $0.position < $1.position })
+                .compactMap { $0.podcast }
+            // Find where the just-finished podcast sits, then scan forward.
+            if let currentIdx = orderedPodcasts.firstIndex(where: {
+                $0.persistentModelID == currentPodcast.persistentModelID
+            }) {
+                for podcast in orderedPodcasts.dropFirst(currentIdx + 1) {
+                    guard let episode = VibeQueueResolver.latestUnplayedEpisode(in: podcast) else { continue }
+                    state.currentPodcast = podcast
+                    state.currentEpisode = episode
+                    state.lastUpdated = .now
+                    try? modelContext.save()
+                    playQueueItem(episode)
+                    return
+                }
+            }
+            // Queue exhausted: clear source but keep currentEpisode for mini-player.
+            state.sourceVibe = nil
+            state.currentPodcast = nil
+            state.lastUpdated = .now
+            try? modelContext.save()
+            return
+        }
+
+        // Existing global-sortPosition behavior (preserved).
         guard let currentPodcast = finishedEpisode.podcast else { return }
         let currentPosition = currentPodcast.sortPosition
 
@@ -271,7 +377,7 @@ final class PlayerManager: PlaybackController {
             let latest = podcast.episodes.sorted { $0.publishDate > $1.publishDate }.first
             guard let next = latest else { continue }
             if next.listenedStatus == .played { continue }
-            play(next)
+            play(next, clearQueueSource: false) // keep source nil-state intact
             return
         }
     }
