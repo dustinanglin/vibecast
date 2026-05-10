@@ -273,19 +273,6 @@ struct SubscriptionsListView: View {
         toastCenter.show("All caught up")
     }
 
-    /// Start playback from the first podcast in global sort order whose
-    /// latest episode hasn't been played. Falls back to a toast on empty.
-    private func startNextUnplayed() {
-        guard let mgr = playerManager else { return }
-        for podcast in visiblePodcasts {
-            let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
-            guard let episode = latest, episode.listenedStatus != .played else { continue }
-            mgr.play(episode)
-            return
-        }
-        toastCenter.show("All caught up")
-    }
-
     // MARK: - Empty state row (lives inside the List so masthead always shows)
 
     private var emptyStateRow: some View {
