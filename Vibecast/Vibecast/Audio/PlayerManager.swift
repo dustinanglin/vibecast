@@ -61,7 +61,7 @@ final class PlayerManager: PlaybackController {
         // Restore current episode + queue source from QueueState. Do not
         // auto-resume playback — restoration just re-attaches the mini-player
         // and keeps the queue alive for the next end-of-episode advance.
-        if let state = try? QueueState.fetchOrCreate(in: modelContext),
+        if let state = queueState(),
            let restoredEpisode = state.currentEpisode {
             self.currentEpisode = restoredEpisode
             self.elapsed = restoredEpisode.playbackPosition
@@ -78,7 +78,7 @@ final class PlayerManager: PlaybackController {
 
     private func play(_ episode: Episode, clearQueueSource: Bool) {
         if clearQueueSource {
-            if let state = try? QueueState.fetchOrCreate(in: modelContext) {
+            if let state = queueState() {
                 state.sourceVibe = nil
                 state.currentPodcast = nil
                 // currentEpisode is updated below for both paths
@@ -95,7 +95,7 @@ final class PlayerManager: PlaybackController {
         currentEpisode = episode
 
         // Mirror to QueueState so restart can recover.
-        if let state = try? QueueState.fetchOrCreate(in: modelContext) {
+        if let state = queueState() {
             state.currentEpisode = episode
             state.currentPodcast = episode.podcast
             state.lastUpdated = .now
@@ -235,7 +235,15 @@ final class PlayerManager: PlaybackController {
     /// The vibe currently driving the queue, if any. Reads from QueueState.
     /// Nil means single-episode mode (existing behavior).
     var queueSourceVibe: Vibe? {
-        (try? QueueState.fetchOrCreate(in: modelContext))?.sourceVibe
+        queueState()?.sourceVibe
+    }
+
+    /// Centralized accessor for the singleton `QueueState` row. Returns nil if
+    /// the underlying SwiftData fetch fails (e.g., schema corruption); callers
+    /// silently degrade to single-episode behavior in that case rather than
+    /// crashing the player.
+    private func queueState() -> QueueState? {
+        try? QueueState.fetchOrCreate(in: modelContext)
     }
 
     /// Start sequential playback through `vibe`'s podcasts (latest unplayed
@@ -246,10 +254,11 @@ final class PlayerManager: PlaybackController {
         let queue = VibeQueueResolver.resolve(vibe: vibe, from: start)
         guard let first = queue.first else { return .allCaughtUp }
 
-        guard let state = try? QueueState.fetchOrCreate(in: modelContext) else {
-            // QueueState fetch failed — degrade to single-episode play, no queue.
-            play(first.episode)
-            return .started
+        guard let state = queueState() else {
+            // QueueState fetch failed — caller cannot start a queue. Surface
+            // .allCaughtUp so the masthead toasts rather than silently playing
+            // one episode and stopping. The user can retry on next launch.
+            return .allCaughtUp
         }
         state.sourceVibe = vibe
         state.currentPodcast = first.podcast
@@ -332,7 +341,7 @@ final class PlayerManager: PlaybackController {
     }
 
     private func advanceToNextPodcast(after finishedEpisode: Episode) {
-        if let state = try? QueueState.fetchOrCreate(in: modelContext),
+        if let state = queueState(),
            let vibe = state.sourceVibe,
            let currentPodcast = finishedEpisode.podcast {
             // Vibe-driven queue: advance per vibe position, skipping shows
@@ -342,6 +351,9 @@ final class PlayerManager: PlaybackController {
                 .sorted(by: { $0.position < $1.position })
                 .compactMap { $0.podcast }
             // Find where the just-finished podcast sits, then scan forward.
+            // If `currentPodcast` is no longer a member (removed mid-playback or
+            // vibe deleted with cascade not yet flushed), `firstIndex` returns
+            // nil and we fall through to "queue exhausted" — graceful end per spec.
             if let currentIdx = orderedPodcasts.firstIndex(where: {
                 $0.persistentModelID == currentPodcast.persistentModelID
             }) {
