@@ -91,4 +91,20 @@ final class VibeMembershipTests: XCTestCase {
         XCTAssertEqual(v.memberships.count, 1)
         XCTAssertEqual(v.memberships.first?.podcast?.title, "99% Invisible")
     }
+
+    func test_deleteMembership_leavesVibeAndPodcastIntact() throws {
+        let p = makePodcast("Hard Fork")
+        let v = makeVibe("Morning", .morning, 0)
+        let membership = VibeMembership(vibe: v, podcast: p, position: 0)
+        context.insert(membership)
+        try context.save()
+
+        context.delete(membership)
+        try context.save()
+
+        XCTAssertEqual(try context.fetchCount(FetchDescriptor<Vibe>()), 1)
+        XCTAssertEqual(try context.fetchCount(FetchDescriptor<Podcast>()), 1)
+        XCTAssertEqual(v.memberships.count, 0)
+        XCTAssertEqual(p.vibeMemberships.count, 0)
+    }
 }
