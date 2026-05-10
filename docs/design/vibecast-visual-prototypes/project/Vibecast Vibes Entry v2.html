@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibecast — Vibes entry v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; background: #f0eee9; font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="vibecast-shared.jsx"></script>
+<script type="text/babel" src="vibes-shared.jsx"></script>
+<script type="text/babel" src="vibes-entry.jsx"></script>
+<script type="text/babel" src="vibes-entry-v2.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+function Phone({ children }) {
+  return <window.IOSDevice width={402} height={874} dark={false}>{children}</window.IOSDevice>;
+}
+
+function App() {
+  return (
+    <window.DesignCanvas
+      title="Vibecast — Vibes entry v2"
+      subtitle="Grid icon (header) + pills (filter) + swipe-the-title to flip between vibes. Grid icon → 'Your vibes' (reorder/delete/create). Add-to-vibe surfaces in two places: inline on the vibe screen, and as toggleable chips on the podcast detail page."
+    >
+      {/* ─── 1 · Home, default + filtered ─── */}
+      <window.DCSection
+        id="home"
+        title="1 · Home — grid icon + pills + swipeable title"
+        subtitle="The grid icon (top right) is the door to manage your vibes. The pills are the fast filter. Swiping the title also moves through the carousel — All → Morning → Around town → Workout → Wind down → Deep work."
+      >
+        <window.DCArtboard id="home-all" label="Default · All vibes" width={402} height={874}>
+          <Phone><window.HomeFinal label="DEFAULT · ALL" /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="home-around" label="Around town" width={402} height={874}>
+          <Phone><window.HomeFinal activeId="around" label="FILTERED · AROUND TOWN" /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="home-winddown" label="Wind down" width={402} height={874}>
+          <Phone><window.HomeFinal activeId="winddown" label="FILTERED · WIND DOWN" /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      {/* ─── 2 · Swipe interaction ─── */}
+      <window.DCSection
+        id="swipe"
+        title="2 · Swiping the title"
+        subtitle="Mid-gesture state. Both titles slide horizontally; chip colors cross-fade in the header band; the dot indicator stretches between the two positions. Releasing past 50% commits to the new vibe; pulling back snaps to the original."
+      >
+        <window.DCArtboard id="swipe-mid" label="Mid-swipe · Around → Workout" width={402} height={874}>
+          <Phone><window.HomeSwiping /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      {/* ─── 3 · Add show — from a vibe ─── */}
+      <window.DCSection
+        id="add-from-vibe"
+        title="3 · Adding a show from inside a vibe"
+        subtitle="An always-visible 'Add a show to this vibe' row sits at the bottom of the queue. Tap → opens the picker sheet, scoped to the active vibe."
+      >
+        <window.DCArtboard id="vibe-add" label="Inline 'Add' row" width={402} height={874}>
+          <Phone><window.VibeScreenAddShow vibeId="workout" /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="add-sheet" label="Add-show sheet" width={402} height={874}>
+          <Phone><window.AddShowSheet vibeId="workout" /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      {/* ─── 4 · Podcast detail ─── */}
+      <window.DCSection
+        id="podcast"
+        title="4 · Tagging from the podcast detail page"
+        subtitle="A 'In your vibes' chip rail directly under the show artwork. Tap a vibe to add/remove the show. The '+ New vibe' chip opens the create flow."
+      >
+        <window.DCArtboard id="pod-tagged" label="Hard Fork · 2 vibes" width={402} height={874}>
+          <Phone><window.PodcastDetailVibes podId="hard-fork" /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="pod-untagged" label="Acquired · 1 vibe" width={402} height={874}>
+          <Phone><window.PodcastDetailVibes podId="acquired" /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      {/* ─── 5 · Your vibes (manage) ─── */}
+      <window.DCSection
+        id="manage"
+        title="5 · Your vibes — manage / reorder / delete"
+        subtitle="Reached from the stack icon (top right). List layout (not grid) so reorder is the dominant affordance. Order here = order of pills + order in the swipe carousel. Tap any row to rename/recolor; tap Edit to reorder or delete."
+      >
+        <window.DCArtboard id="manage-default" label="Default" width={402} height={874}>
+          <Phone><window.YourVibesManage /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="manage-edit" label="Edit · drag + delete" width={402} height={874}>
+          <Phone><window.YourVibesManage editing /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      {/* ─── 6 · Create / edit a vibe ─── */}
+      <window.DCSection
+        id="create"
+        title="6 · Create or edit a vibe"
+        subtitle="Same sheet does double duty. From 'Your vibes' → + New vibe (blank). Tap an existing row → same sheet pre-filled. Also reachable as the '+ New vibe' chip on the podcast detail page."
+      >
+        <window.DCArtboard id="c-new" label="New vibe" width={402} height={874}>
+          <Phone><window.CreateVibeSheet /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="c-edit" label="Edit · Morning routine" width={402} height={874}>
+          <Phone><window.CreateVibeSheet selectedHueIdx={0} name="Morning routine" /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      {/* ─── Notes ─── */}
+      <window.DCSection id="notes" title="Wiring it all together">
+        <window.DCArtboard id="qs" label="Flow notes" width={560} height={620}>
+          <NotesCard />
+        </window.DCArtboard>
+      </window.DCSection>
+    </window.DesignCanvas>
+  );
+}
+
+function NotesCard() {
+  const Row = ({ k, v }) => (
+    <div style={{ padding: '10px 0', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+      <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 700 }}>{k}</div>
+      <div style={{ fontFamily: '"Fraunces", serif', fontSize: 16, fontWeight: 500, letterSpacing: '-0.01em', lineHeight: 1.35, marginTop: 4 }}>{v}</div>
+    </div>
+  );
+  return (
+    <div style={{ background: '#FBF7EE', height: '100%', padding: 24, fontFamily: '"Inter", system-ui, sans-serif' }}>
+      <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600 }}>FLOW</div>
+      <div style={{ fontFamily: '"Fraunces", serif', fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', marginTop: 4, marginBottom: 6 }}>Three doors, one model</div>
+      <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.62)', lineHeight: 1.5 }}>
+        A show belongs to <em>0..N</em> vibes. The same toggle action appears in three places — the picker sheet (from a vibe), the chip rail (from a podcast), and the long-press menu on a row. Pick the right surface based on the user's mental frame.
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <Row k="GRID ICON" v="Top-right of the masthead. Always visible. → Your vibes (manage)." />
+        <Row k="PILLS" v="Fast filter. Order is editable in 'Your vibes'. Tap toggles; swipe-on-pills scrolls horizontally if more than fit." />
+        <Row k="SWIPE TITLE" v="Carousel through [All, …vibes] in pill order. Same indices as the pills, so the two affordances stay in sync." />
+        <Row k="ADD FROM VIBE" v="'+ Add a show' row at the end of the queue → bottom-sheet picker scoped to your library, with already-tagged shows shown but disabled." />
+        <Row k="ADD FROM SHOW" v="Chip rail on the podcast detail page. Toggle vibes on/off. Includes a '+ New vibe' chip that opens the create flow with this show pre-selected." />
+        <Row k="DELETE SAFETY" v="Delete = unbind, not unfollow. Confirm sheet: 'Delete Wind down? Your shows stay subscribed.'" />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

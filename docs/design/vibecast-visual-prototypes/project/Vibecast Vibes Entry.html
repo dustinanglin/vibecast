@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibecast — Vibes entry &amp; management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; background: #f0eee9; font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="vibecast-shared.jsx"></script>
+<script type="text/babel" src="vibes-shared.jsx"></script>
+<script type="text/babel" src="vibes-rows.jsx"></script>
+<script type="text/babel" src="vibes-screens.jsx"></script>
+<script type="text/babel" src="vibes-entry.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+function Phone({ children }) {
+  return <window.IOSDevice width={402} height={874} dark={false}>{children}</window.IOSDevice>;
+}
+
+function App() {
+  return (
+    <window.DesignCanvas
+      title="Vibecast — Where do vibes live?"
+      subtitle="Today the home page filter pills let you switch into a vibe, but there's no clear door to (1) see all your vibes, (2) create a new one, or (3) edit/delete one. Four entry-point options, then the destination + create flow."
+    >
+      {/* ─── 1 · Entry-point variants ─── */}
+      <window.DCSection
+        id="entry"
+        title="1 · Where does the entry point live?"
+        subtitle="Each phone is the home page. The variation is HOW you get to 'all my vibes / create new'. All four lead to the same destination (section 2)."
+      >
+        <window.DCArtboard id="e-grid"  label="A · Grid icon, header" width={402} height={874}>
+          <Phone><window.HomeWithIcon variant="grid" /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="e-stack" label="A2 · Stack icon, header" width={402} height={874}>
+          <Phone><window.HomeWithIcon variant="stack" /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="e-pill"  label="B · 'Manage' pill" width={402} height={874}>
+          <Phone><window.HomeWithManagePill /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="e-shelf" label="C · 'Your vibes' shelf" width={402} height={874}>
+          <Phone><window.HomeWithShelf /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="e-long"  label="D · Long-press a pill" width={402} height={874}>
+          <Phone><window.HomeWithLongPress /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      {/* ─── 2 · Destination ─── */}
+      <window.DCSection
+        id="gallery"
+        title="2 · The destination — Vibes gallery"
+        subtitle="Where any of those entry points takes you. Tap a card to filter the home page; tap Edit to reorder, rename, or delete."
+      >
+        <window.DCArtboard id="g-default" label="Default" width={402} height={874}>
+          <Phone><window.VibesGalleryScreen /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="g-edit" label="Edit mode" width={402} height={874}>
+          <Phone><window.VibesGalleryScreen editing /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      {/* ─── 3 · Create flow ─── */}
+      <window.DCSection
+        id="create"
+        title="3 · Create a new vibe"
+        subtitle="Bottom sheet from either the '+ New vibe' card in the gallery or the '+' affordance from any entry point. Name → color → shows."
+      >
+        <window.DCArtboard id="c-new" label="New vibe sheet" width={402} height={874}>
+          <Phone><window.CreateVibeSheet /></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="c-edit-meta" label="Same sheet — edit existing" width={402} height={874}>
+          <Phone><window.CreateVibeSheet selectedHueIdx={0} name="Morning routine" /></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      {/* ─── Notes ─── */}
+      <window.DCSection id="notes" title="My take">
+        <window.DCArtboard id="qs" label="Recommendation" width={560} height={620}>
+          <NotesCard />
+        </window.DCArtboard>
+      </window.DCSection>
+    </window.DesignCanvas>
+  );
+}
+
+function NotesCard() {
+  const Row = ({ k, v }) => (
+    <div style={{ padding: '10px 0', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+      <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 700 }}>{k}</div>
+      <div style={{ fontFamily: '"Fraunces", serif', fontSize: 16, fontWeight: 500, letterSpacing: '-0.01em', lineHeight: 1.35, marginTop: 4 }}>{v}</div>
+    </div>
+  );
+  return (
+    <div style={{ background: '#FBF7EE', height: '100%', padding: 24, fontFamily: '"Inter", system-ui, sans-serif' }}>
+      <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.5)', fontWeight: 600 }}>RECOMMENDATION</div>
+      <div style={{ fontFamily: '"Fraunces", serif', fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', marginTop: 4, marginBottom: 6 }}>Pick A + the gallery destination</div>
+      <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.62)', lineHeight: 1.5 }}>
+        The grid icon (A) is the most idiomatic — it reads as "all of them" the way Photos / Apple Music do. The pill (B) gets buried at the end of the scroll row; the shelf (C) eats too much vertical real estate above the fold; long-press (D) is undiscoverable as a primary entry. Keep long-press as a <em>secondary</em> shortcut for power users.
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <Row k="PRIMARY ENTRY" v="Grid icon next to search, top-right of the masthead. Tap → Vibes gallery." />
+        <Row k="QUICK FILTER" v="Pills under the wordmark stay — they're the fastest path when you already know which vibe you want." />
+        <Row k="CREATE" v="'+ New vibe' card in the gallery. Also reachable from the existing top-right '+' as a secondary action sheet." />
+        <Row k="EDIT / DELETE" v="Edit toggle in the gallery (bulk reorder + delete). Long-press a card OR a pill for single-item actions." />
+        <Row k="DELETE SAFETY" v="Deleting a vibe doesn't unfollow shows — it just unbinds them. Confirm with a short sheet ('Delete Wind down? Your shows stay subscribed.')." />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

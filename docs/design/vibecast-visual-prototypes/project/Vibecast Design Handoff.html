@@ -396,6 +396,22 @@
     <li><span class="n">·</span><span class="b">Drag rows freely. Pinned and show items mix in any order.</span></li>
     <li><span class="n">·</span><span class="b">Tap "Done" → exits, persists order on the vibe.</span></li>
   </ul>
+
+  <h3 style="margin-top: 32px;">Manage vibes — the entry-point pattern</h3>
+  <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin: 0 0 14px;">Editing a vibe (rename, recolor, delete) is a low-frequency action, but every user will hit it within the first session. We resolved it with <b>two complementary entry points</b> — one ambient, one direct — feeding a single destination.</p>
+
+  <div class="kv"><div class="k">Primary entry · stack icon</div><div class="v">A small <code>≡</code> stack glyph sits at the right end of the vibe pill rail in the library header. Always present, always in the same spot. Taps open the <b>Manage vibes</b> screen.</div></div>
+  <div class="kv"><div class="k">Secondary entry · long-press</div><div class="v">Long-press any vibe pill → opens Manage vibes scrolled to that vibe's row, ready for edit. Power-user shortcut; never the only path.</div></div>
+  <div class="kv"><div class="k">Not used</div><div class="v">No per-pill ⋯ menu (clutters the rail), no dedicated Settings tab (overweight for five vibes), no swipe-to-edit on pills (collides with the existing horizontal-snap gesture).</div></div>
+
+  <h3 style="margin-top: 28px;">Manage vibes screen</h3>
+  <p style="font-size: 13px; color: rgba(26,23,20,0.62); margin: 0 0 14px;">A full-page list, not a sheet. Editorial header (<i>Manage vibes</i> serif), one row per vibe, plus a "+ New vibe" affordance pinned to the bottom. Reorderable via drag handles when "Edit" is tapped — same pattern as the queue.</p>
+
+  <div class="kv"><div class="k">Row anatomy</div><div class="v">Vibe color swatch (28×28 rounded square) · vibe name (serif, 18px) · item count + last-played eyebrow in mono · trailing chevron <code>›</code>.</div></div>
+  <div class="kv"><div class="k">Tap target</div><div class="v"><b>Tap anywhere on the row → opens the edit sheet.</b> The whole row is the affordance — the chevron is a visual indicator only, not a separate target. Same pattern as queue rows: row = primary action, glyphs = signposts.</div></div>
+  <div class="kv"><div class="k">Edit sheet</div><div class="v">Slides up from bottom. Fields: name (text), color (curated swatch grid, ~10–12 hues), delete (destructive, confirms). Save commits and dismisses; cancel dismisses without changes.</div></div>
+  <div class="kv"><div class="k">New vibe</div><div class="v">"+ New vibe" row at the bottom of the list opens the same sheet in create mode. Defaults to the next unused color in the family.</div></div>
+  <div class="kv"><div class="k">Why one screen</div><div class="v">Rename, recolor, reorder, delete, and create all live here. One destination, no nested menus. The sheet is reused across edit + create so the form only exists once.</div></div>
 </section>
 
 <!-- ─── 8. Rules ──────────────────────────────────────── -->
@@ -474,7 +490,8 @@
     <p><b>Vibecast Started Row.html</b> — spec for the partially-played row state (italic title, inline progress ring, paused-at footnote, position number stays).</p>
     <p><b>Vibecast Started Row Compare.html</b> — side-by-side of Loud vs Quiet started-row treatments. Locked: <b>Quiet</b>.</p>
     <p><b>Vibecast Sliver All Vibes.html</b> — explorations of the left-edge sliver across All Vibes vs a specific vibe view. Locked: <b>sliver = primary vibe color, lives on unplayed rows only</b>. Includes the fixed-height row treatment with 2-line title reservation.</p>
-    <p style="margin-top: 16px; color: rgba(26,23,20,0.50);">All four canvases use a shared component vocabulary in <b>vibes-shared.jsx</b>, <b>vibes-rows.jsx</b>, <b>vibes-playback.jsx</b>, <b>vibes-vibing-screens.jsx</b>, and <b>vibes-detail-pin.jsx</b>. Cover artwork is colored placeholders with serif initials — replace with real artwork when available; the system already supports it.</p>
+    <p><b>Vibecast Vibes Entry v2.html</b> — entry-point study for managing vibes. Covers four candidate entry points (header icon, manage pill, shelf, long-press), the Manage vibes destination, and the create/edit sheet. Locked: <b>stack icon at the right end of the pill rail (primary) + long-press on a pill (secondary)</b>; tap any row on the manage screen → edit sheet (chevron is a visual indicator only).</p>
+    <p style="margin-top: 16px; color: rgba(26,23,20,0.50);">All canvases use a shared component vocabulary in <b>vibes-shared.jsx</b>, <b>vibes-rows.jsx</b>, <b>vibes-playback.jsx</b>, <b>vibes-vibing-screens.jsx</b>, and <b>vibes-detail-pin.jsx</b>. Cover artwork is colored placeholders with serif initials — replace with real artwork when available; the system already supports it.</p>
   </div>
 
   <hr class="thin" />
