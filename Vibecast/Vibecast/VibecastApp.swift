@@ -11,7 +11,7 @@ struct VibecastApp: App {
     init() {
         let c: ModelContainer
         do {
-            c = try ModelContainer(for: Podcast.self, Episode.self, Vibe.self, VibeMembership.self)
+            c = try ModelContainer(for: Podcast.self, Episode.self, Vibe.self, VibeMembership.self, QueueState.self)
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }
