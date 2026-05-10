@@ -14,7 +14,7 @@ final class QueueStateTests: XCTestCase {
 
     func test_singleton_lazyCreatesOnFirstFetch() throws {
         XCTAssertEqual(try context.fetchCount(FetchDescriptor<QueueState>()), 0)
-        let state = QueueState.fetchOrCreate(in: context)
+        let state = try QueueState.fetchOrCreate(in: context)
         try context.save()
         XCTAssertEqual(try context.fetchCount(FetchDescriptor<QueueState>()), 1)
         XCTAssertEqual(state.sourceVibe, nil)
@@ -22,22 +22,22 @@ final class QueueStateTests: XCTestCase {
     }
 
     func test_singleton_secondFetch_returnsSameRow() throws {
-        let a = QueueState.fetchOrCreate(in: context)
+        let a = try QueueState.fetchOrCreate(in: context)
         try context.save()
-        let b = QueueState.fetchOrCreate(in: context)
+        let b = try QueueState.fetchOrCreate(in: context)
         XCTAssertEqual(a.persistentModelID, b.persistentModelID)
     }
 
     func test_persistsSourceVibe_acrossContextReload() throws {
         let vibe = Vibe(name: "Workout", colorKey: .workout, sortPosition: 0, isSeeded: true)
         context.insert(vibe)
-        let state = QueueState.fetchOrCreate(in: context)
+        let state = try QueueState.fetchOrCreate(in: context)
         state.sourceVibe = vibe
         state.lastUpdated = .now
         try context.save()
 
         let fresh = ModelContext(container)
-        let restored = QueueState.fetchOrCreate(in: fresh)
+        let restored = try QueueState.fetchOrCreate(in: fresh)
         XCTAssertEqual(restored.sourceVibe?.name, "Workout")
     }
 }
