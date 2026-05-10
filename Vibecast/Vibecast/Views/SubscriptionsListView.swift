@@ -180,6 +180,9 @@ struct SubscriptionsListView: View {
             .sheet(isPresented: $showAddSheet) {
                 AddPodcastSheet()
             }
+            .sheet(item: $addToVibe) { vibe in
+                AddShowSheet(vibe: vibe)
+            }
             .sheet(isPresented: $showFullScreenPlayer) {
                 if let playerManager, playerManager.currentEpisode != nil {
                     FullScreenPlayerView(player: playerManager)
