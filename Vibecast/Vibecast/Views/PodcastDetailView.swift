@@ -40,6 +40,11 @@ struct PodcastDetailView: View {
                 .listRowBackground(Brand.Color.bg)
                 .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
 
+            PodcastDetailVibesSection(podcast: podcast)
+                .listRowSeparator(.hidden)
+                .listRowBackground(Brand.Color.bg)
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+
             ForEach(vm.displayedEpisodes) { episode in
                 let isCurrent = episode.persistentModelID == playerManager?.currentEpisode?.persistentModelID
                 EpisodeRowView(
