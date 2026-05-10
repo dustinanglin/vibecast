@@ -7,6 +7,10 @@ struct SubscriptionsListView: View {
     @Environment(\.subscriptionManager) private var subscriptionManager
     @Environment(\.scenePhase) private var scenePhase
     @Query(sort: [SortDescriptor(\Podcast.sortPosition)]) private var podcasts: [Podcast]
+    @Query(sort: [SortDescriptor(\Vibe.sortPosition)]) private var vibes: [Vibe]
+    @State private var activeVibe: Vibe?
+    @State private var toastCenter = ToastCenter()
+    @State private var addToVibe: Vibe?
 
     @State private var selectedPodcast: Podcast?
     @State private var showAddSheet = false
@@ -17,39 +21,65 @@ struct SubscriptionsListView: View {
     var body: some View {
         NavigationStack {
             List {
-                masthead
-                    .listRowInsets(EdgeInsets(top: 24, leading: 22, bottom: 14, trailing: 22))
-                    .listRowBackground(Brand.Color.bg)
-                    .listRowSeparator(.hidden)
-                    .moveDisabled(true)
-                    .deleteDisabled(true)
+                VibeMasthead(
+                    vibes: vibes,
+                    activeVibe: $activeVibe,
+                    onStartVibe: { vibe in
+                        guard let mgr = playerManager else { return }
+                        if mgr.startVibe(vibe) == .allCaughtUp {
+                            toastCenter.show("All caught up on this vibe")
+                        }
+                    },
+                    onTapStack: { /* TODO(plan-7-task-13): present ManageVibesView */ },
+                    onTapAdd: { showAddSheet = true }
+                )
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Brand.Color.bg)
+                .listRowSeparator(.hidden)
+                .moveDisabled(true)
+                .deleteDisabled(true)
 
-                sectionLabel
-                    .listRowInsets(EdgeInsets(top: 4, leading: 22, bottom: 8, trailing: 22))
-                    .listRowBackground(Brand.Color.bg)
-                    .listRowSeparator(.hidden)
-                    .moveDisabled(true)
-                    .deleteDisabled(true)
-
-                if visiblePodcasts.isEmpty {
-                    emptyStateRow
-                        .listRowInsets(EdgeInsets(top: 60, leading: 22, bottom: 60, trailing: 22))
+                if activeVibe == nil {
+                    sectionLabel
+                        .listRowInsets(EdgeInsets(top: 4, leading: 22, bottom: 8, trailing: 22))
                         .listRowBackground(Brand.Color.bg)
                         .listRowSeparator(.hidden)
                         .moveDisabled(true)
                         .deleteDisabled(true)
+                }
+
+                if filteredPodcasts.isEmpty {
+                    if let active = activeVibe {
+                        AddShowGhostRow(vibeColorKey: active.colorKey, action: {
+                            addToVibe = active
+                        })
+                        .listRowInsets(EdgeInsets(top: 30, leading: 22, bottom: 30, trailing: 22))
+                        .listRowBackground(Brand.Color.bg)
+                        .listRowSeparator(.hidden)
+                    } else {
+                        emptyStateRow
+                            .listRowInsets(EdgeInsets(top: 60, leading: 22, bottom: 60, trailing: 22))
+                            .listRowBackground(Brand.Color.bg)
+                            .listRowSeparator(.hidden)
+                    }
                 } else {
-                    ForEach(visiblePodcasts) { podcast in
+                    ForEach(filteredPodcasts) { podcast in
                         let snapshot = PodcastRowSnapshot(podcast)
+                        let dots = activeVibe == nil ? snapshot.vibeColorKeys : []
                         let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
                         let isCurrent = latest != nil && latest?.persistentModelID == playerManager?.currentEpisode?.persistentModelID
                         PodcastRowView(
                             snapshot: snapshot,
                             isCurrent: isCurrent,
                             isPlaying: isCurrent && (playerManager?.isPlaying ?? false),
+                            vibeDots: dots,
                             onPlay: {
                                 guard let ep = latest, let mgr = playerManager else { return }
-                                if mgr.currentEpisode?.persistentModelID == ep.persistentModelID {
+                                if let active = activeVibe {
+                                    if mgr.startVibe(active, from: podcast) == .allCaughtUp {
+                                        toastCenter.show("All caught up on this vibe")
+                                    }
+                                } else if mgr.currentEpisode?.persistentModelID == ep.persistentModelID {
                                     mgr.togglePlayPause()
                                 } else {
                                     mgr.play(ep)
@@ -94,7 +124,22 @@ struct SubscriptionsListView: View {
                         }
                     }
                     .onMove { source, destination in
+                        // Reorder is only meaningful on the All view (per-vibe ordering
+                        // is not user-editable in v1). Limit by setting moveDisabled at
+                        // the row level when activeVibe != nil.
+                        guard activeVibe == nil else { return }
                         move(from: source, to: destination)
+                    }
+                    // Trailing add-show ghost row when in a non-empty vibe.
+                    if let active = activeVibe {
+                        AddShowGhostRow(vibeColorKey: active.colorKey, action: {
+                            addToVibe = active
+                        })
+                        .listRowInsets(EdgeInsets(top: 12, leading: 22, bottom: 12, trailing: 22))
+                        .listRowBackground(Brand.Color.bg)
+                        .listRowSeparator(.hidden)
+                        .moveDisabled(true)
+                        .deleteDisabled(true)
                     }
                 }
 
@@ -148,54 +193,15 @@ struct SubscriptionsListView: View {
                 .padding(.bottom, 8)
             }
         }
-    }
-
-    // MARK: - Masthead (eyebrow + h1 + italic subtitle + add button)
-
-    private var masthead: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .center) {
-                Text("SUBSCRIPTIONS")
-                    .font(Brand.Font.monoEyebrow())
-                    .tracking(Brand.Layout.monoTracking)
-                    .foregroundStyle(Brand.Color.inkMuted)
-                Spacer()
-                addButton
+        .overlay(alignment: .bottom) {
+            if let message = toastCenter.current {
+                ToastView(
+                    message: message,
+                    bottomInset: playerManager?.currentEpisode != nil ? 88 : 24
+                )
             }
-            Text("Vibecast")
-                .font(Brand.Font.display(size: 56))
-                .tracking(-1.4)  // ≈ -0.025em at 56pt
-                .foregroundStyle(Brand.Color.ink)
-                .padding(.top, 10)
-            Text(subtitleText)
-                .font(Brand.Font.serifItalic(size: 18))
-                .foregroundStyle(Brand.Color.inkSecondary)
         }
-        .accessibilityElement(children: .contain)
-    }
-
-    private var subtitleText: String {
-        visiblePodcasts.isEmpty ? "Add a podcast to get started" : "Your shows, in your order"
-    }
-
-    private var addButton: some View {
-        Button { showAddSheet = true } label: {
-            ZStack {
-                Circle()
-                    .fill(Brand.Color.paper)
-                    .frame(width: 36, height: 36)
-                    .overlay(
-                        Circle().strokeBorder(Brand.Color.inkHairline, lineWidth: Brand.Layout.hairlineWidth)
-                    )
-                Image(systemName: "plus")
-                    .font(.system(size: 17, weight: .light))
-                    .foregroundStyle(Brand.Color.ink)
-            }
-            .frame(width: 44, height: 44)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Add podcast")
+        .environment(\.toastCenter, toastCenter)
     }
 
     // MARK: - Section label (count · MOST RECENT ——— EDIT ORDER)
@@ -252,9 +258,20 @@ struct SubscriptionsListView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: - Computed podcast lists
+
     private var visiblePodcasts: [Podcast] {
         podcasts.filter { !pendingDeletes.contains($0.persistentModelID) }
     }
+
+    private var filteredPodcasts: [Podcast] {
+        guard let active = activeVibe else { return visiblePodcasts }
+        let memberships = active.memberships.sorted(by: { $0.position < $1.position })
+        let podcasts = memberships.compactMap { $0.podcast }
+        return podcasts.filter { !pendingDeletes.contains($0.persistentModelID) }
+    }
+
+    // MARK: - Actions
 
     private func remove(_ podcast: Podcast) {
         let id = podcast.persistentModelID
