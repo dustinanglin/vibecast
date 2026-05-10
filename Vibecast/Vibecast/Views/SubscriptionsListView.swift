@@ -31,6 +31,7 @@ struct SubscriptionsListView: View {
                             toastCenter.show("All caught up on this vibe")
                         }
                     },
+                    onStartAll: { startNextUnplayed() },
                     onTapStack: { showManageVibes = true },
                     onTapAdd: { showAddSheet = true }
                 )
@@ -40,14 +41,12 @@ struct SubscriptionsListView: View {
                 .moveDisabled(true)
                 .deleteDisabled(true)
 
-                if activeVibe == nil {
-                    sectionLabel
-                        .listRowInsets(EdgeInsets(top: 4, leading: 22, bottom: 8, trailing: 22))
-                        .listRowBackground(Brand.Color.bg)
-                        .listRowSeparator(.hidden)
-                        .moveDisabled(true)
-                        .deleteDisabled(true)
-                }
+                sectionLabel
+                    .listRowInsets(EdgeInsets(top: 4, leading: 22, bottom: 8, trailing: 22))
+                    .listRowBackground(Brand.Color.bg)
+                    .listRowSeparator(.hidden)
+                    .moveDisabled(true)
+                    .deleteDisabled(true)
 
                 if filteredPodcasts.isEmpty {
                     if let active = activeVibe {
@@ -221,40 +220,79 @@ struct SubscriptionsListView: View {
         .environment(\.toastCenter, toastCenter)
     }
 
-    // MARK: - Section label (count · MOST RECENT ——— EDIT ORDER)
+    // MARK: - Section label
+    //
+    // On All view: "N SHOWS · YOUR ORDER ——— EDIT ORDER" (existing).
+    // On a vibe:   "N SHOWS · ● MORNING ———" (vibe-color dot before the
+    // name, no EDIT ORDER since per-vibe reordering isn't editable in v1).
 
     private var sectionLabel: some View {
         HStack(spacing: 10) {
-            Text(sectionLabelText)
-                .font(Brand.Font.monoEyebrow())
-                .tracking(Brand.Layout.monoTracking)
-                .foregroundStyle(Brand.Color.inkMuted)
-                .fixedSize(horizontal: true, vertical: false)
+            HStack(spacing: 8) {
+                Text(sectionLabelCountText)
+                    .font(Brand.Font.monoEyebrow())
+                    .tracking(Brand.Layout.monoTracking)
+                    .foregroundStyle(Brand.Color.inkMuted)
+                Text("·")
+                    .font(Brand.Font.monoEyebrow())
+                    .foregroundStyle(Brand.Color.inkMuted)
+                if let vibe = activeVibe {
+                    Circle()
+                        .fill(vibe.colorKey.band)
+                        .frame(width: 7, height: 7)
+                    Text(vibe.name.uppercased())
+                        .font(Brand.Font.monoEyebrow())
+                        .tracking(Brand.Layout.monoTracking)
+                        .foregroundStyle(vibe.colorKey.ink)
+                } else {
+                    Text("YOUR ORDER")
+                        .font(Brand.Font.monoEyebrow())
+                        .tracking(Brand.Layout.monoTracking)
+                        .foregroundStyle(Brand.Color.inkMuted)
+                }
+            }
+            .fixedSize(horizontal: true, vertical: false)
+
             Rectangle()
                 .fill(Brand.Color.inkHairline)
                 .frame(height: Brand.Layout.hairlineWidth)
                 .frame(maxWidth: .infinity)
-            Button {
-                withAnimation(.easeInOut(duration: 0.18)) {
-                    editMode = editMode.isEditing ? .inactive : .active
+
+            if activeVibe == nil {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        editMode = editMode.isEditing ? .inactive : .active
+                    }
+                } label: {
+                    Text(editMode.isEditing ? "DONE" : "EDIT ORDER")
+                        .font(Brand.Font.monoEyebrow())
+                        .tracking(Brand.Layout.monoTracking)
+                        .foregroundStyle(editMode.isEditing ? Brand.Color.accent : Brand.Color.inkMuted)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
-            } label: {
-                Text(editMode.isEditing ? "DONE" : "EDIT ORDER")
-                    .font(Brand.Font.monoEyebrow())
-                    .tracking(Brand.Layout.monoTracking)
-                    .foregroundStyle(editMode.isEditing ? Brand.Color.accent : Brand.Color.inkMuted)
-                    .fixedSize(horizontal: true, vertical: false)
+                .buttonStyle(.plain)
+                .disabled(visiblePodcasts.isEmpty && !editMode.isEditing)
+                .accessibilityLabel(editMode.isEditing ? "Done editing order" : "Edit subscription order")
             }
-            .buttonStyle(.plain)
-            .disabled(visiblePodcasts.isEmpty && !editMode.isEditing)
-            .accessibilityLabel(editMode.isEditing ? "Done editing order" : "Edit subscription order")
         }
     }
 
-    private var sectionLabelText: String {
-        let count = visiblePodcasts.count
-        let countLabel = count == 1 ? "1 SHOW" : "\(count) SHOWS"
-        return "\(countLabel) · YOUR ORDER"
+    private var sectionLabelCountText: String {
+        let count = activeVibe == nil ? visiblePodcasts.count : filteredPodcasts.count
+        return count == 1 ? "1 SHOW" : "\(count) SHOWS"
+    }
+
+    /// Start playback from the first podcast in global sort order whose
+    /// latest episode hasn't been played. Falls back to a toast on empty.
+    private func startNextUnplayed() {
+        guard let mgr = playerManager else { return }
+        for podcast in visiblePodcasts {
+            let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
+            guard let episode = latest, episode.listenedStatus != .played else { continue }
+            mgr.play(episode)
+            return
+        }
+        toastCenter.show("All caught up")
     }
 
     // MARK: - Empty state row (lives inside the List so masthead always shows)

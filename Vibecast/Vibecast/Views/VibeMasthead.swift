@@ -1,25 +1,24 @@
 import SwiftUI
 import SwiftData
 
-/// Swipeable masthead carousel. Index 0 = All; indices 1...N map to the
-/// vibes ordered by sortPosition. A change in `activeIndex` updates the
-/// caller-bound `activeVibe` (nil for All, otherwise the vibe at index-1).
-/// Swiping wraps circularly past either end.
-///
-/// Layout: the editorial column (eyebrow / wordmark / subtitle / CTA) lives
-/// in horizontally-stacked per-slot panels that slide as a unit so the
-/// transition feels like a carousel rather than a cross-fade. The corner
-/// buttons and pagination dots are pinned. The background color band fades
-/// implicitly on activeIndex change.
+/// Swipeable masthead. The wordmark slides horizontally between slots (All
+/// plus one per vibe); the rest of the masthead (subtitle, pagination dots,
+/// CTA pill) stays pinned and updates with quick cross-fades on state change.
+/// Swiping wraps circularly past either end. Background color band fades
+/// implicitly on `activeIndex` change.
 struct VibeMasthead: View {
     let vibes: [Vibe]
     @Binding var activeVibe: Vibe?
     let onStartVibe: (Vibe) -> Void
+    let onStartAll: () -> Void
     let onTapStack: () -> Void
     let onTapAdd: () -> Void
 
     @State private var activeIndex: Int = 0
-    @State private var contentWidth: CGFloat = 0
+    /// Width of one slot, measured at first layout via PreferenceKey.
+    /// Seeded with a sane iPhone default so first-render shows the wordmark
+    /// at correct position rather than collapsed to zero-width.
+    @State private var slotWidth: CGFloat = 320
     @GestureState private var dragOffset: CGFloat = 0
     private let swipeThreshold: CGFloat = 50
 
@@ -27,35 +26,42 @@ struct VibeMasthead: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Row 1: eyebrow (sliding) with pinned corner buttons overlaid right.
-            ZStack(alignment: .topTrailing) {
-                slidingRow { idx in
-                    eyebrowContent(at: idx)
+            // Row 1: corner buttons pinned right (no eyebrow text — moved to
+            // the section label above the list).
+            HStack {
+                Spacer()
+                StackIcon(action: onTapStack)
+                    .padding(.trailing, 4)
+                AddIconButton(action: onTapAdd)
+            }
+            .frame(height: 44)
+
+            // Row 2: wordmark — the only thing that slides on swipe.
+            HStack(spacing: 0) {
+                ForEach(0..<slotCount, id: \.self) { idx in
+                    Text(wordmark(at: idx))
+                        .font(Brand.Font.display(size: 56))
+                        .tracking(-1.4)
+                        .foregroundStyle(Brand.Color.ink)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(width: slotWidth, alignment: .leading)
                 }
-                .frame(height: 22, alignment: .leading)
-
-                HStack(spacing: 4) {
-                    StackIcon(action: onTapStack)
-                    AddIconButton(action: onTapAdd)
-                }
-                .offset(y: -8) // re-center 44pt buttons against the 22pt eyebrow
             }
+            .offset(x: -CGFloat(activeIndex) * slotWidth + dragOffset)
+            .frame(width: slotWidth, alignment: .leading)
+            .clipped()
 
-            // Row 2: wordmark (sliding).
-            slidingRow { idx in
-                wordmarkContent(at: idx)
-            }
-            .frame(height: 64, alignment: .leading)
-            .padding(.top, 10)
+            // Row 3: subtitle — fades on state change.
+            Text(subtitleText)
+                .font(Brand.Font.serifItalic(size: 18))
+                .foregroundStyle(Brand.Color.inkSecondary)
+                .lineLimit(1)
+                .id("subtitle-\(activeIndex)")
+                .transition(.opacity)
+                .padding(.top, 8)
 
-            // Row 3: subtitle (sliding).
-            slidingRow { idx in
-                subtitleContent(at: idx)
-            }
-            .frame(height: 24, alignment: .leading)
-            .padding(.top, 8)
-
-            // Row 4: pagination dots (pinned).
+            // Row 4: pagination dots — pinned, active dot tinted by state.
             HStack(spacing: 6) {
                 ForEach(0..<slotCount, id: \.self) { idx in
                     Circle()
@@ -65,12 +71,30 @@ struct VibeMasthead: View {
             }
             .padding(.top, 14)
 
-            // Row 5: CTA (sliding; empty space reserved for All so masthead height is stable).
-            slidingRow { idx in
-                ctaContent(at: idx)
+            // Row 5: Start pill — always present so the masthead height
+            // doesn't change between states. Color and copy adapt.
+            Button {
+                if let vibe = currentVibe {
+                    onStartVibe(vibe)
+                } else {
+                    onStartAll()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text(ctaText)
+                        .font(Brand.Font.uiBody(size: 15, weight: .semibold))
+                }
+                .foregroundStyle(Brand.Color.paper)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .background(Capsule().fill(ctaBackgroundColor))
             }
-            .frame(height: 40, alignment: .leading)
+            .buttonStyle(.plain)
             .padding(.top, 14)
+            .id("cta-\(activeIndex)")
+            .transition(.opacity.combined(with: .scale(scale: 0.96)))
         }
         .padding(.horizontal, 22)
         .padding(.top, 24)
@@ -86,14 +110,15 @@ struct VibeMasthead: View {
             }
         )
         .background(
-            // Measure the column's available width so slot widths line up.
+            // Measure slot width = available content width inside the 22pt padding.
             GeometryReader { proxy in
                 Color.clear
                     .preference(key: WidthPreferenceKey.self, value: proxy.size.width - 44)
             }
         )
         .onPreferenceChange(WidthPreferenceKey.self) { width in
-            contentWidth = width
+            guard width > 0 else { return }
+            slotWidth = width
         }
         .contentShape(Rectangle())
         .gesture(
@@ -115,99 +140,33 @@ struct VibeMasthead: View {
         .animation(.easeInOut(duration: 0.28), value: activeIndex)
     }
 
-    // MARK: - Sliding row helper
+    // MARK: - Derived state
 
-    @ViewBuilder
-    private func slidingRow<Content: View>(
-        @ViewBuilder content: @escaping (Int) -> Content
-    ) -> some View {
-        HStack(spacing: 0) {
-            ForEach(0..<slotCount, id: \.self) { idx in
-                content(idx)
-                    .frame(width: contentWidth, alignment: .leading)
-            }
-        }
-        .offset(x: -CGFloat(activeIndex) * contentWidth + dragOffset)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .clipped()
+    private func wordmark(at index: Int) -> String {
+        currentVibe(at: index)?.name ?? "Vibecast"
     }
 
-    // MARK: - Per-slot content
-
-    @ViewBuilder
-    private func eyebrowContent(at index: Int) -> some View {
-        if let vibe = currentVibe(at: index) {
-            HStack(spacing: 7) {
-                Circle()
-                    .fill(vibe.colorKey.band)
-                    .frame(width: 8, height: 8)
-                Text("VIBE")
-                    .font(Brand.Font.monoEyebrow())
-                    .tracking(Brand.Layout.monoTracking)
-                    .foregroundStyle(vibe.colorKey.ink)
-            }
-        } else {
-            Text("SUBSCRIPTIONS")
-                .font(Brand.Font.monoEyebrow())
-                .tracking(Brand.Layout.monoTracking)
-                .foregroundStyle(Brand.Color.inkMuted)
-        }
-    }
-
-    @ViewBuilder
-    private func wordmarkContent(at index: Int) -> some View {
-        Text(currentVibe(at: index)?.name ?? "Vibecast")
-            .font(Brand.Font.display(size: 56))
-            .tracking(-1.4)
-            .foregroundStyle(Brand.Color.ink)
-            .lineLimit(1)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-
-    @ViewBuilder
-    private func subtitleContent(at index: Int) -> some View {
-        Text(subtitleText(at: index))
-            .font(Brand.Font.serifItalic(size: 18))
-            .foregroundStyle(Brand.Color.inkSecondary)
-            .lineLimit(1)
-    }
-
-    @ViewBuilder
-    private func ctaContent(at index: Int) -> some View {
-        if let vibe = currentVibe(at: index) {
-            Button {
-                onStartVibe(vibe)
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 13, weight: .semibold))
-                    Text("Start the vibe")
-                        .font(Brand.Font.uiBody(size: 15, weight: .semibold))
-                }
-                .foregroundStyle(Brand.Color.paper)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 10)
-                .background(Capsule().fill(vibe.colorKey.band))
-            }
-            .buttonStyle(.plain)
-        } else {
-            // Reserve the row's vertical space so the masthead height stays stable.
-            Color.clear
-        }
-    }
-
-    // MARK: - Derived text
-
-    private func subtitleText(at index: Int) -> String {
-        if let vibe = currentVibe(at: index) {
+    private var subtitleText: String {
+        if let vibe = currentVibe {
             return vibeSubtitle(for: vibe)
         }
         return vibes.isEmpty ? "Add a podcast to get started" : "Your shows, in your order"
     }
 
+    private var ctaText: String {
+        currentVibe == nil ? "Start listening" : "Start the vibe"
+    }
+
+    private var ctaBackgroundColor: Color {
+        currentVibe?.colorKey.band ?? Brand.Color.ink
+    }
+
+    private var dotActiveColor: Color {
+        currentVibe?.colorKey.band ?? Brand.Color.ink
+    }
+
     /// "N shows, in order. About N.Nhrs" — count of memberships + total
-    /// unplayed time across the vibe's queue. Falls back to "All caught up."
-    /// when nothing remains.
+    /// unplayed time across the vibe's queue.
     private func vibeSubtitle(for vibe: Vibe) -> String {
         let count = vibe.memberships.count
         let showCopy = count == 1 ? "1 show, in order." : "\(count) shows, in order."
@@ -238,10 +197,6 @@ struct VibeMasthead: View {
         guard index > 0 else { return nil }
         let i = index - 1
         return i < vibes.count ? vibes[i] : nil
-    }
-
-    private var dotActiveColor: Color {
-        currentVibe?.colorKey.band ?? Brand.Color.ink
     }
 }
 
