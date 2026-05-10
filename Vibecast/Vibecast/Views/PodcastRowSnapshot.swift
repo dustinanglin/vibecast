@@ -39,11 +39,15 @@ struct EpisodeRowSnapshot: Hashable {
 }
 
 extension PodcastRowSnapshot {
-    init(_ podcast: Podcast) {
+    /// Construct a snapshot using the podcast's global library position.
+    /// Inside a vibe-filtered list, callers should pass an explicit
+    /// `position` instead so the left-slot number reflects the per-vibe
+    /// ordering rather than leaking the global library index.
+    init(_ podcast: Podcast, position: Int? = nil) {
         self.id = podcast.persistentModelID
         self.title = podcast.title
         self.artworkURL = podcast.artworkURL
-        self.position = podcast.sortPosition + 1
+        self.position = position ?? (podcast.sortPosition + 1)
         let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
         self.latestEpisode = latest.map(EpisodeRowSnapshot.init)
         self.vibeColorKeys = podcast.vibeMemberships

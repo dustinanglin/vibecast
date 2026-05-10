@@ -63,8 +63,12 @@ struct SubscriptionsListView: View {
                             .listRowSeparator(.hidden)
                     }
                 } else {
-                    ForEach(filteredPodcasts) { podcast in
-                        let snapshot = PodcastRowSnapshot(podcast)
+                    ForEach(Array(filteredPodcasts.enumerated()), id: \.element.persistentModelID) { index, podcast in
+                        // In a vibe view, use the per-vibe ordinal so the left-slot
+                        // number reflects "this vibe's order" rather than leaking
+                        // the global library sortPosition.
+                        let positionOverride = activeVibe == nil ? nil : index + 1
+                        let snapshot = PodcastRowSnapshot(podcast, position: positionOverride)
                         let dots = activeVibe == nil ? snapshot.vibeColorKeys : []
                         let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
                         let isCurrent = latest != nil && latest?.persistentModelID == playerManager?.currentEpisode?.persistentModelID
@@ -160,6 +164,12 @@ struct SubscriptionsListView: View {
             .background(Brand.Color.bg)
             .environment(\.editMode, $editMode)
             .toolbar(.hidden, for: .navigationBar)
+            .onChange(of: activeVibe) { _, _ in
+                // Edit-mode is an All-only affordance. Switching to a vibe
+                // view should drop the user out of edit so phantom drag
+                // handles don't show on rows that don't accept reorder.
+                if editMode.isEditing { editMode = .inactive }
+            }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
                 Task { await subscriptionManager?.refreshAllIfStale() }
