@@ -33,6 +33,7 @@ struct VibecastApp: App {
                 importer: StandardOPMLImporter(),
                 modelContext: c.mainContext
             )
+            try? VibeSeeder.seedIfNeeded(in: c.mainContext)
             return (p, s)
         }
         _playerManager = State(initialValue: player)
