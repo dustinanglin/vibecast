@@ -138,10 +138,22 @@ struct SubscriptionsListView: View {
                             .tint(.green)
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            // Debug-affordance: reset the latest episode to unplayed
-                            // (declared first so it sits at the trailing edge, to the
-                            // right of Remove). May be removed once we have a more
-                            // intentional "reset progress" affordance in detail view.
+                            // In a vibe view, the most natural curation action is
+                            // "remove this from the vibe" — declared first so it
+                            // sits at the trailing edge (most reachable). Hidden
+                            // on All view since there's nothing to untag from.
+                            if let active = activeVibe {
+                                Button {
+                                    snapAfterCollapse { removeFromVibe(podcast, vibe: active) }
+                                } label: {
+                                    Label("From Vibe", systemImage: "tag.slash")
+                                }
+                                .tint(.purple)
+                            }
+
+                            // Debug-affordance: reset the latest episode to unplayed.
+                            // May be removed once we have a more intentional "reset
+                            // progress" affordance in detail view.
                             Button {
                                 if let ep = podcast.episodes
                                     .sorted(by: { $0.publishDate > $1.publishDate }).first {
@@ -407,6 +419,16 @@ struct SubscriptionsListView: View {
         for (index, membership) in reordered.enumerated() {
             membership.position = index
         }
+        try? modelContext.save()
+    }
+
+    /// Untag `podcast` from `vibe` by deleting its membership. The podcast
+    /// itself and its other vibe memberships survive.
+    private func removeFromVibe(_ podcast: Podcast, vibe: Vibe) {
+        guard let membership = podcast.vibeMemberships.first(where: {
+            $0.vibe?.persistentModelID == vibe.persistentModelID
+        }) else { return }
+        modelContext.delete(membership)
         try? modelContext.save()
     }
 }
