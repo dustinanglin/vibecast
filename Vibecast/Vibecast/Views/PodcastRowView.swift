@@ -121,8 +121,13 @@ struct PodcastRowView: View {
     private func metadata(episode: EpisodeRowSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             eyebrow(episode: episode)
+            // Title self-sizes (1 or 2 lines as needed). The original 2-line
+            // reservation kept rows uniform but introduced a visible gap before
+            // the vibe-dots row in the started state where italic Fraunces is
+            // narrow enough that the title often fits on one line. Variable
+            // row height is already in play since vibe-dots rows make rows
+            // taller than dot-less rows.
             titleText(episode: episode)
-                .frame(minHeight: 16 * 1.22 * 2, alignment: .topLeading)  // 2-line reservation
             if !vibeDots.isEmpty {
                 VibeDotsRow(keys: vibeDots)
             }
