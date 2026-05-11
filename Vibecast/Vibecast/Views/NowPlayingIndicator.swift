@@ -14,7 +14,10 @@ struct NowPlayingIndicator: View {
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: !isPlaying)) { context in
-            HStack(alignment: .bottom, spacing: 1.5) {
+            // .center so bars pulse symmetrically around the vertical
+            // midline of the position-slot circle rather than growing
+            // upward from the bottom edge.
+            HStack(alignment: .center, spacing: 1.5) {
                 Bar(time: context.date, period: 0.62, phase: 0.00, isPlaying: isPlaying, color: color)
                 Bar(time: context.date, period: 0.78, phase: 0.18, isPlaying: isPlaying, color: color)
                 Bar(time: context.date, period: 0.94, phase: 0.32, isPlaying: isPlaying, color: color)
