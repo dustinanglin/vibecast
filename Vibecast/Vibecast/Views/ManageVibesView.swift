@@ -5,7 +5,9 @@ struct ManageVibesView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor(\Vibe.sortPosition)]) private var vibes: [Vibe]
-    @State private var editing = false
+    // Use system EditMode so the row's .onMove engages instantly (no long-press),
+    // matching the subscriptions list's drag-reorder UX.
+    @State private var editMode: EditMode = .inactive
     @State private var newSheet = false
     @State private var editTarget: Vibe?
 
@@ -15,7 +17,7 @@ struct ManageVibesView: View {
                 ForEach(vibes) { vibe in
                     VibeManageCard(
                         vibe: vibe,
-                        isEditing: editing,
+                        isEditing: editMode.isEditing,
                         onTap: { editTarget = vibe },
                         onDelete: { delete(vibe) }
                     )
@@ -50,13 +52,16 @@ struct ManageVibesView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Brand.Color.bg)
+            .environment(\.editMode, $editMode)
             .navigationTitle("Manage vibes")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
                 ToolbarItem(placement: .primaryAction) {
-                    Button(editing ? "Done" : "Edit") {
-                        withAnimation(.easeInOut(duration: 0.18)) { editing.toggle() }
+                    Button(editMode.isEditing ? "Done" : "Edit") {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            editMode = editMode.isEditing ? .inactive : .active
+                        }
                     }
                 }
             }

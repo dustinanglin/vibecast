@@ -28,9 +28,9 @@ struct VibeManageCard: View {
                     .foregroundStyle(vibe.colorKey.ink)
             }
             Spacer()
-            if isEditing {
-                Image(systemName: "line.3.horizontal").foregroundStyle(vibe.colorKey.ink.opacity(0.5))
-            }
+            // System EditMode draws its own drag handle on the trailing edge
+            // when the parent's editMode is .active and the ForEach has
+            // .onMove, so we don't render a decorative one ourselves.
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 18)
