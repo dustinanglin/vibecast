@@ -82,26 +82,19 @@ struct SubscriptionsListView: View {
                             vibeDots: dots,
                             onPlay: {
                                 guard let ep = latest, let mgr = playerManager else { return }
-                                // If this row's latest episode is the currently-loaded one,
-                                // the row's button is acting as a play/pause toggle — works
-                                // the same on All view and inside a vibe.
+                                // If this row's latest episode is the currently-loaded
+                                // one, the row's button is a play/pause toggle — works
+                                // the same on All and inside a vibe.
                                 if mgr.currentEpisode?.persistentModelID == ep.persistentModelID {
                                     mgr.togglePlayPause()
                                     return
                                 }
-                                // A played episode shows the row's "replay" affordance.
-                                // Treat tap as a single-episode replay (resetIfComplete
-                                // restarts from 0) rather than a queue start — otherwise
-                                // we'd hit VibeQueueResolver's skip-played semantics and
-                                // toast "All caught up" instead of replaying.
-                                if ep.listenedStatus == .played {
-                                    mgr.play(ep)
-                                    return
-                                }
+                                // Inside a vibe: play this episode as part of the vibe
+                                // queue so the next end-of-episode advance walks the vibe.
+                                // Played episodes replay from 0 (resetIfComplete) and
+                                // still kick off the queue from here.
                                 if let active = activeVibe {
-                                    if mgr.startVibe(active, from: podcast) == .allCaughtUp {
-                                        toastCenter.show("All caught up on this vibe")
-                                    }
+                                    mgr.playEpisodeInVibe(ep, vibe: active)
                                 } else {
                                     mgr.play(ep)
                                 }

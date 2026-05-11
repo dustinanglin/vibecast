@@ -284,6 +284,19 @@ final class PlayerManager: PlaybackController {
         play(episode, clearQueueSource: false)
     }
 
+    /// Play `episode` as part of `vibe`'s queue. Used when the user taps
+    /// a row inside a vibe — the tapped episode becomes the current queue
+    /// item and the next end-of-episode advance walks `vibe` forward.
+    /// Works for played, in-progress, and unplayed episodes (the played
+    /// case naturally replays from 0 via `resetIfComplete`).
+    func playEpisodeInVibe(_ episode: Episode, vibe: Vibe) {
+        if let state = queueState() {
+            state.sourceVibe = vibe
+            try? modelContext.save()
+        }
+        play(episode, clearQueueSource: false)
+    }
+
     /// Mark an episode as played.
     /// - If it's the currently-loaded episode AND was actively playing:
     ///   pause the engine and auto-advance per `advance`.
