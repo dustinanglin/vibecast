@@ -164,10 +164,17 @@ struct SubscriptionsListView: View {
                             }
                             .tint(.blue)
 
-                            Button(role: .destructive) {
-                                remove(podcast)
-                            } label: {
-                                Label("Remove", systemImage: "trash")
+                            // Unsubscribe is scoped to All view only — in a vibe
+                            // view the user probably means "remove from this vibe"
+                            // (the purple action above), so don't surface a button
+                            // labelled "Remove" that actually deletes the entire
+                            // subscription.
+                            if activeVibe == nil {
+                                Button(role: .destructive) {
+                                    remove(podcast)
+                                } label: {
+                                    Label("Remove", systemImage: "trash")
+                                }
                             }
                         }
                     }
