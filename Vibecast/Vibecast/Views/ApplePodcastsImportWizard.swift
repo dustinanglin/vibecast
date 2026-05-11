@@ -38,7 +38,7 @@ struct ApplePodcastsImportWizard: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
-                    intro
+                    header
                     stepOne
                     stepTwo
                     stepThree
@@ -51,11 +51,6 @@ struct ApplePodcastsImportWizard: View {
             .scrollContentBackground(.hidden)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("Import from Apple Podcasts")
-                        .font(Brand.Font.serifSubtitle())
-                        .foregroundStyle(Brand.Color.ink)
-                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                         .font(Brand.Font.uiButton())
@@ -68,11 +63,22 @@ struct ApplePodcastsImportWizard: View {
 
     // MARK: - Sections
 
-    private var intro: some View {
-        Text("Bring your Apple Podcasts subscriptions into Vibecast in three steps. The first time you do this, you'll install a small Shortcuts shortcut — after that, just run it to sync.")
-            .font(Brand.Font.uiBody())
-            .foregroundStyle(Brand.Color.inkSecondary)
-            .fixedSize(horizontal: false, vertical: true)
+    /// Title + intro paragraph as a single header block. Lives in the
+    /// scroll view rather than the nav-bar title slot so the long
+    /// "Import from Apple Podcasts" title gets a full line instead of
+    /// being squeezed alongside the Cancel button (which truncates as
+    /// "Import from Apple Podc…" on iPhone-width nav bars).
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Import from Apple Podcasts")
+                .font(Brand.Font.serifSubtitle())
+                .foregroundStyle(Brand.Color.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Bring your Apple Podcasts subscriptions into Vibecast in three steps. The first time you do this, you'll install a small Shortcuts shortcut — after that, just run it to sync.")
+                .font(Brand.Font.uiBody())
+                .foregroundStyle(Brand.Color.inkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var stepOne: some View {
