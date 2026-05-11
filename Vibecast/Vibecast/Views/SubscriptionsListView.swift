@@ -21,8 +21,27 @@ struct SubscriptionsListView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                VibeMasthead(
+            ZStack(alignment: .top) {
+                // Vibe color band layered behind the List so it can bleed
+                // past the top safe area into the status-bar / camera-pill
+                // region. Height covers the masthead + safe-area top with
+                // some headroom; the gradient fades to transparent so the
+                // List's paper-warm bg shows through below the masthead.
+                if let active = activeVibe {
+                    LinearGradient(
+                        colors: [active.colorKey.chip, Brand.Color.bg.opacity(0)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 380)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .ignoresSafeArea(edges: .top)
+                    .animation(.easeInOut(duration: 0.28), value: activeVibe)
+                    .transition(.opacity)
+                }
+
+                List {
+                    VibeMasthead(
                     vibes: vibes,
                     activeVibe: $activeVibe,
                     queueSourceVibe: playerManager?.queueSourceVibe,
@@ -245,6 +264,7 @@ struct SubscriptionsListView: View {
             }
             .navigationDestination(item: $selectedPodcast) { podcast in
                 PodcastDetailView(podcast: podcast)
+            }
             }
         }
         // Floating overlay (not safeAreaInset) so List content scrolls *under*

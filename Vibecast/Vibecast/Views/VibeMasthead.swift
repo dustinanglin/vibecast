@@ -146,16 +146,10 @@ struct VibeMasthead: View {
         .padding(.horizontal, 22)
         .padding(.top, 24)
         .padding(.bottom, 14)
-        .background(
-            // Color band: vibe.chip at top fading to bg at bottom.
-            currentVibe.map { vibe in
-                LinearGradient(
-                    colors: [vibe.colorKey.chip, Brand.Color.bg.opacity(0)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-        )
+        // The vibe-color band is rendered as a parent-level backdrop on
+        // SubscriptionsListView so it bleeds past the top safe area into
+        // the status-bar / camera-pill region. The masthead row itself
+        // stays transparent.
         .background(
             // Measure slot width = available content width inside the 22pt padding.
             GeometryReader { proxy in
