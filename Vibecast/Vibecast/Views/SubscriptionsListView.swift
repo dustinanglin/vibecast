@@ -89,6 +89,15 @@ struct SubscriptionsListView: View {
                                     mgr.togglePlayPause()
                                     return
                                 }
+                                // A played episode shows the row's "replay" affordance.
+                                // Treat tap as a single-episode replay (resetIfComplete
+                                // restarts from 0) rather than a queue start — otherwise
+                                // we'd hit VibeQueueResolver's skip-played semantics and
+                                // toast "All caught up" instead of replaying.
+                                if ep.listenedStatus == .played {
+                                    mgr.play(ep)
+                                    return
+                                }
                                 if let active = activeVibe {
                                     if mgr.startVibe(active, from: podcast) == .allCaughtUp {
                                         toastCenter.show("All caught up on this vibe")
