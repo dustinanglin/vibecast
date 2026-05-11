@@ -65,6 +65,27 @@ final class VibeQueueResolverTests: XCTestCase {
         XCTAssertEqual(queue[0].podcast.title, "99PI")
     }
 
+    func test_resolve_skipsPodcast_whenLatestIsPlayed_evenWithOlderUnplayed() throws {
+        // Vibe queue semantics: each show contributes ONLY its newest episode.
+        // If that newest is played, the show is skipped — older unplayed
+        // episodes don't surface back into the queue. (See VibeQueueResolver
+        // doc-comment.)
+        let now = Date()
+        let p1 = makePodcast("HF", episodes: [
+            (now, .played, 100, 100),                           // newest, played
+            (now.addingTimeInterval(-86400), .unplayed, 0, 100), // older, unplayed
+        ])
+        let p2 = makePodcast("99PI", episodes: [(now, .unplayed, 0, 100)])
+        let vibe = Vibe(name: "Mix", colorKey: .around, sortPosition: 0, isSeeded: false)
+        context.insert(vibe)
+        bind([p1, p2], to: vibe)
+        try context.save()
+
+        let queue = VibeQueueResolver.resolve(vibe: vibe)
+        XCTAssertEqual(queue.count, 1, "HF should be skipped because its newest is played")
+        XCTAssertEqual(queue[0].podcast.title, "99PI")
+    }
+
     func test_resolve_treatsNearComplete_asPlayed() throws {
         // 96% played counts as played per the existing 0.95 threshold.
         let now = Date()

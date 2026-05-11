@@ -2,10 +2,15 @@ import Foundation
 import SwiftData
 
 /// Pure resolver: turn a Vibe's memberships into a playable queue of
-/// (Podcast, latest-unplayed Episode) pairs in per-vibe `position` order.
-/// "Latest unplayed" is the most-recently-published episode whose status is
-/// not `.played` and whose playbackPosition is below the 0.95-of-duration
-/// completion threshold.
+/// (Podcast, Episode) pairs in per-vibe `position` order.
+///
+/// **Semantics.** For each podcast we look at *only* the most-recently
+/// published episode. If that latest episode is unplayed (and below the
+/// 0.95-of-duration completion threshold), we include the pair. If the
+/// latest is played, we skip the podcast entirely — even if it has older
+/// unplayed episodes. This matches the vibe-listening model: each show
+/// contributes its newest episode to the queue or nothing. Older episodes
+/// remain in the library and can be played individually from the row.
 enum VibeQueueResolver {
     /// Completion threshold matching PlayerManager's resetIfComplete semantics.
     static let completionThreshold: Double = 0.95
@@ -25,15 +30,20 @@ enum VibeQueueResolver {
         }
 
         return sliced.compactMap { podcast in
-            guard let episode = latestUnplayedEpisode(in: podcast) else { return nil }
+            guard let episode = latestEpisodeIfUnplayed(in: podcast) else { return nil }
             return (podcast, episode)
         }
     }
 
-    static func latestUnplayedEpisode(in podcast: Podcast) -> Episode? {
-        podcast.episodes
-            .sorted(by: { $0.publishDate > $1.publishDate })
-            .first(where: { isUnplayed($0) })
+    /// Returns the most-recently-published episode for `podcast` only if
+    /// that episode is still unplayed. Returns `nil` (skipping the show)
+    /// when the latest is `.played` or has crossed the 95% threshold,
+    /// regardless of whether older episodes remain unplayed.
+    static func latestEpisodeIfUnplayed(in podcast: Podcast) -> Episode? {
+        guard let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first else {
+            return nil
+        }
+        return isUnplayed(latest) ? latest : nil
     }
 
     private static func isUnplayed(_ episode: Episode) -> Bool {

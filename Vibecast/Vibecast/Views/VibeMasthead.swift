@@ -310,7 +310,7 @@ struct VibeMasthead: View {
         let showCopy = count == 1 ? "1 show, in order." : "\(count) shows, in order."
         let unplayedSeconds = vibe.memberships
             .compactMap { $0.podcast }
-            .compactMap { VibeQueueResolver.latestUnplayedEpisode(in: $0) }
+            .compactMap { VibeQueueResolver.latestEpisodeIfUnplayed(in: $0) }
             .reduce(0.0) { partial, episode in
                 let remaining = Double(episode.durationSeconds) - episode.playbackPosition
                 return partial + max(0, remaining)

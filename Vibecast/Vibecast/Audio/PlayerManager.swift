@@ -365,7 +365,7 @@ final class PlayerManager: PlaybackController {
                 $0.persistentModelID == currentPodcast.persistentModelID
             }) {
                 for podcast in orderedPodcasts.dropFirst(currentIdx + 1) {
-                    guard let episode = VibeQueueResolver.latestUnplayedEpisode(in: podcast) else { continue }
+                    guard let episode = VibeQueueResolver.latestEpisodeIfUnplayed(in: podcast) else { continue }
                     state.currentPodcast = podcast
                     state.currentEpisode = episode
                     state.lastUpdated = .now
