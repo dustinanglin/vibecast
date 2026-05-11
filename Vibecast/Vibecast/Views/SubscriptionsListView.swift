@@ -74,7 +74,23 @@ struct SubscriptionsListView: View {
                         let snapshot = PodcastRowSnapshot(podcast, position: positionOverride)
                         let dots = activeVibe == nil ? snapshot.vibeColorKeys : []
                         let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
-                        let isCurrent = latest != nil && latest?.persistentModelID == playerManager?.currentEpisode?.persistentModelID
+                        // The row is "current" only while there's something playable
+                        // happening with this episode. Once it's been played to the
+                        // end (and the player isn't actively playing), revert to
+                        // played-row treatment — the mini-player still holds the
+                        // episode loaded for one-tap replay, but the row shouldn't
+                        // keep wearing the now-playing card.
+                        let isCurrent: Bool = {
+                            guard let latest = latest,
+                                  let current = playerManager?.currentEpisode,
+                                  latest.persistentModelID == current.persistentModelID else {
+                                return false
+                            }
+                            if latest.listenedStatus == .played && !(playerManager?.isPlaying ?? false) {
+                                return false
+                            }
+                            return true
+                        }()
                         PodcastRowView(
                             snapshot: snapshot,
                             isCurrent: isCurrent,
