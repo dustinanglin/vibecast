@@ -212,7 +212,22 @@ struct VibeMasthead: View {
         // No vibes → no carousel. Swipe is a no-op so the wordmark doesn't
         // animate "Vibecast" out and back in for no reason.
         guard slotCount > 1 else { return }
-        let nextDisplay = displayIndex + step
+
+        // Rapid-swipe guard: if a prior swipe landed on a phantom slot and
+        // the deferred mirror-snap hasn't fired yet (completion handler is
+        // still pending its 0.28s wait), normalize off the phantom first.
+        // Otherwise `displayIndex + step` can leave the HStack range
+        // (e.g. -1 or slotCount+2) and the clipped offset shows nothing.
+        var from = displayIndex
+        if from == 0 {
+            snapWithoutAnimation(to: slotCount)
+            from = slotCount
+        } else if from == slotCount + 1 {
+            snapWithoutAnimation(to: 1)
+            from = 1
+        }
+
+        let nextDisplay = from + step
         let nextLogical = logicalIndex(for: nextDisplay)
 
         // Animate the wordmark slide AND the logical-state change together.
@@ -222,9 +237,12 @@ struct VibeMasthead: View {
         } completion: {
             // If we landed on a phantom, jump to its mirror position so the
             // next swipe in either direction has real slots to either side.
-            if nextDisplay == 0 {
+            // Read the *current* displayIndex (not the captured nextDisplay)
+            // so a subsequent rapid swipe that already moved us off the
+            // phantom doesn't get yanked back here.
+            if displayIndex == 0 {
                 snapWithoutAnimation(to: slotCount)
-            } else if nextDisplay == slotCount + 1 {
+            } else if displayIndex == slotCount + 1 {
                 snapWithoutAnimation(to: 1)
             }
         }
