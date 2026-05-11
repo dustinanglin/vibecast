@@ -19,25 +19,32 @@ Vibecast already accepts a list of feed URLs via the OPML import path implemente
 - **Hosted shortcut**: a published shortcut, "Vibecast Import," distributed as an iCloud share link. Logic: `Get Podcasts from Library` → iterate, extract each podcast's Feed URL → join non-empty URLs with newlines → URL-encode → `Open URL: vibecast://import-feeds?urls=<encoded>`.
 - **Custom URL scheme**: register `vibecast://` in `Info.plist`. Handle `vibecast://import-feeds?urls=<newline-separated-urlencoded-list>` via SwiftUI's `.onOpenURL` at the app root.
 - **URL handler component**: parse the `urls` query parameter, split on newline, validate as `URL`s, dedupe, dispatch through `SubscriptionManager.subscribe(to: URL)` per feed. Reuses the existing `ImportSummary` tally + toast.
-- **`AddPodcastSheet` row**: "Import from Apple Podcasts" affordance, sits alongside the existing "Import from File" (OPML) row. Two visual states:
-  - **First-time** (UserDefaults flag absent): label reads "Import from Apple Podcasts" with a setup-required hint; tap opens the iCloud share link in Safari/Shortcuts via `UIApplication.shared.open`, the user taps "Add Shortcut" in Shortcuts.app, then we set the flag on return.
-  - **Subsequent** (flag set): label reads "Import from Apple Podcasts"; tap deep-links straight to `shortcuts://run-shortcut?name=Vibecast%20Import`.
-- **Resilient fallback**: if `shortcuts://run-shortcut` fails (shortcut deleted from user's library), iOS shows its own "couldn't find shortcut" alert. We additionally provide a "Re-install Shortcut" row inside the sheet so the user can recover without nuking UserDefaults.
+- **`AddPodcastSheet` row**: "Import from Apple Podcasts" affordance sits alongside the existing "Import from File" (OPML) row. Tapping it presents a dedicated wizard sub-sheet rather than directly launching the shortcut.
+- **Wizard sub-sheet** (`ApplePodcastsImportWizard`): walks the user through three labeled steps with per-step ✓ status:
+  - **Step 1 — Install Shortcut**: explains what the shortcut does and why; "Install Shortcut" button opens the iCloud share URL. Marked ✓ once the install URL has been opened at least once (`@AppStorage` flag).
+  - **Step 2 — Run Shortcut**: "Open Shortcut" button deep-links to `shortcuts://run-shortcut?name=Vibecast%20Import`. Marked ✓ once Vibecast has received a `vibecast://import-feeds?urls=…` URL within the current session's freshness window.
+  - **Step 3 — Import**: enabled only when Step 2 is ✓. Shows "Ready to import N podcasts" with a primary "Import N Podcasts" button. Tap runs the subscribe loop; the wizard transitions to an in-progress state with a count, then to a success summary ("Imported N · Already subscribed M · Failed F") before dismissing.
+- **Pending-import session** (`ApplePodcastsImportSession`, `@Observable`): in-memory singleton holding the `pendingFeedURLs: [URL]?` and `receivedAt: Date?` from the most recent shortcut run. The URL handler populates it; the wizard observes it for Step 2/3 state. Treated as stale after 5 minutes — older payloads trigger "Re-run the shortcut" copy on Step 2 rather than offering the Import button.
+- **Auto-present on URL receipt**: if Vibecast receives `vibecast://import-feeds` while the wizard isn't already visible (e.g. the user ran the shortcut from Shortcuts.app directly), `SubscriptionsListView` presents `AddPodcastSheet` → wizard auto-deep-linked to Step 3. Same code path as when the user navigated there manually; the only difference is the trigger.
+- **Resilient fallback**: if `shortcuts://run-shortcut` fails (shortcut deleted from user's library), iOS shows its own "couldn't find shortcut" alert. The wizard's Step 1 affordance remains the recovery path — tapping it always re-opens the iCloud share URL.
 - **Tests**: URL parsing happy-path and malformed-input cases. The Shortcuts → URL → app → import wiring is verified manually since Shortcuts isn't simulated in CI.
 
 ### Out of scope (explicit)
 
 - **Auto-vibing on import** — imported podcasts go into the All library only. The user tags them into vibes afterward. Same posture as OPML import.
-- **Apple-Originals / paid Apple Podcasts subscriptions** — shows that have no public RSS Feed URL (Apple-exclusive content). The shortcut filters these out by skipping podcasts where `Feed URL` is empty. Vibecast never sees them and never reports them. Surfacing "N shows couldn't be imported because they're Apple-only" is a future polish if users complain.
-- **Two-way sync** — this is one-shot import, not ongoing mirroring of Apple Podcasts subscriptions.
-- **Auto-detection of "shortcut is installed"** — iOS provides no API to inspect another app's shortcut library. We track install state via UserDefaults and the user-initiated install action.
+- **Title preview in Step 3** — the wizard shows a count of incoming podcasts, not their titles. We'd need to fetch RSS per feed to resolve titles, which is exactly the work `importFeeds` does, and doing it twice (preview then import) wastes a round-trip. v2 polish if users request it.
+- **Apple-Originals / paid Apple Podcasts subscriptions** — shows that have no public RSS Feed URL (Apple-exclusive content). The shortcut filters these out by skipping podcasts where `Feed URL` is empty. Vibecast never sees them.
+- **Two-way sync** — this is one-shot import, not ongoing mirroring of Apple Podcasts subscriptions. Re-running the shortcut later re-imports any new subscriptions; the dedupe layer in `subscribe(to:)` handles already-present shows.
+- **Auto-detection of "shortcut is installed"** — iOS provides no API to inspect another app's shortcut library. We track Step 1's ✓ via UserDefaults as a "user-acknowledged" signal, not a true install check.
+- **Background/silent import** — the user must explicitly tap "Import N Podcasts" in Step 3. We do not auto-import on URL receipt even when the wizard isn't open — auto-presenting the wizard is the strongest action we take without confirmation.
+- **Persisted payload across app launches** — `pendingFeedURLs` lives in memory only. If the app is killed between Step 2 and Step 3, the user re-runs the shortcut. Persisting payloads to disk would muddy the 5-minute freshness model and add storage we'd need to clean up.
 - **Other URL scheme actions** — `vibecast://` is reserved for future deep links but this plan only ships `import-feeds`. We do not enumerate `vibecast://play/<episode-id>` or similar in this spec.
 - **Universal Links** — not needed; we're not handling web URLs.
 - **macOS helper script** — superseded by the Shortcuts approach.
 
 ## Architecture
 
-Three units, each with one responsibility and a narrow interface to the next.
+Four units, each with one responsibility and a narrow interface to the next.
 
 ### 1. The shortcut (iCloud-hosted)
 
@@ -79,16 +86,51 @@ CFBundleURLTypes:
 
 Identical pattern to the existing OPML pickup path — same dedupe, same per-feed failure swallow, same `ImportSummary` shape. The only new public surface is `importFeeds(_:)` on `SubscriptionManager`.
 
-### 3. `AddPodcastSheet` UI
+### 3. `AddPodcastSheet` UI + wizard sub-sheet
 
-A new row, "Import from Apple Podcasts," matching the layout of the existing "Import from File" row.
+A new row, "Import from Apple Podcasts," matching the layout of the existing "Import from File" row. Tapping it presents `ApplePodcastsImportWizard` as a sub-sheet.
 
-Behavior driven by `@AppStorage("hasInstalledApplePodcastsImportShortcut") var hasInstalled: Bool = false`:
+The wizard renders three vertically-stacked steps, each with a leading status indicator (empty circle → ✓), a one-line title, a short description, and a primary action button.
 
-- `!hasInstalled`: tap opens the hosted iCloud share URL. After Shortcuts.app finishes installing (we can't observe this directly), we optimistically set `hasInstalled = true` on the next foreground return after the install URL was opened — guarded by a one-shot "we just opened the install URL" flag so we don't flip the bit on unrelated backgroundings.
-- `hasInstalled`: tap opens `shortcuts://run-shortcut?name=Vibecast%20Import`. Shortcuts.app runs the shortcut, which then re-opens Vibecast with the `vibecast://import-feeds?urls=...` URL.
+**Step 1 — Install Shortcut**
 
-A secondary "Re-install Shortcut" affordance is reachable from inside the sheet (e.g. a small "Having trouble?" link) and re-opens the iCloud share URL — for users who deleted the shortcut from their library and need to recover.
+- Description: "Add the Vibecast Import shortcut to your Shortcuts app. This only needs to happen once."
+- Button: "Install Shortcut" → `UIApplication.shared.open(iCloudShareURL)`.
+- ✓ state: when `@AppStorage("hasOpenedApplePodcastsImportShortcutInstall") == true`. Set the flag immediately on tap; we can't observe the actual install, but we use this as a "user has acknowledged Step 1" signal so Step 2 becomes enabled. Step 1 button remains tappable post-✓ for the re-install case.
+
+**Step 2 — Run Shortcut**
+
+- Description: "Open the shortcut and run it. It reads your Apple Podcasts subscriptions and sends them here."
+- Button: "Run Shortcut" → `UIApplication.shared.open(URL(string: "shortcuts://run-shortcut?name=Vibecast%20Import")!)`. Disabled until Step 1 ✓.
+- ✓ state: when `ApplePodcastsImportSession.shared.pendingFeedURLs` is non-nil AND `receivedAt` is within the freshness window (5 minutes).
+
+**Step 3 — Import**
+
+- Description: dynamic based on session state.
+  - No payload received: "Run the shortcut to see what's ready to import."
+  - Payload received: "Found N podcasts ready to import. {M of these are already in your library.}"
+- Button: "Import N Podcasts" → calls `SubscriptionManager.importFeeds(_:)`. Disabled until Step 2 ✓.
+- During import: button replaced by a progress row showing "Importing… (k of N)". A bool on `SubscriptionManager` (`isImportingFeeds`) drives this; mirrors `isImportingOPML`.
+- On completion: replaced by a summary row ("Imported 23 · Already subscribed 4 · Failed 1") and a "Done" button that dismisses both sheets.
+
+**Layout / styling**
+
+Follows the project's existing editorial language: paper-warm background, Inter-medium for titles, Inter-regular for descriptions, mono-eyebrow uppercase "STEP 1/2/3" labels above each step's title. Status circles fill with `Brand.Color.accent` when ✓. Tap targets ≥ 44pt. No iconography beyond the status circle — the existing AddPodcastSheet keeps its visual restraint.
+
+### 4. Pending-import session
+
+`ApplePodcastsImportSession` — a tiny `@Observable @MainActor final class` with `static let shared`. State:
+
+```swift
+var pendingFeedURLs: [URL]? = nil
+var receivedAt: Date? = nil
+var shouldPresentWizard: Bool = false
+```
+
+- `VibecastURLHandler` writes to it on receiving a valid `vibecast://import-feeds` URL.
+- `SubscriptionsListView` observes `shouldPresentWizard` and, when true, presents `AddPodcastSheet` with the wizard auto-shown, then immediately resets the flag to false so re-opens require a new shortcut run.
+- The wizard reads `pendingFeedURLs` + `receivedAt` for Step 2/3 state, and clears them when the user successfully imports or dismisses.
+- A 5-minute freshness check (`Date().timeIntervalSince(receivedAt) < 300`) avoids importing stale data from a long-abandoned run.
 
 ## Data flow
 
@@ -113,24 +155,40 @@ Apple Podcasts subscriptions
   Parse, split, dedupe, validate
         │
         ▼
+[ApplePodcastsImportSession.shared]
+  pendingFeedURLs = [URL]
+  receivedAt = .now
+  shouldPresentWizard = true (if wizard not already visible)
+        │
+        ▼
+[Wizard sub-sheet — Step 3 enabled]
+  Renders "Found N podcasts ready to import"
+  User taps "Import N Podcasts"
+        │
+        ▼
 [SubscriptionManager.importFeeds([URL])]
+  isImportingFeeds = true
   Per URL: skip if already subscribed
            else subscribe(to: URL)  — existing path
   Tally ImportSummary
+  isImportingFeeds = false
         │
         ▼
-[ToastCenter] "Imported N shows, skipped M"
+[Wizard — summary row]
+  "Imported N · Already subscribed M · Failed F"
+  User taps "Done" → dismiss wizard + AddPodcastSheet
 ```
 
 ## Error handling
 
-- **No URLs in payload**: `urls` query is empty or contains only whitespace → show toast "No podcasts to import." Don't error-crash.
-- **All URLs malformed**: same toast; the user re-runs.
-- **Some URLs fail to fetch RSS**: same as OPML — tallied into `failed`. No retry UI in v1; user can re-run.
-- **All-Apple-originals library**: shortcut filters them out before sending. If the resulting URL list is empty, the import-feeds handler shows "No subscribable podcasts found — all your shows appear to be Apple Originals." (Plain-language explanation, no error tone.)
-- **Shortcut not installed**: `shortcuts://run-shortcut?name=Vibecast%20Import` fails. iOS shows its own alert. Our "Re-install Shortcut" affordance is the recovery path.
-- **User taps Import-from-Apple-Podcasts but Shortcuts.app isn't installed at all** (rare — Shortcuts is bundled with iOS): the `shortcuts://` URL won't open. We detect via `UIApplication.shared.canOpenURL` before the tap commits, and surface a help row pointing to the App Store listing for Shortcuts.
-- **Re-running with already-subscribed shows**: `SubscriptionManager.subscribe(to: URL)` already guards against duplicates. The summary distinguishes `succeeded` from `alreadySubscribed`.
+- **No URLs in payload**: `urls` query is empty or contains only whitespace → `pendingFeedURLs` set to `[]`. Step 3 renders "No subscribable podcasts found in your Apple Podcasts library — your shows may all be Apple Originals." Import button hidden; "Done" dismisses.
+- **All URLs malformed**: URL handler filters them out, same empty-list state as above.
+- **Some URLs fail to fetch RSS**: same as OPML — tallied into `failed`. Surfaced in the wizard's final summary row.
+- **Shortcut not installed**: `shortcuts://run-shortcut?name=Vibecast%20Import` fails. iOS shows its own "couldn't find shortcut" alert. Step 1 in the wizard remains tappable post-✓ specifically for this recovery — the user re-taps "Install Shortcut" to re-open the iCloud share URL.
+- **Shortcuts.app isn't installed at all** (rare — Shortcuts is bundled with iOS but can be removed): `UIApplication.shared.canOpenURL(URL(string: "shortcuts://")!)` returns false. Step 2's button copy and behavior change to "Install Shortcuts.app" linking to the App Store listing.
+- **Stale received payload**: if `receivedAt` is older than 5 minutes when the wizard opens, Step 2 reverts to its pre-✓ state and Step 3 shows "Last run is too old — please run the shortcut again." Prevents auto-import of a long-abandoned payload after the user has changed their Apple Podcasts subscriptions in the meantime.
+- **Re-running with already-subscribed shows**: `SubscriptionManager.subscribe(to: URL)` already guards against duplicates. The wizard's summary distinguishes `succeeded` from `alreadySubscribed` from `failed`.
+- **User backgrounds during import**: same as OPML — the import task is on the main actor and survives backgrounding. On foreground return, the wizard shows whatever state the import progressed to.
 
 ## Testing
 
@@ -138,24 +196,36 @@ Apple Podcasts subscriptions
   - Happy-path parse: one feed, multiple feeds, mixed whitespace, trailing newline.
   - Malformed: invalid URLs in list (filter, don't crash), empty `urls` param, missing `urls` param, wrong host (`vibecast://unknown` → no-op).
   - Dedup: same URL appearing twice in the payload counts once.
+- **Unit tests** on `ApplePodcastsImportSession`:
+  - Receiving a payload sets `pendingFeedURLs`, `receivedAt`, and `shouldPresentWizard`.
+  - Within freshness window: state remains "ready."
+  - After 5+ minutes: state reads as "stale."
+  - `clear()` resets all three fields.
 - **Integration test** on `SubscriptionManager.importFeeds(_:)`:
   - Empty list → no fetches, summary attempted=0.
   - All already-subscribed → no fetches, summary `alreadySubscribed=N`, succeeded=0.
   - Mix of new + already-subscribed + fetch-failures → summary tallies match.
 - **Manual verification** (no automated test possible for cross-app flow):
-  - First-time install flow: tap Import → iCloud opens → Add Shortcut → return → flag flips → next tap runs shortcut.
-  - End-to-end: run shortcut with a real Apple Podcasts library → Vibecast opens → import summary toasts → shows appear in All.
-  - Re-install path: delete shortcut from Shortcuts.app → next run shows iOS "not found" alert → "Re-install Shortcut" affordance recovers.
-  - Re-running on an already-fully-imported library: summary should read mostly `alreadySubscribed`.
+  - First-time wizard flow: tap "Import from Apple Podcasts" → wizard opens at Step 1 → tap Install → iCloud opens → Add Shortcut → return → Step 1 ✓, Step 2 enabled.
+  - Step 2 → Step 3: tap Run → Shortcuts.app runs the shortcut → Vibecast re-foregrounds → wizard shows ✓ on Step 2, "Found N podcasts" on Step 3.
+  - Step 3 import: tap "Import N Podcasts" → progress row → summary row → shows appear in All view after Done.
+  - Auto-present: close the wizard, run shortcut from Shortcuts.app directly → Vibecast foregrounds → AddPodcastSheet + wizard auto-open to Step 3.
+  - Stale payload: run shortcut, leave wizard alone for 6 minutes → reopen → Step 2 reverts to "Run the shortcut again."
+  - Re-install path: delete shortcut from Shortcuts.app → tap Run in Step 2 → iOS "not found" alert → tap Install in Step 1 → re-install flow works.
+  - Re-running on an already-fully-imported library: summary reads `alreadySubscribed=N`, `succeeded=0`.
 
 ## File touch list
 
-- **Create**: `Vibecast/Vibecast/Discovery/VibecastURLHandler.swift` — parses `vibecast://...` URLs and dispatches to `SubscriptionManager`.
-- **Create**: `Vibecast/VibecastTests/VibecastURLHandlerTests.swift` — parser tests.
+- **Create**: `Vibecast/Vibecast/Discovery/VibecastURLHandler.swift` — parses `vibecast://...` URLs and writes parsed feed URLs into `ApplePodcastsImportSession`.
+- **Create**: `Vibecast/Vibecast/Discovery/ApplePodcastsImportSession.swift` — `@Observable @MainActor` singleton holding the pending payload + freshness timestamp + auto-present trigger.
+- **Create**: `Vibecast/Vibecast/Views/ApplePodcastsImportWizard.swift` — the wizard sub-sheet view with the three-step UI.
+- **Create**: `Vibecast/VibecastTests/VibecastURLHandlerTests.swift` — URL parser tests.
+- **Create**: `Vibecast/VibecastTests/ApplePodcastsImportSessionTests.swift` — session freshness / state-transition tests.
 - **Modify**: `Vibecast/Vibecast/Vibecast.xcodeproj/.../Info.plist` — register `CFBundleURLTypes` with `vibecast` scheme.
-- **Modify**: `Vibecast/Vibecast/VibecastApp.swift` — attach `.onOpenURL { url in VibecastURLHandler.handle(url, ...) }`.
-- **Modify**: `Vibecast/Vibecast/Discovery/SubscriptionManager.swift` — add `func importFeeds(_ urls: [URL]) async` mirroring `importOPML`'s tally pattern. Reuses existing `subscribe(to: URL)`.
-- **Modify**: `Vibecast/Vibecast/Views/AddPodcastSheet.swift` — add "Import from Apple Podcasts" row + first-time install flow + re-install affordance. Add Swift constant for the iCloud share URL.
+- **Modify**: `Vibecast/Vibecast/VibecastApp.swift` — attach `.onOpenURL { url in VibecastURLHandler.handle(url) }` at the app root, inject `ApplePodcastsImportSession.shared` into the environment.
+- **Modify**: `Vibecast/Vibecast/Discovery/SubscriptionManager.swift` — add `func importFeeds(_ urls: [URL]) async` mirroring `importOPML`'s tally pattern, plus an `isImportingFeeds: Bool` flag for the wizard progress row. Reuses existing `subscribe(to: URL)`.
+- **Modify**: `Vibecast/Vibecast/Views/AddPodcastSheet.swift` — add "Import from Apple Podcasts" row at the bottom of the existing rows; row taps present the wizard. Add `iCloudShortcutInstallURL` constant (placeholder until shortcut is published).
+- **Modify**: `Vibecast/Vibecast/Views/SubscriptionsListView.swift` — observe `ApplePodcastsImportSession.shared.shouldPresentWizard`; when true, present `AddPodcastSheet` with the wizard pre-opened.
 - **Modify**: `Vibecast/VibecastTests/SubscriptionManagerTests.swift` — add `importFeeds` tests.
 
 ## Open questions / known unknowns
