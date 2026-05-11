@@ -22,11 +22,15 @@ struct SubscriptionsListView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                // Vibe color band layered behind the List so it can bleed
-                // past the top safe area into the status-bar / camera-pill
-                // region. Height covers the masthead + safe-area top with
-                // some headroom; the gradient fades to transparent so the
-                // List's paper-warm bg shows through below the masthead.
+                // Paper base + vibe color band layered behind a transparent
+                // List so the gradient can bleed past the top safe area into
+                // the status-bar / camera-pill region. The masthead row is
+                // clear so the gradient shows through; rows below set their
+                // own paper background and obscure the (already-faded-out)
+                // bottom of the gradient.
+                Brand.Color.bg
+                    .ignoresSafeArea()
+
                 if let active = activeVibe {
                     LinearGradient(
                         colors: [active.colorKey.chip, Brand.Color.bg.opacity(0)],
@@ -58,7 +62,7 @@ struct SubscriptionsListView: View {
                     onTapAdd: { showAddSheet = true }
                 )
                 .listRowInsets(EdgeInsets())
-                .listRowBackground(Brand.Color.bg)
+                .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
                 .moveDisabled(true)
                 .deleteDisabled(true)
@@ -232,7 +236,6 @@ struct SubscriptionsListView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Brand.Color.bg)
             .environment(\.editMode, $editMode)
             .toolbar(.hidden, for: .navigationBar)
             .onChange(of: activeVibe) { _, _ in

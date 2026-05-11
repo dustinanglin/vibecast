@@ -4,22 +4,27 @@ import SwiftUI
 /// StackIcon2 SVG in `docs/design/vibecast-visual-prototypes/project/
 /// vibes-entry-v2.jsx`: a top-down view of three layered plates — top is a
 /// closed diamond, the two below are open V-shapes that peek out from
-/// underneath. Drawn in pure black so the icon reads as the primary
-/// affordance for "manage vibes" without competing with the masthead's
-/// vibe-tinted color band.
+/// underneath. Wrapped in a black filled circle with the glyph in paper-
+/// white so it reads as the primary affordance for "manage vibes" against
+/// the masthead's vibe-tinted color band.
 struct StackIcon: View {
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            StackedPlatesShape()
-                .stroke(
-                    Color.black,
-                    style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round)
-                )
-                .frame(width: 22, height: 22)
-                .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
+            ZStack {
+                Circle()
+                    .fill(Color.black)
+                    .frame(width: 36, height: 36)
+                StackedPlatesShape()
+                    .stroke(
+                        Brand.Color.paper,
+                        style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round)
+                    )
+                    .frame(width: 20, height: 20)
+            }
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Manage vibes")
