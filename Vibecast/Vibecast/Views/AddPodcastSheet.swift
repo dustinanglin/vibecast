@@ -110,6 +110,12 @@ private struct LoadedSheet: View {
                 Text("Couldn't parse OPML file. Make sure it's a valid OPML export.")
             }
             .presentationDragIndicator(.hidden)
+            .onAppear {
+                if ApplePodcastsImportSession.shared.shouldPresentWizard {
+                    showApplePodcastsWizard = true
+                    ApplePodcastsImportSession.shared.shouldPresentWizard = false
+                }
+            }
         }
     }
 
