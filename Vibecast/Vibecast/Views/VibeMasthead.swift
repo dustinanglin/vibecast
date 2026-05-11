@@ -99,14 +99,17 @@ struct VibeMasthead: View {
                 .padding(.top, 8)
 
             // Row 4: pagination dots — pinned, active dot tinted by state.
-            HStack(spacing: 6) {
-                ForEach(0..<slotCount, id: \.self) { idx in
-                    Circle()
-                        .fill(idx == activeIndex ? dotActiveColor : Brand.Color.inkHairline)
-                        .frame(width: 6, height: 6)
+            // Hidden when there are no vibes; a single dot is just noise.
+            if slotCount > 1 {
+                HStack(spacing: 6) {
+                    ForEach(0..<slotCount, id: \.self) { idx in
+                        Circle()
+                            .fill(idx == activeIndex ? dotActiveColor : Brand.Color.inkHairline)
+                            .frame(width: 6, height: 6)
+                    }
                 }
+                .padding(.top, 14)
             }
-            .padding(.top, 14)
 
             // Row 5: Start / Vibing / Resume pill — color, icon, and copy
             // adapt based on whether the displayed vibe is also the queue's
@@ -203,6 +206,9 @@ struct VibeMasthead: View {
     }
 
     private func advance(by step: Int) {
+        // No vibes → no carousel. Swipe is a no-op so the wordmark doesn't
+        // animate "Vibecast" out and back in for no reason.
+        guard slotCount > 1 else { return }
         let nextDisplay = displayIndex + step
         let nextLogical = logicalIndex(for: nextDisplay)
 
