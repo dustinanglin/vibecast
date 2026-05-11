@@ -5,6 +5,13 @@ struct PodcastRowView: View {
     let snapshot: PodcastRowSnapshot
     var isCurrent: Bool = false
     var isPlaying: Bool = false
+    var vibeDots: [VibeColorKey] = []
+    /// Color of the now-playing decoration (lava border, halo, top progress
+    /// bar, position-slot accent circle, "N IN" eyebrow text, and right-side
+    /// play/pause fill). Defaults to the brand accent (teal); callers driving
+    /// playback from a vibe pass that vibe's band color so the row carries
+    /// the vibe identity. Only consumed in the .nowPlaying row state.
+    var nowPlayingTint: Color = Brand.Color.accent
     let onPlay: () -> Void
     let onOpenDetail: () -> Void
 
@@ -41,7 +48,7 @@ struct PodcastRowView: View {
         switch rowState {
         case .nowPlaying:
             cardContent
-                .nowPlayingCard(progressFraction: progressFraction)
+                .nowPlayingCard(progressFraction: progressFraction, tint: nowPlayingTint)
         case .unplayed, .started, .played:
             HStack(spacing: 0) {
                 Rectangle()
@@ -94,7 +101,7 @@ struct PodcastRowView: View {
         case .nowPlaying:
             ZStack {
                 Circle()
-                    .fill(Brand.Color.accent)
+                    .fill(nowPlayingTint)
                     .frame(width: 20, height: 20)
                 NowPlayingIndicator(isPlaying: isPlaying, color: Brand.Color.paper)
             }
@@ -114,8 +121,16 @@ struct PodcastRowView: View {
     private func metadata(episode: EpisodeRowSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             eyebrow(episode: episode)
+            // Title self-sizes (1 or 2 lines as needed). The original 2-line
+            // reservation kept rows uniform but introduced a visible gap before
+            // the vibe-dots row in the started state where italic Fraunces is
+            // narrow enough that the title often fits on one line. Variable
+            // row height is already in play since vibe-dots rows make rows
+            // taller than dot-less rows.
             titleText(episode: episode)
-                .frame(minHeight: 16 * 1.22 * 2, alignment: .topLeading)  // 2-line reservation
+            if !vibeDots.isEmpty {
+                VibeDotsRow(keys: vibeDots)
+            }
             footnote(episode: episode)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -213,7 +228,7 @@ struct PodcastRowView: View {
                 Text("·")
                     .foregroundStyle(Brand.Color.inkFaint)
                 Text("\(episode.formattedElapsed.uppercased()) IN")
-                    .foregroundStyle(Brand.Color.accent)
+                    .foregroundStyle(nowPlayingTint)
             }
             .font(Brand.Font.monoEyebrow())
             .tracking(Brand.Layout.monoTracking)
@@ -233,7 +248,7 @@ struct PodcastRowView: View {
         case .nowPlaying:
             Button(action: onPlay) {
                 ZStack {
-                    Circle().fill(Brand.Color.accent).frame(width: 38, height: 38)
+                    Circle().fill(nowPlayingTint).frame(width: 38, height: 38)
                     Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Brand.Color.paper)
@@ -303,6 +318,26 @@ private struct ProgressRing: View {
                 .rotationEffect(.degrees(-90))
         }
         .frame(width: size, height: size)
+    }
+}
+
+private struct VibeDotsRow: View {
+    let keys: [VibeColorKey]
+    private let maxVisible = 3
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(Array(keys.prefix(maxVisible).enumerated()), id: \.offset) { _, key in
+                Circle()
+                    .fill(key.band)
+                    .frame(width: 6, height: 6)
+            }
+            if keys.count > maxVisible {
+                Text("+\(keys.count - maxVisible)")
+                    .font(Brand.Font.monoEyebrow(size: 9))
+                    .foregroundStyle(Brand.Color.inkMuted)
+            }
+        }
     }
 }
 

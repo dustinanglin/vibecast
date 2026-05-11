@@ -1,0 +1,36 @@
+import SwiftData
+import Foundation
+
+/// Persistent queue state, modeled as a single-row table. Use
+/// `fetchOrCreate(in:)` to get the row; never `init` directly except inside
+/// the helper.
+@Model
+final class QueueState {
+    // Explicit `.nullify` rules so deleting a Vibe / Podcast / Episode
+    // cleanly clears the matching pointer here without dragging the
+    // singleton row down with it. Default for to-one relationships is
+    // already nullify, but stating it removes ambiguity for the next reader.
+    @Relationship(deleteRule: .nullify) var sourceVibe: Vibe?
+    @Relationship(deleteRule: .nullify) var currentPodcast: Podcast?
+    @Relationship(deleteRule: .nullify) var currentEpisode: Episode?
+    var lastUpdated: Date
+
+    init() {
+        self.lastUpdated = .now
+    }
+
+    /// Fetch the singleton row, creating it if absent. Caller is responsible
+    /// for `try context.save()` after mutation. Throws if the underlying fetch
+    /// fails (e.g. schema corruption); the caller decides whether to log,
+    /// recover, or fatal-error. Not safe to call concurrently on the same
+    /// `ModelContext` — intended for `@MainActor` use.
+    static func fetchOrCreate(in context: ModelContext) throws -> QueueState {
+        let descriptor = FetchDescriptor<QueueState>()
+        if let existing = try context.fetch(descriptor).first {
+            return existing
+        }
+        let new = QueueState()
+        context.insert(new)
+        return new
+    }
+}

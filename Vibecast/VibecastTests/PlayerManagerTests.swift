@@ -13,7 +13,7 @@ final class PlayerManagerTests: XCTestCase {
 
     override func setUp() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        container = try ModelContainer(for: Podcast.self, Episode.self, configurations: config)
+        container = try ModelContainer(for: Podcast.self, Episode.self, Vibe.self, VibeMembership.self, QueueState.self, configurations: config)
         context = ModelContext(container)
 
         podcast = Podcast(title: "T", author: "A", artworkURL: nil, feedURL: "https://example.com/f")

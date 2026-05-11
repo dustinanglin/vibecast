@@ -11,7 +11,7 @@ struct VibecastApp: App {
     init() {
         let c: ModelContainer
         do {
-            c = try ModelContainer(for: Podcast.self, Episode.self)
+            c = try ModelContainer(for: Podcast.self, Episode.self, Vibe.self, VibeMembership.self, QueueState.self)
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }
@@ -33,6 +33,7 @@ struct VibecastApp: App {
                 importer: StandardOPMLImporter(),
                 modelContext: c.mainContext
             )
+            try? VibeSeeder.seedIfNeeded(in: c.mainContext)
             return (p, s)
         }
         _playerManager = State(initialValue: player)

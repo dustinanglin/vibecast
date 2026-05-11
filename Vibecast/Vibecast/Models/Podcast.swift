@@ -11,6 +11,8 @@ final class Podcast {
     var lastFetchedAt: Date?
     var iTunesCollectionId: Int?
     @Relationship(deleteRule: .cascade) var episodes: [Episode]
+    @Relationship(deleteRule: .cascade, inverse: \VibeMembership.podcast)
+    var vibeMemberships: [VibeMembership] = []
 
     init(
         title: String,
