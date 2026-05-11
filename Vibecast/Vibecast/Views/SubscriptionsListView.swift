@@ -170,14 +170,6 @@ struct SubscriptionsListView: View {
                 // before the new list lays out.
                 if editMode.isEditing { editMode = .inactive }
             }
-            .onChange(of: vibes) { _, newVibes in
-                // If the currently-active vibe was deleted, reset to All so
-                // we don't render rows from a deleted Vibe's stale relationship.
-                if let active = activeVibe,
-                   !newVibes.contains(where: { $0.persistentModelID == active.persistentModelID }) {
-                    activeVibe = nil
-                }
-            }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
                 Task { await subscriptionManager?.refreshAllIfStale() }
@@ -307,11 +299,13 @@ struct SubscriptionsListView: View {
 
     private var filteredPodcasts: [Podcast] {
         guard let active = activeVibe else { return visiblePodcasts }
-        // Defensive: if the active vibe was deleted but our .onChange handler
-        // hasn't fired yet (one-frame window), fall through to All-mode
-        // rather than touching a stale Vibe's relationships.
+        // Defensive: if the active vibe was deleted (we're inside the one-frame
+        // window before VibeMasthead's .onChange resyncs activeVibe to the
+        // vibe that now lives at this slot), return EMPTY rather than falling
+        // through to visiblePodcasts. Showing the All-view library when the
+        // masthead is showing a vibe is the wrong kind of mismatch.
         guard vibes.contains(where: { $0.persistentModelID == active.persistentModelID }) else {
-            return visiblePodcasts
+            return []
         }
         let memberships = active.memberships.sorted(by: { $0.position < $1.position })
         let podcasts = memberships.compactMap { $0.podcast }

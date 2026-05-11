@@ -147,6 +147,22 @@ struct VibeMasthead: View {
             guard width > 0 else { return }
             slotWidth = width
         }
+        .onChange(of: vibes.map(\.persistentModelID)) { _, _ in
+            // Vibe list changed (delete / create / reorder). Clamp the
+            // carousel into the new real range and resync activeVibe to
+            // whatever lives at the current slot — so deleting the vibe
+            // you're looking at lands you on the *next* vibe at that slot
+            // (rather than collapsing back to All or leaving a stale
+            // pointer to a deleted Vibe).
+            let realRange = 1...max(1, slotCount)
+            if !realRange.contains(displayIndex) {
+                displayIndex = max(realRange.lowerBound, min(realRange.upperBound, displayIndex))
+            }
+            let synced = currentVibe(at: logicalIndex(for: displayIndex))
+            if synced?.persistentModelID != activeVibe?.persistentModelID {
+                activeVibe = synced
+            }
+        }
         .contentShape(Rectangle())
         .gesture(
             DragGesture()
