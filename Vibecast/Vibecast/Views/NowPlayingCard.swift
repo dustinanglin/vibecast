@@ -8,6 +8,11 @@ import SwiftUI
 /// pause/play) differ between those states. Input: `progressFraction` (0...1).
 struct NowPlayingCard: ViewModifier {
     let progressFraction: Double
+    /// Color of the border, halo, and progress bar. Default is the brand
+    /// accent (teal); callers driving playback from a specific vibe pass
+    /// that vibe's band color so the now-playing decoration carries the
+    /// vibe identity.
+    var tint: Color = Brand.Color.accent
 
     func body(content: Content) -> some View {
         content
@@ -19,7 +24,7 @@ struct NowPlayingCard: ViewModifier {
                         .frame(height: 3)
                     GeometryReader { geo in
                         Rectangle()
-                            .fill(Brand.Color.accent)
+                            .fill(tint)
                             .frame(width: max(0, min(geo.size.width * progressFraction, geo.size.width)), height: 3)
                     }
                     .frame(height: 3)
@@ -28,15 +33,15 @@ struct NowPlayingCard: ViewModifier {
             .clipShape(RoundedRectangle(cornerRadius: Brand.Radius.card))
             .overlay {
                 RoundedRectangle(cornerRadius: Brand.Radius.card)
-                    .strokeBorder(Brand.Color.accent, lineWidth: 2)
+                    .strokeBorder(tint, lineWidth: 2)
             }
-            .shadow(color: Brand.Color.accent.opacity(0.20), radius: 24, y: 8)
+            .shadow(color: tint.opacity(0.20), radius: 24, y: 8)
     }
 }
 
 extension View {
-    func nowPlayingCard(progressFraction: Double) -> some View {
-        modifier(NowPlayingCard(progressFraction: progressFraction))
+    func nowPlayingCard(progressFraction: Double, tint: Color = Brand.Color.accent) -> some View {
+        modifier(NowPlayingCard(progressFraction: progressFraction, tint: tint))
     }
 }
 

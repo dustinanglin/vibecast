@@ -6,6 +6,12 @@ struct PodcastRowView: View {
     var isCurrent: Bool = false
     var isPlaying: Bool = false
     var vibeDots: [VibeColorKey] = []
+    /// Color of the now-playing decoration (lava border, halo, top progress
+    /// bar, position-slot accent circle, "N IN" eyebrow text, and right-side
+    /// play/pause fill). Defaults to the brand accent (teal); callers driving
+    /// playback from a vibe pass that vibe's band color so the row carries
+    /// the vibe identity. Only consumed in the .nowPlaying row state.
+    var nowPlayingTint: Color = Brand.Color.accent
     let onPlay: () -> Void
     let onOpenDetail: () -> Void
 
@@ -42,7 +48,7 @@ struct PodcastRowView: View {
         switch rowState {
         case .nowPlaying:
             cardContent
-                .nowPlayingCard(progressFraction: progressFraction)
+                .nowPlayingCard(progressFraction: progressFraction, tint: nowPlayingTint)
         case .unplayed, .started, .played:
             HStack(spacing: 0) {
                 Rectangle()
@@ -95,7 +101,7 @@ struct PodcastRowView: View {
         case .nowPlaying:
             ZStack {
                 Circle()
-                    .fill(Brand.Color.accent)
+                    .fill(nowPlayingTint)
                     .frame(width: 20, height: 20)
                 NowPlayingIndicator(isPlaying: isPlaying, color: Brand.Color.paper)
             }
@@ -217,7 +223,7 @@ struct PodcastRowView: View {
                 Text("·")
                     .foregroundStyle(Brand.Color.inkFaint)
                 Text("\(episode.formattedElapsed.uppercased()) IN")
-                    .foregroundStyle(Brand.Color.accent)
+                    .foregroundStyle(nowPlayingTint)
             }
             .font(Brand.Font.monoEyebrow())
             .tracking(Brand.Layout.monoTracking)
@@ -237,7 +243,7 @@ struct PodcastRowView: View {
         case .nowPlaying:
             Button(action: onPlay) {
                 ZStack {
-                    Circle().fill(Brand.Color.accent).frame(width: 38, height: 38)
+                    Circle().fill(nowPlayingTint).frame(width: 38, height: 38)
                     Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Brand.Color.paper)
