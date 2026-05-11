@@ -61,12 +61,19 @@ final class PlayerManager: PlaybackController {
         // Restore current episode + queue source from QueueState. Do not
         // auto-resume playback — restoration just re-attaches the mini-player
         // and keeps the queue alive for the next end-of-episode advance.
+        // We DO pre-load the audio engine at the restored position so the
+        // user's first tap on the mini-player's play button (or a scrub)
+        // resumes immediately rather than no-op'ing against an empty engine.
         if let state = queueState(),
            let restoredEpisode = state.currentEpisode {
             self.currentEpisode = restoredEpisode
             self.elapsed = restoredEpisode.playbackPosition
             self.lastPersistedAt = restoredEpisode.playbackPosition
             self.isPlaying = false
+            if let url = URL(string: restoredEpisode.audioURL), !restoredEpisode.audioURL.isEmpty {
+                engine.load(url: url, startAt: restoredEpisode.playbackPosition)
+            }
+            publishNowPlaying()
         }
     }
 
