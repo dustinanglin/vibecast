@@ -1,5 +1,0 @@
-Vibecast Import shortcut iCloud share URL (captured Task 1):
-
-https://www.icloud.com/shortcuts/0ae2aab97c48454ea62d3a4943a44a53
-
-This file is consumed at Task 8 Step 5 and then deleted from the worktree.

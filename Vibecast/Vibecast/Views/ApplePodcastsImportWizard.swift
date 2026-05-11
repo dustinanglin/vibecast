@@ -29,7 +29,7 @@ struct ApplePodcastsImportWizard: View {
     /// hand-constructed `vibecast://import-feeds?urls=…` URL pasted via the
     /// simulator's URL-open menu (Device → Open URL).
     private static let iCloudShortcutInstallURL =
-        URL(string: "https://www.icloud.com/shortcuts/PLACEHOLDER")!
+        URL(string: "https://www.icloud.com/shortcuts/0ae2aab97c48454ea62d3a4943a44a53")!
 
     private static let runShortcutURL =
         URL(string: "shortcuts://run-shortcut?name=Vibecast%20Import")!

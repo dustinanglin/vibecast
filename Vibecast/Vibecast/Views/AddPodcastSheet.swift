@@ -38,6 +38,7 @@ private struct LoadedSheet: View {
     @State private var showFileImporter = false
     @State private var showImportSummaryAlert = false
     @State private var showImportFailureAlert = false
+    @State private var showApplePodcastsWizard: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -72,10 +73,16 @@ private struct LoadedSheet: View {
             }
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search podcasts")
             .safeAreaInset(edge: .top) {
-                importButton
-                    .padding(.horizontal, Brand.Layout.rowPadding)
-                    .padding(.bottom, 8)
-                    .background(Brand.Color.bg)
+                VStack(spacing: 8) {
+                    applePodcastsImportButton
+                    importButton
+                }
+                .padding(.horizontal, Brand.Layout.rowPadding)
+                .padding(.bottom, 8)
+                .background(Brand.Color.bg)
+            }
+            .sheet(isPresented: $showApplePodcastsWizard) {
+                ApplePodcastsImportWizard()
             }
             .task(id: query) {
                 try? await Task.sleep(nanoseconds: 300_000_000)
@@ -163,6 +170,25 @@ private struct LoadedSheet: View {
                 .background(Brand.Color.bg)
             }
         }
+    }
+
+    private var applePodcastsImportButton: some View {
+        Button {
+            showApplePodcastsWizard = true
+        } label: {
+            Label("Import from Apple Podcasts", systemImage: "applelogo")
+                .font(Brand.Font.uiButton())
+                .foregroundStyle(Brand.Color.ink)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Brand.Color.paper)
+                .clipShape(RoundedRectangle(cornerRadius: Brand.Radius.inline))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Brand.Radius.inline)
+                        .strokeBorder(Brand.Color.inkHairline, lineWidth: Brand.Layout.hairlineWidth)
+                )
+        }
+        .buttonStyle(.plain)
     }
 
     private var importButton: some View {
