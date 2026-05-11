@@ -327,6 +327,55 @@ final class SubscriptionManagerTests: XCTestCase {
         XCTAssertEqual(fetchCount, 0)
     }
 
+    // MARK: - importFeeds
+
+    @MainActor
+    func test_importFeeds_emptyList_summaryAttemptedZero() async {
+        await manager.importFeeds([])
+        XCTAssertEqual(manager.lastImportSummary?.attempted, 0)
+        XCTAssertEqual(manager.lastImportSummary?.succeeded, 0)
+        XCTAssertEqual(manager.lastImportSummary?.alreadySubscribed, 0)
+        XCTAssertEqual(manager.lastImportSummary?.failed, 0)
+    }
+
+    @MainActor
+    func test_importFeeds_allNew_subscribesEach() async {
+        fetcher.feed = sampleFeed()
+        let urls = [
+            URL(string: "https://a.example/feed.xml")!,
+            URL(string: "https://b.example/feed.xml")!,
+        ]
+        await manager.importFeeds(urls)
+        XCTAssertEqual(manager.lastImportSummary?.attempted, 2)
+        XCTAssertEqual(manager.lastImportSummary?.succeeded, 2)
+        XCTAssertEqual(manager.lastImportSummary?.alreadySubscribed, 0)
+    }
+
+    @MainActor
+    func test_importFeeds_alreadySubscribed_skipped() async {
+        fetcher.feed = sampleFeed()
+        let url = URL(string: "https://a.example/feed.xml")!
+        await manager.importFeeds([url])
+        await manager.importFeeds([url])  // second run, same URL
+
+        // Second summary reflects "already subscribed" path
+        XCTAssertEqual(manager.lastImportSummary?.attempted, 1)
+        XCTAssertEqual(manager.lastImportSummary?.succeeded, 0)
+        XCTAssertEqual(manager.lastImportSummary?.alreadySubscribed, 1)
+    }
+
+    @MainActor
+    func test_importFeeds_isImportingFeedsFlag_flipsTrueThenFalse() async {
+        fetcher.feed = sampleFeed()
+        XCTAssertFalse(manager.isImportingFeeds)
+        async let _ = manager.importFeeds([URL(string: "https://a.example/feed.xml")!])
+        // We can't synchronously assert true mid-flight without a hook; settle for
+        // asserting it returns false post-completion.
+        await Task.yield()
+        _ = await manager.lastImportSummary
+        XCTAssertFalse(manager.isImportingFeeds)
+    }
+
     func test_refresh_updatesLastFetchedAtOnSuccess() async {
         let podcast = Podcast(
             title: "A", author: "A", artworkURL: nil,

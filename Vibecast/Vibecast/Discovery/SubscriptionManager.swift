@@ -9,6 +9,7 @@ final class SubscriptionManager {
     private(set) var failedSubscribes: Set<URL> = []
     private(set) var lastImportSummary: ImportSummary?
     private(set) var isImportingOPML: Bool = false
+    private(set) var isImportingFeeds: Bool = false
 
     /// Auto-clear duration for failed-subscribe state. Picked so a stale red
     /// error doesn't linger after the user has moved on.
@@ -155,6 +156,46 @@ final class SubscriptionManager {
         defer { isImportingOPML = false }
 
         let urls = try importer.extractFeedURLs(from: data)
+        var succeeded = 0
+        var alreadySubscribed = 0
+        var failed = 0
+
+        for url in urls {
+            if isSubscribed(feedURL: url) {
+                alreadySubscribed += 1
+                continue
+            }
+            let beforeCount = (try? modelContext.fetchCount(FetchDescriptor<Podcast>())) ?? 0
+            await subscribe(to: url)
+            let afterCount = (try? modelContext.fetchCount(FetchDescriptor<Podcast>())) ?? 0
+            if afterCount > beforeCount {
+                succeeded += 1
+            } else {
+                failed += 1
+            }
+        }
+
+        lastImportSummary = ImportSummary(
+            attempted: urls.count,
+            succeeded: succeeded,
+            alreadySubscribed: alreadySubscribed,
+            failed: failed
+        )
+    }
+
+    /// Subscribes to a list of feed URLs sequentially, tallying results into an
+    /// `ImportSummary`. Mirrors `importOPML`'s contract except that the input is
+    /// a pre-parsed list rather than OPML XML — this is the path the Apple
+    /// Podcasts import shortcut feeds into via the `vibecast://import-feeds`
+    /// URL scheme.
+    ///
+    /// Per-feed failures are counted into the summary, not thrown. The summary
+    /// publishes through the same `lastImportSummary` channel the OPML path
+    /// uses, so existing summary-toast UI surfaces feed-import results too.
+    func importFeeds(_ urls: [URL]) async {
+        isImportingFeeds = true
+        defer { isImportingFeeds = false }
+
         var succeeded = 0
         var alreadySubscribed = 0
         var failed = 0

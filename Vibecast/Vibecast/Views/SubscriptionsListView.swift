@@ -18,6 +18,7 @@ struct SubscriptionsListView: View {
     @State private var showFullScreenPlayer = false
     @State private var pendingDeletes: Set<PersistentIdentifier> = []
     @State private var editMode: EditMode = .inactive
+    @Bindable private var applePodcastsSession = ApplePodcastsImportSession.shared
 
     var body: some View {
         NavigationStack {
@@ -243,6 +244,17 @@ struct SubscriptionsListView: View {
                 // of edit so the previous-view's drag handles disappear
                 // before the new list lays out.
                 if editMode.isEditing { editMode = .inactive }
+            }
+            .onChange(of: applePodcastsSession.shouldPresentWizard) { _, newValue in
+                // Cold-path: AddPodcastSheet isn't presented yet, so we
+                // need to pop it. The sheet's own .onAppear will consume
+                // the flag and auto-pop the wizard.
+                //
+                // Warm-path (sheet already presented) is handled inside
+                // AddPodcastSheet via .onChange on the same flag — if we
+                // reset the flag here, the cold-path's onAppear would
+                // see false and the wizard would never auto-open.
+                if newValue { showAddSheet = true }
             }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }

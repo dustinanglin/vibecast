@@ -46,6 +46,9 @@ struct VibecastApp: App {
                 .environment(\.playerManager, playerManager)
                 .environment(\.subscriptionManager, subscriptionManager)
                 .preferredColorScheme(.light)
+                .onOpenURL { url in
+                    VibecastURLHandler.handle(url, session: .shared)
+                }
         }
         .modelContainer(container)
         .onChange(of: scenePhase) { _, newPhase in

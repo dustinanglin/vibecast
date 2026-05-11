@@ -38,6 +38,7 @@ private struct LoadedSheet: View {
     @State private var showFileImporter = false
     @State private var showImportSummaryAlert = false
     @State private var showImportFailureAlert = false
+    @State private var showApplePodcastsWizard: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -72,10 +73,16 @@ private struct LoadedSheet: View {
             }
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search podcasts")
             .safeAreaInset(edge: .top) {
-                importButton
-                    .padding(.horizontal, Brand.Layout.rowPadding)
-                    .padding(.bottom, 8)
-                    .background(Brand.Color.bg)
+                VStack(spacing: 8) {
+                    applePodcastsImportButton
+                    importButton
+                }
+                .padding(.horizontal, Brand.Layout.rowPadding)
+                .padding(.bottom, 8)
+                .background(Brand.Color.bg)
+            }
+            .sheet(isPresented: $showApplePodcastsWizard) {
+                ApplePodcastsImportWizard()
             }
             .task(id: query) {
                 try? await Task.sleep(nanoseconds: 300_000_000)
@@ -103,6 +110,27 @@ private struct LoadedSheet: View {
                 Text("Couldn't parse OPML file. Make sure it's a valid OPML export.")
             }
             .presentationDragIndicator(.hidden)
+            .onAppear {
+                // Cold path: sheet just became visible because either the
+                // user tapped Add Podcast, or SubscriptionsListView popped
+                // us in response to a fresh shortcut payload. Consume the
+                // flag and auto-pop the wizard if a payload is waiting.
+                if ApplePodcastsImportSession.shared.shouldPresentWizard {
+                    showApplePodcastsWizard = true
+                    ApplePodcastsImportSession.shared.shouldPresentWizard = false
+                }
+            }
+            .onChange(of: ApplePodcastsImportSession.shared.shouldPresentWizard) { _, newValue in
+                // Warm path: sheet is already visible (user may be mid-
+                // wizard, or dismissed it but kept AddPodcastSheet open)
+                // when a new shortcut run arrives. .onAppear doesn't re-
+                // fire while the sheet stays mounted, so handle the
+                // present + flag-reset here too. Idempotent if the wizard
+                // is already on screen.
+                guard newValue else { return }
+                showApplePodcastsWizard = true
+                ApplePodcastsImportSession.shared.shouldPresentWizard = false
+            }
         }
     }
 
@@ -163,6 +191,25 @@ private struct LoadedSheet: View {
                 .background(Brand.Color.bg)
             }
         }
+    }
+
+    private var applePodcastsImportButton: some View {
+        Button {
+            showApplePodcastsWizard = true
+        } label: {
+            Label("Import from Apple Podcasts", systemImage: "applelogo")
+                .font(Brand.Font.uiButton())
+                .foregroundStyle(Brand.Color.ink)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Brand.Color.paper)
+                .clipShape(RoundedRectangle(cornerRadius: Brand.Radius.inline))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Brand.Radius.inline)
+                        .strokeBorder(Brand.Color.inkHairline, lineWidth: Brand.Layout.hairlineWidth)
+                )
+        }
+        .buttonStyle(.plain)
     }
 
     private var importButton: some View {
