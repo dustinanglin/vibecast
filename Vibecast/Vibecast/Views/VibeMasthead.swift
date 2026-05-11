@@ -187,6 +187,10 @@ struct VibeMasthead: View {
         .gesture(
             DragGesture()
                 .updating($dragOffset) { value, state, _ in
+                    // No carousel = no live drag offset. dragOffset stays at
+                    // its @GestureState default (0) so the wordmark doesn't
+                    // visually slide for a gesture that can't commit.
+                    guard slotCount > 1 else { return }
                     state = value.translation.width
                 }
                 .onEnded { value in
