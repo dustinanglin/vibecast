@@ -111,10 +111,25 @@ private struct LoadedSheet: View {
             }
             .presentationDragIndicator(.hidden)
             .onAppear {
+                // Cold path: sheet just became visible because either the
+                // user tapped Add Podcast, or SubscriptionsListView popped
+                // us in response to a fresh shortcut payload. Consume the
+                // flag and auto-pop the wizard if a payload is waiting.
                 if ApplePodcastsImportSession.shared.shouldPresentWizard {
                     showApplePodcastsWizard = true
                     ApplePodcastsImportSession.shared.shouldPresentWizard = false
                 }
+            }
+            .onChange(of: ApplePodcastsImportSession.shared.shouldPresentWizard) { _, newValue in
+                // Warm path: sheet is already visible (user may be mid-
+                // wizard, or dismissed it but kept AddPodcastSheet open)
+                // when a new shortcut run arrives. .onAppear doesn't re-
+                // fire while the sheet stays mounted, so handle the
+                // present + flag-reset here too. Idempotent if the wizard
+                // is already on screen.
+                guard newValue else { return }
+                showApplePodcastsWizard = true
+                ApplePodcastsImportSession.shared.shouldPresentWizard = false
             }
         }
     }
