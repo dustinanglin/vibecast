@@ -1,41 +1,33 @@
-// Renders the Vibecast app icon directly using CoreGraphics + CoreText with
-// the bundled Fraunces variable font. Implements the IconPeriod design from
-// docs/design/vibecast-visual-prototypes/project/vibe-logos-v2.jsx (section 3b
-// "v + period across vibes" in Vibecast Logo & Splash v2.html).
+// Renders the Vibecast app icon: top-down view of three stacked layers,
+// matching StackIcon2 in docs/design/vibecast-visual-prototypes/project/
+// vibes-entry-v2.jsx (which is also the Manage Vibes button in the app).
 //
 // Run from the repo root:
 //   swift scripts/render_app_icon.swift
 //
 // Writes Vibecast/Vibecast/Assets.xcassets/AppIcon.appiconset/Icon.png
-// (overwrites). Tweak the `weight` and `accent` constants below to iterate.
+// (overwrites).
 
 import Foundation
 import AppKit
-import CoreText
+import CoreGraphics
 
 // MARK: - Tuning knobs
 
 let size: CGFloat = 1024
-let weight: CGFloat = 600  // Fraunces wght axis: 100=thin, 400=regular, 500=medium, 600=semibold, 700=bold
 
-// "Morning" vibe orange — oklch(0.68 0.14 35) ≈ sRGB #E07A5C
-let accentHex: UInt32 = 0xE07A5C
+/// Morning vibe orange — matches the top vibe color in vibes-shared.jsx.
+/// Used for the top filled diamond so the stack reads as "the layer
+/// currently on top of the pile."
+let accentHex: UInt32 = 0xD89A4F
 
-// MARK: - Paths (relative to CWD = repo root)
+/// Width of the bottom-two stroked V's, in canvas pixels.
+let strokeWidth: CGFloat = 44
+
+// MARK: - Paths
 
 let cwd = FileManager.default.currentDirectoryPath
-let fontPath = "\(cwd)/Vibecast/Vibecast/Resources/Fonts/Fraunces[opsz,wght].ttf"
 let outPath = "\(cwd)/Vibecast/Vibecast/Assets.xcassets/AppIcon.appiconset/Icon.png"
-
-// MARK: - Register Fraunces
-
-var fontError: Unmanaged<CFError>?
-let fontURL = URL(fileURLWithPath: fontPath) as CFURL
-guard CTFontManagerRegisterFontsForURL(fontURL, .process, &fontError) else {
-    let e = fontError?.takeRetainedValue()
-    fputs("Failed to register Fraunces at \(fontPath): \(String(describing: e))\n", stderr)
-    exit(1)
-}
 
 // MARK: - Colors (matches Brand.swift)
 
@@ -48,9 +40,9 @@ func srgb(_ rgb: UInt32) -> CGColor {
     )
 }
 
-let paper = srgb(0xF4EFE6)
-let ink = srgb(0x1A1714)
-let accent = srgb(accentHex)
+let bg = srgb(0xF4EFE6)      // Brand.Color.bg (paper-warm)
+let ink = srgb(0x1A1714)     // Brand.Color.ink
+let accent = srgb(accentHex) // Morning orange
 
 // MARK: - Render
 
@@ -63,44 +55,54 @@ guard let ctx = CGContext(
     bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
 ) else { fatalError("CGContext init failed") }
 
-// 1. Paper background, full bleed (iOS rounds corners itself)
-ctx.setFillColor(paper)
+// 1. Paper background, full bleed (iOS rounds corners itself).
+ctx.setFillColor(bg)
 ctx.fill(CGRect(x: 0, y: 0, width: size, height: size))
 
-// 2. Fraunces "v" — variable-font weight via wght axis. Size 62% of canvas,
-//    baseline at 78% from top. Matches IconPeriod() in vibe-logos-v2.jsx.
-let fontSize = size * 0.62
-let varAxes = [2003265652: weight] as CFDictionary  // 'wght' axis tag = 0x77676874
-let descAttrs: [CFString: Any] = [
-    kCTFontNameAttribute: "Fraunces" as CFString,
-    kCTFontVariationAttribute: varAxes,
-]
-let desc = CTFontDescriptorCreateWithAttributes(descAttrs as CFDictionary)
-let font = CTFontCreateWithFontDescriptor(desc, fontSize, nil)
+// 2. Translate StackIcon2's 24×24 viewBox into the canvas. The icon's
+//    drawn region is (x: 4..20, y: 4..21) — a 16×17 bounding box. We map
+//    the full 24-unit viewBox into a 720×720 centered square so the icon
+//    occupies ~70% of the canvas with some padding around it.
+let scaledSpan: CGFloat = 720
+let scale = scaledSpan / 24
+let inset = (size - scaledSpan) / 2
 
-let kern = -0.04 * fontSize  // letter-spacing: -0.04em
-let attrs: [CFString: Any] = [
-    kCTFontAttributeName: font,
-    kCTForegroundColorAttributeName: ink,
-    kCTKernAttributeName: kern,
-]
-let attrStr = CFAttributedStringCreate(nil, "v" as CFString, attrs as CFDictionary)!
-let line = CTLineCreateWithAttributedString(attrStr)
-let bounds = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
+/// Convert SVG (x, y) where y grows downward into CG canvas coords where
+/// y grows upward. SVG (12, 12) lands at the visual center of the icon.
+func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+    CGPoint(x: inset + x * scale, y: size - (inset + y * scale))
+}
 
-// SVG x=50% with text-anchor=middle: visually center the glyph
-let textX = (size - bounds.width) / 2 - bounds.origin.x
-// SVG baseline at y=78% from top (CG origin is bottom-left)
-let textY = size - (size * 0.78)
-ctx.textPosition = CGPoint(x: textX, y: textY)
-CTLineDraw(line, ctx)
-
-// 3. Accent dot — center at (72%, 70%) from top-left, radius 7.5% of canvas
-let dotCX = size * 0.72
-let dotCY = size - (size * 0.70)
-let dotR = size * 0.075
+// 3a. Top filled diamond — the layer "on top of the pile." Path matches
+//     the SVG's `M4 8 L12 4 L20 8 L12 12 Z` outline; we fill it instead
+//     of stroking so it reads as a solid color block.
+ctx.beginPath()
+ctx.move(to: point(4, 8))
+ctx.addLine(to: point(12, 4))
+ctx.addLine(to: point(20, 8))
+ctx.addLine(to: point(12, 12))
+ctx.closePath()
 ctx.setFillColor(accent)
-ctx.fillEllipse(in: CGRect(x: dotCX - dotR, y: dotCY - dotR, width: dotR * 2, height: dotR * 2))
+ctx.fillPath()
+
+// 3b. Middle V — peek of the layer below the top. SVG: M4 13 L12 17 L20 13.
+ctx.setStrokeColor(ink)
+ctx.setLineWidth(strokeWidth)
+ctx.setLineCap(.round)
+ctx.setLineJoin(.round)
+
+ctx.beginPath()
+ctx.move(to: point(4, 13))
+ctx.addLine(to: point(12, 17))
+ctx.addLine(to: point(20, 13))
+ctx.strokePath()
+
+// 3c. Bottom V — peek of the bottom layer. SVG: M4 17 L12 21 L20 17.
+ctx.beginPath()
+ctx.move(to: point(4, 17))
+ctx.addLine(to: point(12, 21))
+ctx.addLine(to: point(20, 17))
+ctx.strokePath()
 
 // MARK: - Save PNG
 
