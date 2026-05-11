@@ -70,6 +70,17 @@ struct ManageVibesView: View {
     }
 
     private func delete(_ vibe: Vibe) {
+        // If this vibe is currently driving the queue, clear sourceVibe and
+        // currentPodcast first so PlayerManager doesn't try to access a
+        // deleted Vibe on the next end-of-episode advance. The cascade
+        // would eventually nil sourceVibe via @Relationship(.nullify), but
+        // doing it explicitly here removes any window where a stale
+        // reference can be touched.
+        if let state = try? QueueState.fetchOrCreate(in: modelContext),
+           state.sourceVibe?.persistentModelID == vibe.persistentModelID {
+            state.sourceVibe = nil
+            state.currentPodcast = nil
+        }
         modelContext.delete(vibe)
         try? modelContext.save()
         // Re-pack sortPosition contiguously among remaining vibes.

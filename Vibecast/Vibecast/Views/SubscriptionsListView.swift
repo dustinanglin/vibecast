@@ -165,10 +165,18 @@ struct SubscriptionsListView: View {
             .environment(\.editMode, $editMode)
             .toolbar(.hidden, for: .navigationBar)
             .onChange(of: activeVibe) { _, _ in
-                // Edit-mode is an All-only affordance. Switching to a vibe
-                // view should drop the user out of edit so phantom drag
-                // handles don't show on rows that don't accept reorder.
+                // Switching the masthead context should drop the user out
+                // of edit so the previous-view's drag handles disappear
+                // before the new list lays out.
                 if editMode.isEditing { editMode = .inactive }
+            }
+            .onChange(of: vibes) { _, newVibes in
+                // If the currently-active vibe was deleted, reset to All so
+                // we don't render rows from a deleted Vibe's stale relationship.
+                if let active = activeVibe,
+                   !newVibes.contains(where: { $0.persistentModelID == active.persistentModelID }) {
+                    activeVibe = nil
+                }
             }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
@@ -299,6 +307,12 @@ struct SubscriptionsListView: View {
 
     private var filteredPodcasts: [Podcast] {
         guard let active = activeVibe else { return visiblePodcasts }
+        // Defensive: if the active vibe was deleted but our .onChange handler
+        // hasn't fired yet (one-frame window), fall through to All-mode
+        // rather than touching a stale Vibe's relationships.
+        guard vibes.contains(where: { $0.persistentModelID == active.persistentModelID }) else {
+            return visiblePodcasts
+        }
         let memberships = active.memberships.sorted(by: { $0.position < $1.position })
         let podcasts = memberships.compactMap { $0.podcast }
         return podcasts.filter { !pendingDeletes.contains($0.persistentModelID) }
