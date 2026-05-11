@@ -18,8 +18,17 @@ import SwiftData
 struct VibeMasthead: View {
     let vibes: [Vibe]
     @Binding var activeVibe: Vibe?
+    /// The vibe currently driving the player's queue, if any. Used so the
+    /// masthead's CTA can morph into a pause/resume control when the
+    /// currently-viewed vibe is also the one playing.
+    let queueSourceVibe: Vibe?
+    /// Whether the player is currently playing right now.
+    let isPlaying: Bool
     let onStartVibe: (Vibe) -> Void
     let onStartAll: () -> Void
+    /// Tap action when the CTA is in pause/resume mode (queue source matches
+    /// the currently-displayed vibe). Caller wires this to togglePlayPause.
+    let onToggleVibe: () -> Void
     let onTapStack: () -> Void
     let onTapAdd: () -> Void
 
@@ -99,16 +108,22 @@ struct VibeMasthead: View {
             }
             .padding(.top, 14)
 
-            // Row 5: Start pill — always present, color/copy adapt.
+            // Row 5: Start / Vibing / Resume pill — color, icon, and copy
+            // adapt based on whether the displayed vibe is also the queue's
+            // source and whether the player is currently playing.
             Button {
                 if let vibe = currentVibe {
-                    onStartVibe(vibe)
+                    if isCurrentVibePlayingSource {
+                        onToggleVibe()
+                    } else {
+                        onStartVibe(vibe)
+                    }
                 } else {
                     onStartAll()
                 }
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "play.fill")
+                    Image(systemName: ctaIcon)
                         .font(.system(size: 13, weight: .semibold))
                     Text(ctaText)
                         .font(Brand.Font.uiBody(size: 15, weight: .semibold))
@@ -120,7 +135,9 @@ struct VibeMasthead: View {
             }
             .buttonStyle(.plain)
             .padding(.top, 14)
-            .id("cta-\(activeIndex)")
+            // Re-mount on state changes so the icon swap + text swap fade
+            // together rather than snapping mid-press.
+            .id("cta-\(activeIndex)-\(ctaStateKey)")
             .transition(.opacity.combined(with: .scale(scale: 0.96)))
         }
         .padding(.horizontal, 22)
@@ -247,12 +264,39 @@ struct VibeMasthead: View {
         return vibes.isEmpty ? "Add a podcast to get started" : "Your shows, in your order"
     }
 
+    /// True when the masthead is showing the same vibe that's driving the
+    /// player's queue. Determines whether the CTA acts as a Start button
+    /// or a Pause/Resume toggle.
+    private var isCurrentVibePlayingSource: Bool {
+        guard let vibe = currentVibe, let source = queueSourceVibe else { return false }
+        return vibe.persistentModelID == source.persistentModelID
+    }
+
     private var ctaText: String {
-        currentVibe == nil ? "Start listening" : "Start the vibe"
+        guard let _ = currentVibe else { return "Start listening" }
+        if isCurrentVibePlayingSource {
+            return isPlaying ? "Vibing" : "Resume"
+        }
+        return "Start the vibe"
+    }
+
+    private var ctaIcon: String {
+        if isCurrentVibePlayingSource && isPlaying {
+            return "pause.fill"
+        }
+        return "play.fill"
     }
 
     private var ctaBackgroundColor: Color {
         currentVibe?.colorKey.band ?? Brand.Color.ink
+    }
+
+    /// Compact key encoding the CTA's visual state — drives the `.id` swap so
+    /// the pill cross-fades when transitioning between Start ↔ Vibing ↔ Resume.
+    private var ctaStateKey: String {
+        if currentVibe == nil { return "all" }
+        if isCurrentVibePlayingSource { return isPlaying ? "vibing" : "resume" }
+        return "idle"
     }
 
     private var dotActiveColor: Color {

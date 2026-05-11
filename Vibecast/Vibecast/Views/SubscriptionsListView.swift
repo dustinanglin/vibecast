@@ -25,6 +25,8 @@ struct SubscriptionsListView: View {
                 VibeMasthead(
                     vibes: vibes,
                     activeVibe: $activeVibe,
+                    queueSourceVibe: playerManager?.queueSourceVibe,
+                    isPlaying: playerManager?.isPlaying ?? false,
                     onStartVibe: { vibe in
                         guard let mgr = playerManager else { return }
                         if mgr.startVibe(vibe) == .allCaughtUp {
@@ -32,6 +34,7 @@ struct SubscriptionsListView: View {
                         }
                     },
                     onStartAll: { startNextUnplayed() },
+                    onToggleVibe: { playerManager?.togglePlayPause() },
                     onTapStack: { showManageVibes = true },
                     onTapAdd: { showAddSheet = true }
                 )
@@ -79,12 +82,17 @@ struct SubscriptionsListView: View {
                             vibeDots: dots,
                             onPlay: {
                                 guard let ep = latest, let mgr = playerManager else { return }
+                                // If this row's latest episode is the currently-loaded one,
+                                // the row's button is acting as a play/pause toggle — works
+                                // the same on All view and inside a vibe.
+                                if mgr.currentEpisode?.persistentModelID == ep.persistentModelID {
+                                    mgr.togglePlayPause()
+                                    return
+                                }
                                 if let active = activeVibe {
                                     if mgr.startVibe(active, from: podcast) == .allCaughtUp {
                                         toastCenter.show("All caught up on this vibe")
                                     }
-                                } else if mgr.currentEpisode?.persistentModelID == ep.persistentModelID {
-                                    mgr.togglePlayPause()
                                 } else {
                                     mgr.play(ep)
                                 }
