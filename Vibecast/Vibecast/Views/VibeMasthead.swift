@@ -80,6 +80,11 @@ struct VibeMasthead: View {
                         .tracking(-1.4)
                         .foregroundStyle(Brand.Color.ink)
                         .lineLimit(1)
+                        // Allow longer vibe names (e.g. "Around town") to
+                        // auto-shrink to fit the slot rather than ellipsis-
+                        // truncating. Slot width and slide distance stay
+                        // unchanged so carousel mechanics are unaffected.
+                        .minimumScaleFactor(0.6)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(width: slotWidth, alignment: .leading)
                 }
