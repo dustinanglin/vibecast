@@ -297,6 +297,21 @@ final class PlayerManager: PlaybackController {
         play(episode, clearQueueSource: false)
     }
 
+    /// Quietly adopt `vibe` as the queue source without restarting playback.
+    /// Used when the user pauses or resumes from a row inside a vibe view —
+    /// the queue context follows their gesture so the masthead CTA flips to
+    /// "Vibing" and the next end-of-episode advance walks this vibe rather
+    /// than the previously-set source (or the global fallback if there was
+    /// none). No-op if `vibe` is already the source.
+    func adoptVibeAsQueueSource(_ vibe: Vibe) {
+        guard let state = queueState() else { return }
+        if state.sourceVibe?.persistentModelID == vibe.persistentModelID { return }
+        state.sourceVibe = vibe
+        state.currentPodcast = currentEpisode?.podcast
+        state.lastUpdated = .now
+        try? modelContext.save()
+    }
+
     /// Mark an episode as played.
     /// - If it's the currently-loaded episode AND was actively playing:
     ///   pause the engine and auto-advance per `advance`.

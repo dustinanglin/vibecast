@@ -99,9 +99,16 @@ struct SubscriptionsListView: View {
                             onPlay: {
                                 guard let ep = latest, let mgr = playerManager else { return }
                                 // If this row's latest episode is the currently-loaded
-                                // one, the row's button is a play/pause toggle — works
-                                // the same on All and inside a vibe.
+                                // one, the row's button is a play/pause toggle. When
+                                // we're inside a vibe view, also adopt this vibe as
+                                // the queue source — the user's gesture says "I'm
+                                // engaging IN this vibe context", so the masthead CTA
+                                // should flip to "Vibing" and the next end-of-episode
+                                // advance should walk this vibe.
                                 if mgr.currentEpisode?.persistentModelID == ep.persistentModelID {
+                                    if let active = activeVibe {
+                                        mgr.adoptVibeAsQueueSource(active)
+                                    }
                                     mgr.togglePlayPause()
                                     return
                                 }
