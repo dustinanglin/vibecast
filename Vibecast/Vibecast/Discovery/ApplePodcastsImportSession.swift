@@ -31,7 +31,15 @@ final class ApplePodcastsImportSession {
         return Date().timeIntervalSince(receivedAt) < Self.freshnessSeconds
     }
 
-    init() {}
+    /// `nonisolated` so that `static let shared`'s lazy initialization is
+    /// safe regardless of which thread first touches `.shared`. The body
+    /// only assigns default values to stored properties, so no `@MainActor`
+    /// work happens here. All subsequent mutation goes through the
+    /// `@MainActor`-isolated `receive`/`clear` methods.
+    ///
+    /// `internal` (rather than `private`) so tests can construct fresh
+    /// instances; production code should use `.shared`.
+    nonisolated init() {}
 
     func receive(_ urls: [URL]) {
         pendingFeedURLs = urls
