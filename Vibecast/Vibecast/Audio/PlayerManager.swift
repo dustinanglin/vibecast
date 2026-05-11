@@ -297,15 +297,16 @@ final class PlayerManager: PlaybackController {
         play(episode, clearQueueSource: false)
     }
 
-    /// Quietly adopt `vibe` as the queue source without restarting playback.
-    /// Used when the user pauses or resumes from a row inside a vibe view —
-    /// the queue context follows their gesture so the masthead CTA flips to
-    /// "Vibing" and the next end-of-episode advance walks this vibe rather
-    /// than the previously-set source (or the global fallback if there was
-    /// none). No-op if `vibe` is already the source.
-    func adoptVibeAsQueueSource(_ vibe: Vibe) {
+    /// Quietly adopt `vibe` (or `nil` for All / no vibe context) as the
+    /// queue source without restarting playback. Used when the user
+    /// pauses or resumes from a row — the queue context follows whichever
+    /// view they're engaging from, so the masthead CTA reflects the right
+    /// state and the next end-of-episode advance walks the right list.
+    /// Passing `nil` clears the source so advance falls back to global
+    /// sortPosition. No-op if the requested source matches the current one.
+    func adoptQueueSource(_ vibe: Vibe?) {
         guard let state = queueState() else { return }
-        if state.sourceVibe?.persistentModelID == vibe.persistentModelID { return }
+        if state.sourceVibe?.persistentModelID == vibe?.persistentModelID { return }
         state.sourceVibe = vibe
         state.currentPodcast = currentEpisode?.podcast
         state.lastUpdated = .now
