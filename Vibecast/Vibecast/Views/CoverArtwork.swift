@@ -11,17 +11,8 @@ struct CoverArtwork: View {
     var body: some View {
         Group {
             if let s = urlString, let url = URL(string: s) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        InitialsTile(title: title, size: size, radius: radius)
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    case .failure:
-                        InitialsTile(title: title, size: size, radius: radius)
-                    @unknown default:
-                        InitialsTile(title: title, size: size, radius: radius)
-                    }
+                CachedAsyncImage(url: url) {
+                    InitialsTile(title: title, size: size, radius: radius)
                 }
             } else {
                 InitialsTile(title: title, size: size, radius: radius)

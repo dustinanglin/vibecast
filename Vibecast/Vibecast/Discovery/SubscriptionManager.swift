@@ -188,11 +188,30 @@ final class SubscriptionManager {
     /// audioURL — existing episodes get metadata updates, new episodes are
     /// inserted, none are deleted, and user state (playbackPosition,
     /// listenedStatus) on existing episodes is preserved.
+    ///
+    /// All feed parses run off the main actor (see URLSessionFeedFetcher),
+    /// and the merge writes are committed in a single `save()` at the end
+    /// rather than once per podcast. That way the `@Query`-driven
+    /// subscriptions list doesn't re-diff N times during a refresh — the
+    /// UI stays scrollable while the network round-trips run in the
+    /// background.
     func refreshAll() async {
         let descriptor = FetchDescriptor<Podcast>(sortBy: [SortDescriptor(\.sortPosition)])
         let podcasts = (try? modelContext.fetch(descriptor)) ?? []
+
+        var fetched: [(Podcast, ParsedFeed)] = []
         for podcast in podcasts {
-            await fetchAndMerge(podcast)
+            guard let url = URL(string: podcast.feedURL),
+                  let feed = try? await fetcher.fetch(url)
+            else { continue }
+            fetched.append((podcast, feed))
+        }
+
+        for (podcast, feed) in fetched {
+            mergeFeed(feed, into: podcast)
+        }
+        if !fetched.isEmpty {
+            try? modelContext.save()
         }
         lastFullRefreshAt = .now
     }
@@ -233,6 +252,15 @@ final class SubscriptionManager {
             return
         }
 
+        mergeFeed(feed, into: podcast)
+        try? modelContext.save()
+    }
+
+    /// Merge a parsed feed into a podcast's episode list without saving.
+    /// Caller is responsible for the `modelContext.save()` — `refreshAll`
+    /// batches all merges and saves once at the end so the `@Query`-driven
+    /// list doesn't re-diff N times during a multi-feed refresh.
+    private func mergeFeed(_ feed: ParsedFeed, into podcast: Podcast) {
         // `uniquingKeysWith: { first, _ in first }` so a malformed feed or a
         // historical bad-insert with duplicate audioURLs doesn't crash the
         // refresh path. The class doesn't enforce audioURL uniqueness on
@@ -265,7 +293,6 @@ final class SubscriptionManager {
             }
         }
         podcast.lastFetchedAt = .now
-        try? modelContext.save()
     }
 }
 
