@@ -16,9 +16,12 @@ struct ApplePodcastsImportWizard: View {
     @AppStorage("hasOpenedApplePodcastsImportShortcutInstall")
     private var hasOpenedInstall: Bool = false
 
-    /// True once an import has completed in this wizard session — drives the
-    /// summary row vs. the import-button row.
-    @State private var didImport: Bool = false
+    /// Snapshot of the `ImportSummary` produced by this wizard's import
+    /// completion. Captured into local state so the summary row keeps
+    /// rendering the *this-wizard* result even if `manager.lastImportSummary`
+    /// is later overwritten by another import path (e.g. an OPML import
+    /// triggered after the wizard dismisses).
+    @State private var completedSummary: ImportSummary?
 
     /// Replace this with the real iCloud share URL produced at the end of
     /// Task 1. Until then, the install button does nothing useful — but the
@@ -124,9 +127,8 @@ struct ApplePodcastsImportWizard: View {
         let urls = session.pendingFeedURLs
         let isReady = (urls != nil) && session.isFresh
         let importingFeeds = manager?.isImportingFeeds ?? false
-        let summary = manager?.lastImportSummary
 
-        if didImport, let summary {
+        if let summary = completedSummary {
             stepThreeSummary(summary)
         } else if importingFeeds {
             stepThreeProgress(count: urls?.count ?? 0)
@@ -197,7 +199,10 @@ struct ApplePodcastsImportWizard: View {
     private func runImport() async {
         guard let urls = session.pendingFeedURLs, !urls.isEmpty else { return }
         await manager?.importFeeds(urls)
-        didImport = true
+        // Snapshot the summary into local state *now*, so a later OPML
+        // import that overwrites `manager.lastImportSummary` can't trash
+        // the wizard's success row.
+        completedSummary = manager?.lastImportSummary
     }
 
     // MARK: - Step row primitives
