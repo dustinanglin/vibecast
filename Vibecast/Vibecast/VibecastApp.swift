@@ -7,6 +7,12 @@ struct VibecastApp: App {
     private let container: ModelContainer
     @State private var playerManager: PlayerManager
     @State private var subscriptionManager: SubscriptionManager
+    /// Cold-launch gate for the animated splash. `@State` on the root
+    /// scene view persists for the lifetime of the app process, so
+    /// foregrounding from background reads `true` and skips the splash.
+    /// On cold relaunch (iOS evicted the process), this resets to false
+    /// and the splash plays again.
+    @State private var hasShownSplash: Bool = false
 
     init() {
         let c: ModelContainer
@@ -42,13 +48,24 @@ struct VibecastApp: App {
 
     var body: some Scene {
         WindowGroup {
-            SubscriptionsListView()
-                .environment(\.playerManager, playerManager)
-                .environment(\.subscriptionManager, subscriptionManager)
-                .preferredColorScheme(.light)
-                .onOpenURL { url in
-                    VibecastURLHandler.handle(url, session: .shared)
+            ZStack {
+                SubscriptionsListView()
+                    .environment(\.playerManager, playerManager)
+                    .environment(\.subscriptionManager, subscriptionManager)
+                    .preferredColorScheme(.light)
+                    .onOpenURL { url in
+                        VibecastURLHandler.handle(url, session: .shared)
+                    }
+
+                if !hasShownSplash {
+                    SplashView {
+                        withAnimation(.easeInOut(duration: 0.45)) {
+                            hasShownSplash = true
+                        }
+                    }
+                    .transition(.opacity)
                 }
+            }
         }
         .modelContainer(container)
         .onChange(of: scenePhase) { _, newPhase in
