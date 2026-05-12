@@ -23,13 +23,15 @@ struct ApplePodcastsImportWizard: View {
     /// triggered after the wizard dismisses).
     @State private var completedSummary: ImportSummary?
 
-    /// Replace this with the real iCloud share URL produced at the end of
-    /// Task 1. Until then, the install button does nothing useful — but the
-    /// rest of the wizard is fully testable in the simulator with a
-    /// hand-constructed `vibecast://import-feeds?urls=…` URL pasted via the
-    /// simulator's URL-open menu (Device → Open URL).
+    /// iCloud share URL for the "Vibecast Import" shortcut. Versioned: the
+    /// initial release used `0ae2aab97c48454ea62d3a4943a44a53`, which
+    /// produced a single `Combine Text` call that timed out on older
+    /// devices with large libraries. The current revision accumulates the
+    /// joined feed-URL text inside the loop (Set Variable per iteration)
+    /// rather than building a List and joining at the end, eliminating
+    /// the action that watchdog-killed.
     private static let iCloudShortcutInstallURL =
-        URL(string: "https://www.icloud.com/shortcuts/0ae2aab97c48454ea62d3a4943a44a53")!
+        URL(string: "https://www.icloud.com/shortcuts/edfe11df98fc418094340da723418f6e")!
 
     private static let runShortcutURL =
         URL(string: "shortcuts://run-shortcut?name=Vibecast%20Import")!
