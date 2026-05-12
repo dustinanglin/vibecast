@@ -104,7 +104,7 @@ struct SplashView: View {
                 // center, low in the screen.
                 VStack(alignment: .leading, spacing: 2) {
                     if settled {
-                        Text("FIVE VIBES · ONE PLAYER")
+                        Text("PICK A MOOD · PRESS PLAY")
                             .font(Brand.Font.monoEyebrow())
                             .tracking(Brand.Layout.monoTracking)
                             .foregroundStyle(Brand.Color.inkMuted)
