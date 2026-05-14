@@ -45,6 +45,11 @@ struct PodcastDetailView: View {
                 .listRowBackground(Brand.Color.bg)
                 .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
 
+            sortEyebrow(viewModel: vm)
+                .listRowSeparator(.hidden)
+                .listRowBackground(Brand.Color.bg)
+                .listRowInsets(EdgeInsets(top: 0, leading: 22, bottom: 0, trailing: 22))
+
             ForEach(vm.displayedEpisodes) { episode in
                 let isCurrent = episode.persistentModelID == playerManager?.currentEpisode?.persistentModelID
                 EpisodeRowView(
@@ -140,6 +145,59 @@ struct PodcastDetailView: View {
             withTransaction(transaction) {
                 mutate()
             }
+        }
+    }
+
+    /// Eyebrow row between the vibes section and the episode list. Mirrors
+    /// the "IN YOUR VIBES" eyebrow style (mono caps, tracked, trailing
+    /// hairline) and wraps a Menu so tapping anywhere on the row drops a
+    /// chooser for the sort mode. The label changes with the current mode
+    /// so the cap is always visible inline ("OLDEST FIRST · RECENT 25")
+    /// without a separate help affordance.
+    @ViewBuilder
+    private func sortEyebrow(viewModel vm: PodcastDetailViewModel) -> some View {
+        Menu {
+            Picker("Sort", selection: Binding(
+                get: { vm.sortOrder },
+                set: { vm.setSortOrder($0) }
+            )) {
+                Text("Newest first").tag(EpisodeSortOrder.newest)
+                Text("Oldest first · recent \(EpisodeSortOrder.oldestFirstCap)")
+                    .tag(EpisodeSortOrder.oldest)
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(sortEyebrowText(for: vm.sortOrder))
+                    .font(Brand.Font.monoEyebrow())
+                    .tracking(Brand.Layout.monoTracking)
+                    .foregroundStyle(Brand.Color.inkMuted)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(Brand.Color.inkMuted)
+                Spacer()
+                Rectangle()
+                    .fill(Brand.Color.inkHairline)
+                    .frame(height: Brand.Layout.hairlineWidth)
+            }
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Episode sort order, currently \(sortAccessibilityValue(for: vm.sortOrder))")
+        .accessibilityHint("Double-tap to change sort order")
+    }
+
+    private func sortEyebrowText(for order: EpisodeSortOrder) -> String {
+        switch order {
+        case .newest: return "NEWEST FIRST"
+        case .oldest: return "OLDEST FIRST · RECENT \(EpisodeSortOrder.oldestFirstCap)"
+        }
+    }
+
+    private func sortAccessibilityValue(for order: EpisodeSortOrder) -> String {
+        switch order {
+        case .newest: return "newest first"
+        case .oldest: return "oldest first, recent \(EpisodeSortOrder.oldestFirstCap) episodes"
         }
     }
 
