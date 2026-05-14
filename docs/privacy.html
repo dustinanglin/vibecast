@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vibecast — Privacy Policy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper: #F4EFE6;
+      --ink: #1A1714;
+      --ink-secondary: rgba(26, 23, 20, 0.7);
+      --ink-muted: rgba(26, 23, 20, 0.55);
+      --ink-hairline: rgba(26, 23, 20, 0.12);
+      --accent: #2E94A8;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      font-size: 16px;
+    }
+    .wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 72px 24px 64px;
+    }
+    .back {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    h1 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 500;
+      font-size: 38px;
+      letter-spacing: -0.02em;
+      margin: 32px 0 4px;
+    }
+    .updated {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin: 0 0 40px;
+      font-weight: 600;
+    }
+    h2 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 500;
+      font-size: 22px;
+      letter-spacing: -0.015em;
+      margin: 36px 0 10px;
+      color: var(--ink);
+    }
+    p, li {
+      color: var(--ink-secondary);
+    }
+    ul {
+      padding-left: 22px;
+    }
+    li { margin: 6px 0; }
+    a {
+      color: var(--ink);
+      text-decoration: underline;
+      text-decoration-color: var(--ink-hairline);
+      text-underline-offset: 3px;
+    }
+    a:hover { text-decoration-color: var(--accent); }
+    strong { color: var(--ink); font-weight: 500; }
+    footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--ink-hairline);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+    }
+    footer a { color: var(--ink-muted); margin-right: 16px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a href="index.html" class="back">← Vibecast</a>
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated · May 13, 2026</p>
+
+    <p>Vibecast is a personal podcast player. This policy explains what data the app handles and what it doesn't. The short version: we don't collect, sell, or transmit your data to any server we operate, because <strong>we don't operate any servers</strong>.</p>
+
+    <h2>What we don't collect</h2>
+    <p>Vibecast has no backend. We do not collect, store, or transmit any of the following to any service operated by Vibecast or its developer:</p>
+    <ul>
+      <li>Personal information (name, email, account credentials, contacts).</li>
+      <li>Device identifiers (IDFA, IDFV, advertising identifiers).</li>
+      <li>Usage analytics, crash reports, or telemetry.</li>
+      <li>Listening history, episode play counts, podcast subscriptions, or playback positions.</li>
+      <li>Search queries, library contents, or any other in-app activity.</li>
+    </ul>
+
+    <h2>What stays on your device</h2>
+    <p>The following information is stored locally in Vibecast's app sandbox on your iPhone, using Apple's SwiftData framework. It never leaves your device unless you back up your phone to iCloud or iTunes:</p>
+    <ul>
+      <li>Your list of subscribed podcast feeds.</li>
+      <li>Episode metadata downloaded from those feeds (title, publish date, description, audio URL, duration).</li>
+      <li>Playback state (which episodes you've played, where you left off in an episode, the most recently active vibe).</li>
+      <li>Your vibes, vibe membership, and per-podcast sort preferences.</li>
+      <li>A flag indicating whether you've installed the optional import shortcut.</li>
+    </ul>
+    <p>Deleting the app removes all of this data from your device.</p>
+
+    <h2>Third-party services Vibecast contacts on your behalf</h2>
+    <p>When you use specific features of the app, your iPhone makes direct network requests to the following third parties. Vibecast does not relay or intercept this traffic — your device speaks to them directly:</p>
+    <ul>
+      <li><strong>Apple's iTunes Search API</strong> (<code>itunes.apple.com</code>). When you search for a podcast inside Vibecast, your search text is sent to Apple's public podcast directory to fetch results. Apple's <a href="https://www.apple.com/legal/privacy/">privacy policy</a> governs this service.</li>
+      <li><strong>Podcast publishers' RSS feed servers.</strong> When you subscribe to a show or pull-to-refresh, your iPhone fetches the podcast's RSS feed directly from the URL the publisher provides. Each publisher has its own privacy practices for visitors to its feed URL.</li>
+      <li><strong>Podcast publishers' audio servers.</strong> When you play an episode, your iPhone streams the audio file directly from the URL in the RSS feed. Each publisher hosts and serves its own audio.</li>
+      <li><strong>Podcast publishers' artwork servers.</strong> Cover art images are fetched directly from the URL referenced in each podcast's RSS feed.</li>
+    </ul>
+    <p>Vibecast does not bundle any third-party analytics, advertising, or tracking SDKs.</p>
+
+    <h2>Optional Shortcuts-based import</h2>
+    <p>The "Import Podcasts from this Phone" feature uses Apple's Shortcuts framework to read your existing on-device podcast subscriptions and pass the list to Vibecast via a custom URL (<code>vibecast://</code>). This handoff happens entirely on your device. No subscription data leaves your iPhone during the import. Vibecast then subscribes to each feed by fetching it directly from the publisher (see above).</p>
+
+    <h2>Children's privacy</h2>
+    <p>Vibecast does not knowingly collect any information from anyone, regardless of age. The app is intended for general audiences. Some podcast feeds may contain explicit content; Vibecast surfaces the "explicit" flag from each feed but does not enforce content restrictions itself.</p>
+
+    <h2>Changes to this policy</h2>
+    <p>If this policy changes, the updated version will be posted at this URL with a new "Last updated" date. Because Vibecast collects no data, we have no way to notify you directly of changes; the canonical source is always this page.</p>
+
+    <h2>Contact</h2>
+    <p>Questions about this policy or about Vibecast in general: <a href="mailto:dustin.anglin@gmail.com">dustin.anglin@gmail.com</a>.</p>
+
+    <footer>
+      <a href="index.html">Home</a>
+      <a href="support.html">Support</a>
+    </footer>
+  </div>
+</body>
+</html>

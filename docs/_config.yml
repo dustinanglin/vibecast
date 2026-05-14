@@ -1,0 +1,22 @@
+# GitHub Pages / Jekyll config for the Vibecast public site.
+#
+# Pages source is configured (in repo settings) to serve from
+# `main:/docs`. By default that would also expose all the internal
+# planning artifacts under `docs/superpowers/`, `docs/design/`, and
+# `docs/notes/`. The exclude list below keeps those folders out of the
+# generated site — they stay in the repo for local reference, but
+# don't ship to the public Pages URL.
+
+title: Vibecast
+description: An editorial podcast player for iOS.
+
+# Internal-only folders — keep out of the published Pages site.
+exclude:
+  - superpowers/
+  - design/
+  - notes/
+  - README.md
+
+# Stay on the minimal default theme for now; we can switch to a
+# custom layout if the site ever grows beyond a few static pages.
+theme: jekyll-theme-minimal
