@@ -74,20 +74,25 @@ struct PodcastDetailView: View {
                     }
                 }
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                    Button {
-                        snapAfterCollapse { markPlayed(episode) }
-                    } label: {
-                        Label("Played", systemImage: "checkmark")
+                    // Apple Podcasts-style contextual swipe: same gesture
+                    // toggles played/unplayed based on the episode's current
+                    // state. Removes the need for a separate trailing-edge
+                    // Unplayed action.
+                    if episode.listenedStatus == .played {
+                        Button {
+                            snapAfterCollapse { markUnplayed(episode) }
+                        } label: {
+                            Label("Unplayed", systemImage: "arrow.uturn.backward")
+                        }
+                        .tint(.blue)
+                    } else {
+                        Button {
+                            snapAfterCollapse { markPlayed(episode) }
+                        } label: {
+                            Label("Played", systemImage: "checkmark")
+                        }
+                        .tint(.green)
                     }
-                    .tint(.green)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button {
-                        snapAfterCollapse { markUnplayed(episode) }
-                    } label: {
-                        Label("Unplayed", systemImage: "arrow.uturn.backward")
-                    }
-                    .tint(.blue)
                 }
             }
 

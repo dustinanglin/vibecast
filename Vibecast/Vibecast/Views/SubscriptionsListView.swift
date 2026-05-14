@@ -152,15 +152,29 @@ struct SubscriptionsListView: View {
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 14))
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button {
-                                if let ep = podcast.episodes
-                                    .sorted(by: { $0.publishDate > $1.publishDate }).first {
-                                    snapAfterCollapse { markPlayed(ep) }
+                            // Apple Podcasts-style contextual swipe: the same
+                            // gesture marks the latest episode played or
+                            // unplayed depending on its current state, so a
+                            // single muscle-memory swipe both directions.
+                            if latest?.listenedStatus == .played {
+                                Button {
+                                    if let ep = latest {
+                                        snapAfterCollapse { markUnplayed(ep) }
+                                    }
+                                } label: {
+                                    Label("Unplayed", systemImage: "arrow.uturn.backward")
                                 }
-                            } label: {
-                                Label("Played", systemImage: "checkmark")
+                                .tint(.blue)
+                            } else {
+                                Button {
+                                    if let ep = latest {
+                                        snapAfterCollapse { markPlayed(ep) }
+                                    }
+                                } label: {
+                                    Label("Played", systemImage: "checkmark")
+                                }
+                                .tint(.green)
                             }
-                            .tint(.green)
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             // In a vibe view, the most natural curation action is
@@ -397,6 +411,12 @@ struct SubscriptionsListView: View {
             try? modelContext.save()
             pendingDeletes.remove(id)
         }
+    }
+
+    private func markUnplayed(_ episode: Episode) {
+        episode.listenedStatus = .unplayed
+        episode.playbackPosition = 0
+        try? modelContext.save()
     }
 
     private func markPlayed(_ episode: Episode) {
