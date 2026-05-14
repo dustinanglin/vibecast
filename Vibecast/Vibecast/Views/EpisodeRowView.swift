@@ -168,6 +168,9 @@ struct EpisodeRowView: View {
                 .font(Brand.Font.monoEyebrow())
                 .tracking(Brand.Layout.monoTracking)
                 .foregroundStyle(Brand.Color.inkMuted)
+                .accessibilityLabel(
+                    "Paused at \(TimeFormatting.spoken(seconds: episode.playbackPosition)), \(TimeFormatting.spoken(seconds: episode.durationSeconds)) total"
+                )
         case .nowPlaying:
             HStack(spacing: 6) {
                 Text(episode.formattedDuration.uppercased())
@@ -179,11 +182,16 @@ struct EpisodeRowView: View {
             }
             .font(Brand.Font.monoEyebrow())
             .tracking(Brand.Layout.monoTracking)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(
+                "\(TimeFormatting.spoken(seconds: episode.durationSeconds)) total, \(TimeFormatting.spoken(seconds: episode.playbackPosition)) in"
+            )
         case .unplayed:
             Text(episode.formattedDuration.uppercased())
                 .font(Brand.Font.monoEyebrow())
                 .tracking(Brand.Layout.monoTracking)
                 .foregroundStyle(Brand.Color.inkMuted)
+                .accessibilityLabel(TimeFormatting.spoken(seconds: episode.durationSeconds))
         }
     }
 

@@ -128,11 +128,17 @@ struct FullScreenPlayerView: View {
                     .font(Brand.Font.monoEyebrow())
                     .tracking(Brand.Layout.monoTracking)
                     .foregroundStyle(Brand.Color.inkSecondary)
+                    .accessibilityLabel(
+                        "\(TimeFormatting.spoken(seconds: scrubValue ?? player.elapsed)) elapsed"
+                    )
                 Spacer()
                 Text("-" + format(max(0, player.duration - (scrubValue ?? player.elapsed))))
                     .font(Brand.Font.monoEyebrow())
                     .tracking(Brand.Layout.monoTracking)
                     .foregroundStyle(Brand.Color.inkSecondary)
+                    .accessibilityLabel(
+                        "\(TimeFormatting.spoken(seconds: max(0, player.duration - (scrubValue ?? player.elapsed)))) remaining"
+                    )
             }
         }
     }
