@@ -197,7 +197,7 @@ private struct LoadedSheet: View {
         Button {
             showApplePodcastsWizard = true
         } label: {
-            Label("Import from Apple Podcasts", systemImage: "applelogo")
+            Label("Import Podcasts from this Phone", systemImage: "iphone.gen3")
                 .font(Brand.Font.uiButton())
                 .foregroundStyle(Brand.Color.ink)
                 .frame(maxWidth: .infinity)

@@ -176,19 +176,6 @@ struct SubscriptionsListView: View {
                                 .tint(.purple)
                             }
 
-                            // Debug-affordance: reset the latest episode to unplayed.
-                            // May be removed once we have a more intentional "reset
-                            // progress" affordance in detail view.
-                            Button {
-                                if let ep = podcast.episodes
-                                    .sorted(by: { $0.publishDate > $1.publishDate }).first {
-                                    snapAfterCollapse { markUnplayed(ep) }
-                                }
-                            } label: {
-                                Label("Unplayed", systemImage: "arrow.uturn.backward")
-                            }
-                            .tint(.blue)
-
                             // Unsubscribe is scoped to All view only — in a vibe
                             // view the user probably means "remove from this vibe"
                             // (the purple action above), so don't surface a button
@@ -420,12 +407,6 @@ struct SubscriptionsListView: View {
             episode.playbackPosition = Double(episode.durationSeconds)
             try? modelContext.save()
         }
-    }
-
-    private func markUnplayed(_ episode: Episode) {
-        episode.listenedStatus = .unplayed
-        episode.playbackPosition = 0
-        try? modelContext.save()
     }
 
     /// Wait for the swipe-action's collapse to complete, then snap-mutate

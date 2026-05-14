@@ -67,16 +67,15 @@ struct ApplePodcastsImportWizard: View {
 
     /// Title + intro paragraph as a single header block. Lives in the
     /// scroll view rather than the nav-bar title slot so the long
-    /// "Import from Apple Podcasts" title gets a full line instead of
-    /// being squeezed alongside the Cancel button (which truncates as
-    /// "Import from Apple Podc…" on iPhone-width nav bars).
+    /// title gets a full line instead of being squeezed alongside the
+    /// Cancel button (which truncates on iPhone-width nav bars).
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Import from Apple Podcasts")
+            Text("Import Podcasts from this Phone")
                 .font(Brand.Font.serifSubtitle())
                 .foregroundStyle(Brand.Color.ink)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Bring your Apple Podcasts subscriptions into Vibecast in three steps. The first time you do this, you'll install a small Shortcuts shortcut — after that, just run it to sync.")
+            Text("Bring your existing podcast subscriptions into Vibecast in three steps. The first time, you'll install a small Shortcuts shortcut — after that, just run it to sync.")
                 .font(Brand.Font.uiBody())
                 .foregroundStyle(Brand.Color.inkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -124,7 +123,7 @@ struct ApplePodcastsImportWizard: View {
         if session.pendingFeedURLs != nil && !session.isFresh {
             return "The last run is too old. Open the shortcut and run it again."
         }
-        return "Open the shortcut and run it. It reads your Apple Podcasts subscriptions and sends them here."
+        return "Open the shortcut and run it. It reads your existing subscriptions and sends them here."
     }
 
     private static let shortcutsAppStoreURL =
@@ -156,7 +155,7 @@ struct ApplePodcastsImportWizard: View {
     private func stepThreeDescription(urls: [URL]?) -> String {
         guard let urls else { return "Run the shortcut to see what's ready to import." }
         if urls.isEmpty {
-            return "No subscribable podcasts found in your Apple Podcasts library. Your shows may all be Apple Originals, which don't have public RSS feeds."
+            return "No subscribable podcasts found. Some shows may be premium-only and don't have public RSS feeds we can read."
         }
         return "Found \(urls.count) podcast\(urls.count == 1 ? "" : "s") ready to import."
     }
