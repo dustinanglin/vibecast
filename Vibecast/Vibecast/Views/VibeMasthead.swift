@@ -24,6 +24,12 @@ struct VibeMasthead: View {
     let queueSourceVibe: Vibe?
     /// Whether the player is currently playing right now.
     let isPlaying: Bool
+    /// Whether the user has at least one subscribed podcast. Drives the
+    /// disabled state of the All-view "Start listening" CTA — tapping it
+    /// with zero subscriptions is a no-op, so disable rather than fire
+    /// silently. Vibe-view emptiness is detected from the vibe itself
+    /// via memberships.isEmpty.
+    let hasAnySubscriptions: Bool
     let onStartVibe: (Vibe) -> Void
     let onStartAll: () -> Void
     /// Tap action when the CTA is in pause/resume mode (queue source matches
@@ -118,7 +124,9 @@ struct VibeMasthead: View {
 
             // Row 5: Start / Vibing / Resume pill — color, icon, and copy
             // adapt based on whether the displayed vibe is also the queue's
-            // source and whether the player is currently playing.
+            // source and whether the player is currently playing. Disabled
+            // (dimmed, not tappable) when the displayed vibe has no
+            // members, or when on All view with zero subscriptions.
             Button {
                 if let vibe = currentVibe {
                     if isCurrentVibePlayingSource {
@@ -140,8 +148,10 @@ struct VibeMasthead: View {
                 .padding(.horizontal, 18)
                 .padding(.vertical, 10)
                 .background(Capsule().fill(ctaBackgroundColor))
+                .opacity(ctaDisabled ? 0.4 : 1)
             }
             .buttonStyle(.plain)
+            .disabled(ctaDisabled)
             .padding(.top, 14)
             // Re-mount on state changes so the icon swap + text swap fade
             // together rather than snapping mid-press.
@@ -305,6 +315,17 @@ struct VibeMasthead: View {
             return isPlaying ? "Vibing" : "Resume"
         }
         return "Start the vibe"
+    }
+
+    /// True when there's nothing for the CTA to do: All view with zero
+    /// subscriptions, or a vibe with no member podcasts. Keeps the pill
+    /// visible but inert (dimmed + non-tappable) so the user gets a
+    /// clear "add shows first" signal rather than a silent no-op.
+    private var ctaDisabled: Bool {
+        if let vibe = currentVibe {
+            return vibe.memberships.isEmpty
+        }
+        return !hasAnySubscriptions
     }
 
     private var ctaIcon: String {

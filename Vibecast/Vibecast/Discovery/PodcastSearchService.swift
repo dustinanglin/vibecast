@@ -44,9 +44,17 @@ final class iTunesSearchService: PodcastSearchService {
             throw PodcastSearchError.serverError(status: http.statusCode)
         }
         let envelope = try JSONDecoder().decode(ITunesSearchEnvelope.self, from: data)
+        // Some queries return duplicate entries from iTunes — same show
+        // listed twice with the same collectionId and feed URL (e.g.
+        // "mkbhd" surfaces "Waveform" twice). Dedupe on feedURL so a
+        // single subscribe action doesn't appear to affect "both" rows
+        // (it can't — they point at the same feed). Keep the first
+        // occurrence, which is iTunes' own relevance-ranked order.
+        var seenFeedURLs = Set<URL>()
         return envelope.results.compactMap { raw in
             guard let feedURLString = raw.feedUrl,
                   let feedURL = URL(string: feedURLString) else { return nil }
+            guard seenFeedURLs.insert(feedURL).inserted else { return nil }
             let artworkURL = (raw.artworkUrl600 ?? raw.artworkUrl100).flatMap(URL.init(string:))
             return PodcastSearchResult(
                 id: raw.collectionId,

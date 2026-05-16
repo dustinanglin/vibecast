@@ -51,6 +51,7 @@ struct SubscriptionsListView: View {
                     activeVibe: $activeVibe,
                     queueSourceVibe: playerManager?.queueSourceVibe,
                     isPlaying: playerManager?.isPlaying ?? false,
+                    hasAnySubscriptions: !podcasts.isEmpty,
                     onStartVibe: { vibe in
                         guard let mgr = playerManager else { return }
                         if mgr.startVibe(vibe) == .allCaughtUp {
