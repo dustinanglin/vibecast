@@ -13,6 +13,7 @@ struct VibecastApp: App {
     /// On cold relaunch (iOS evicted the process), this resets to false
     /// and the splash plays again.
     @State private var hasShownSplash: Bool = false
+    @State private var splashMode: SplashMode = VibecastApp.splashMode()
 
     static let hasCompletedFirstLaunchKey = "hasCompletedFirstLaunch"
 
@@ -64,7 +65,8 @@ struct VibecastApp: App {
                     }
 
                 if !hasShownSplash {
-                    SplashView {
+                    SplashView(mode: splashMode) {
+                        UserDefaults.standard.set(true, forKey: VibecastApp.hasCompletedFirstLaunchKey)
                         withAnimation(.easeInOut(duration: 0.45)) {
                             hasShownSplash = true
                         }
