@@ -32,6 +32,7 @@ struct SplashView: View {
 
     @State private var stage: Stage = .intro
     @State private var vibeIndex: Int = 0
+    @State private var briefVibe: VibeColorKey = VibeColorKey.allCases.randomElement()!
 
     private enum Stage {
         case intro    // bg only, fading in
@@ -190,25 +191,31 @@ struct SplashView: View {
     @MainActor
     private func runAnimation() async {
         if reduceMotion {
-            // Skip the cycle. Fade in the static splash (already on the
-            // settle vibe) and hold briefly before dismissing.
             withAnimation { stage = .settle }
-            try? await Task.sleep(for: .milliseconds(Self.reduceMotionHoldMs))
+            try? await Task.sleep(for: .milliseconds(mode == .brief ? 700 : Self.reduceMotionHoldMs))
             onComplete()
             return
         }
 
-        // intro → cycle
+        if mode == .brief {
+            vibeIndex = Self.cycleOrder.firstIndex(of: briefVibe) ?? 0
+            withAnimation { stage = .cycle }
+            try? await Task.sleep(for: .milliseconds(800))
+            withAnimation { stage = .settle }
+            try? await Task.sleep(for: .milliseconds(1_000))
+            onComplete()
+            return
+        }
+
+        // Full animation (unchanged)
         try? await Task.sleep(for: .milliseconds(Self.introDurationMs))
         withAnimation { stage = .cycle }
 
-        // Advance through the remaining cycle slots.
         for index in 1..<Self.cycleOrder.count {
             try? await Task.sleep(for: .milliseconds(Self.cycleHoldMs))
             withAnimation { vibeIndex = index }
         }
 
-        // Hold the final cycle slot one beat, then settle.
         try? await Task.sleep(for: .milliseconds(Self.cycleHoldMs))
         withAnimation { stage = .settle }
 
@@ -219,4 +226,8 @@ struct SplashView: View {
 
 #Preview("Full") {
     SplashView(mode: .full) {}
+}
+
+#Preview("Brief") {
+    SplashView(mode: .brief) {}
 }
