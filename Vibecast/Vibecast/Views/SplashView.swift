@@ -1,5 +1,10 @@
 import SwiftUI
 
+enum SplashMode: Equatable {
+    case full
+    case brief
+}
+
 /// Cold-launch animated splash. Side-band variant from
 /// `docs/design/vibecast-visual-prototypes/project/Vibecast Animated Splash.html`,
 /// section "B · Side band · animated".
@@ -20,6 +25,7 @@ import SwiftUI
 /// cycle and just fades a static "around"-tinted splash in, holds, then
 /// dismisses.
 struct SplashView: View {
+    var mode: SplashMode = .full
     let onComplete: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -211,6 +217,6 @@ struct SplashView: View {
     }
 }
 
-#Preview {
-    SplashView(onComplete: {})
+#Preview("Full") {
+    SplashView(mode: .full) {}
 }

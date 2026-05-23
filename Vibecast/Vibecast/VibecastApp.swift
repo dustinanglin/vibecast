@@ -14,6 +14,12 @@ struct VibecastApp: App {
     /// and the splash plays again.
     @State private var hasShownSplash: Bool = false
 
+    static let hasCompletedFirstLaunchKey = "hasCompletedFirstLaunch"
+
+    static func splashMode(defaults: UserDefaults = .standard) -> SplashMode {
+        defaults.bool(forKey: hasCompletedFirstLaunchKey) ? .brief : .full
+    }
+
     init() {
         let c: ModelContainer
         do {
