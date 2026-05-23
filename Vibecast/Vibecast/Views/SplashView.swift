@@ -32,6 +32,7 @@ struct SplashView: View {
 
     @State private var stage: Stage = .intro
     @State private var vibeIndex: Int = 0
+    // Five fixed cases — randomElement() is always non-nil.
     @State private var briefVibe: VibeColorKey = VibeColorKey.allCases.randomElement()!
 
     private enum Stage {
@@ -57,6 +58,8 @@ struct SplashView: View {
     private static let settleHoldMs: UInt64 = 1400
     private static let reduceMotionHoldMs: UInt64 = 1200
     private static let crossfadeSeconds: Double = 0.34
+    private static let briefVibeHoldMs: UInt64 = 800
+    private static let briefSettleHoldMs: UInt64 = 1_000
 
     // MARK: - Derived state
 
@@ -191,6 +194,9 @@ struct SplashView: View {
     @MainActor
     private func runAnimation() async {
         if reduceMotion {
+            // Both full and brief skip the cycle. Brief uses a shorter hold.
+            // The settle stage always shows the .around vibe color regardless
+            // of briefVibe — that's intentional since the cycle is not played.
             withAnimation { stage = .settle }
             try? await Task.sleep(for: .milliseconds(mode == .brief ? 700 : Self.reduceMotionHoldMs))
             onComplete()
@@ -200,9 +206,9 @@ struct SplashView: View {
         if mode == .brief {
             vibeIndex = Self.cycleOrder.firstIndex(of: briefVibe) ?? 0
             withAnimation { stage = .cycle }
-            try? await Task.sleep(for: .milliseconds(800))
+            try? await Task.sleep(for: .milliseconds(Self.briefVibeHoldMs))
             withAnimation { stage = .settle }
-            try? await Task.sleep(for: .milliseconds(1_000))
+            try? await Task.sleep(for: .milliseconds(Self.briefSettleHoldMs))
             onComplete()
             return
         }
