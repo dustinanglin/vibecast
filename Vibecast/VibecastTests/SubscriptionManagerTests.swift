@@ -376,6 +376,81 @@ final class SubscriptionManagerTests: XCTestCase {
         XCTAssertFalse(manager.isImportingFeeds)
     }
 
+    // MARK: - onNewEpisodes
+
+    @MainActor
+    func test_refreshAll_firesOnNewEpisodesWithOnlyInsertedEpisodes() async throws {
+        // Arrange: a subscribed podcast whose existing feed has 1 episode,
+        // then point the fake fetcher at a feed with that same episode
+        // (same audioURL) plus 1 genuinely new one.
+        let url = URL(string: "https://feeds.example.com/a")!
+        let podcast = Podcast(title: "A", author: "A", artworkURL: nil, feedURL: url.absoluteString)
+        context.insert(podcast)
+
+        let existing = Episode(
+            podcast: podcast,
+            title: "Existing",
+            publishDate: .now.addingTimeInterval(-86400),
+            descriptionText: "d",
+            durationSeconds: 1000,
+            audioURL: "https://example.com/existing-episode.mp3"
+        )
+        context.insert(existing)
+        podcast.episodes.append(existing)
+        try! context.save()
+
+        fetcher.feed = ParsedFeed(
+            podcastTitle: nil, podcastAuthor: nil, artworkURL: nil,
+            episodes: [
+                ParsedEpisode(title: "Existing", publishDate: .now.addingTimeInterval(-86400), descriptionText: "d", durationSeconds: 1000, audioURL: "https://example.com/existing-episode.mp3", isExplicit: false),
+                ParsedEpisode(title: "New", publishDate: .now, descriptionText: "n", durationSeconds: 600, audioURL: "https://example.com/new-episode.mp3", isExplicit: false),
+            ]
+        )
+
+        var received: [[Episode]] = []
+        manager.onNewEpisodes = { received.append($0) }
+
+        await manager.refreshAll()
+
+        XCTAssertEqual(received.count, 1)
+        XCTAssertEqual(received[0].count, 1)
+        XCTAssertEqual(received[0][0].audioURL, "https://example.com/new-episode.mp3")
+    }
+
+    @MainActor
+    func test_refreshAll_noNewEpisodes_doesNotFireCallback() async throws {
+        // Arrange: fake fetcher returns a feed identical to what's stored.
+        let url = URL(string: "https://feeds.example.com/a")!
+        let podcast = Podcast(title: "A", author: "A", artworkURL: nil, feedURL: url.absoluteString)
+        context.insert(podcast)
+
+        let existing = Episode(
+            podcast: podcast,
+            title: "Existing",
+            publishDate: .now.addingTimeInterval(-86400),
+            descriptionText: "d",
+            durationSeconds: 1000,
+            audioURL: "https://example.com/existing-episode.mp3"
+        )
+        context.insert(existing)
+        podcast.episodes.append(existing)
+        try! context.save()
+
+        fetcher.feed = ParsedFeed(
+            podcastTitle: nil, podcastAuthor: nil, artworkURL: nil,
+            episodes: [
+                ParsedEpisode(title: "Existing", publishDate: .now.addingTimeInterval(-86400), descriptionText: "d", durationSeconds: 1000, audioURL: "https://example.com/existing-episode.mp3", isExplicit: false),
+            ]
+        )
+
+        var fired = false
+        manager.onNewEpisodes = { _ in fired = true }
+
+        await manager.refreshAll()
+
+        XCTAssertFalse(fired)
+    }
+
     func test_refresh_updatesLastFetchedAtOnSuccess() async {
         let podcast = Podcast(
             title: "A", author: "A", artworkURL: nil,

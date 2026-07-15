@@ -11,6 +11,13 @@ final class SubscriptionManager {
     private(set) var isImportingOPML: Bool = false
     private(set) var isImportingFeeds: Bool = false
 
+    /// Fired after a refresh saves, with the episodes that were newly
+    /// inserted by the merge (never existing/updated ones). Wired by
+    /// VibecastApp to the download manager's auto-download entry point.
+    /// Deliberately NOT fired by the initial subscribe — subscribing to a
+    /// back catalog isn't "a new episode showed up."
+    var onNewEpisodes: (([Episode]) -> Void)?
+
     /// Auto-clear duration for failed-subscribe state. Picked so a stale red
     /// error doesn't linger after the user has moved on.
     @ObservationIgnored private static let failureClearAfter: UInt64 = 5_000_000_000  // 5s
@@ -248,13 +255,17 @@ final class SubscriptionManager {
             fetched.append((podcast, feed))
         }
 
+        var newEpisodes: [Episode] = []
         for (podcast, feed) in fetched {
-            mergeFeed(feed, into: podcast)
+            newEpisodes.append(contentsOf: mergeFeed(feed, into: podcast))
         }
         if !fetched.isEmpty {
             try? modelContext.save()
         }
         lastFullRefreshAt = .now
+        if !newEpisodes.isEmpty {
+            onNewEpisodes?(newEpisodes)
+        }
     }
 
     /// Foreground-return refresh. Skips if the last full refresh attempt
@@ -293,15 +304,20 @@ final class SubscriptionManager {
             return
         }
 
-        mergeFeed(feed, into: podcast)
+        let newEpisodes = mergeFeed(feed, into: podcast)
         try? modelContext.save()
+        if !newEpisodes.isEmpty {
+            onNewEpisodes?(newEpisodes)
+        }
     }
 
     /// Merge a parsed feed into a podcast's episode list without saving.
     /// Caller is responsible for the `modelContext.save()` — `refreshAll`
     /// batches all merges and saves once at the end so the `@Query`-driven
-    /// list doesn't re-diff N times during a multi-feed refresh.
-    private func mergeFeed(_ feed: ParsedFeed, into podcast: Podcast) {
+    /// list doesn't re-diff N times during a multi-feed refresh. Returns the
+    /// episodes that were newly inserted by this merge.
+    @discardableResult
+    private func mergeFeed(_ feed: ParsedFeed, into podcast: Podcast) -> [Episode] {
         // `uniquingKeysWith: { first, _ in first }` so a malformed feed or a
         // historical bad-insert with duplicate audioURLs doesn't crash the
         // refresh path. The class doesn't enforce audioURL uniqueness on
@@ -311,6 +327,7 @@ final class SubscriptionManager {
             uniquingKeysWith: { first, _ in first }
         )
 
+        var inserted: [Episode] = []
         for parsed in feed.episodes {
             if let existing = existingByAudioURL[parsed.audioURL] {
                 existing.title = parsed.title
@@ -331,9 +348,11 @@ final class SubscriptionManager {
                 episode.isExplicit = parsed.isExplicit
                 modelContext.insert(episode)
                 podcast.episodes.append(episode)
+                inserted.append(episode)
             }
         }
         podcast.lastFetchedAt = .now
+        return inserted
     }
 }
 
