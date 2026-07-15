@@ -77,6 +77,12 @@ final class DownloadManager: NSObject {
     }
 
     func deleteDownload(_ episode: Episode) {
+        let audioURL = episode.audioURL
+        session.getAllTasks { tasks in
+            for task in tasks where task.taskDescription == audioURL {
+                task.cancel()
+            }
+        }
         DownloadStore.delete(for: episode.audioURL)
         episode.downloadState = DownloadState.none
         episode.isManualDownload = false
@@ -87,14 +93,19 @@ final class DownloadManager: NSObject {
 
     func deleteAllDownloads() {
         let downloaded = DownloadState.downloaded.rawValue
+        let downloading = DownloadState.downloading.rawValue
         let descriptor = FetchDescriptor<Episode>(
-            predicate: #Predicate { $0.downloadStateRaw == downloaded }
+            predicate: #Predicate { $0.downloadStateRaw == downloaded || $0.downloadStateRaw == downloading }
         )
         let episodes = (try? modelContext.fetch(descriptor)) ?? []
+        session.getAllTasks { tasks in
+            tasks.forEach { $0.cancel() }
+        }
         for episode in episodes {
             episode.downloadState = DownloadState.none
             episode.isManualDownload = false
             episode.downloadedAt = nil
+            progress[episode.persistentModelID] = nil
         }
         DownloadStore.deleteAll()
         try? modelContext.save()
