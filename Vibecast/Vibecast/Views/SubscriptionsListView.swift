@@ -415,6 +415,9 @@ struct SubscriptionsListView: View {
         pendingDeletes.insert(id)
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(400))
+            for episode in podcast.episodes where episode.downloadState != .none {
+                downloadManager?.deleteDownload(episode)
+            }
             modelContext.delete(podcast)
             try? modelContext.save()
             pendingDeletes.remove(id)
