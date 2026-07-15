@@ -7,6 +7,17 @@ enum ListenedStatus: String, Codable {
     case played
 }
 
+/// Offline-download lifecycle for an episode's audio file. Stored on
+/// Episode as a raw string with a default so SwiftData lightweight
+/// migration adds it to existing rows (same pattern as
+/// `Podcast.episodeSortOrderRaw`).
+enum DownloadState: String, Codable, Sendable {
+    case none
+    case downloading
+    case downloaded
+    case failed
+}
+
 @Model
 final class Episode {
     var podcast: Podcast?
@@ -18,6 +29,9 @@ final class Episode {
     var listenedStatus: ListenedStatus
     var playbackPosition: Double
     var isExplicit: Bool
+    var downloadStateRaw: String = DownloadState.none.rawValue
+    var isManualDownload: Bool = false
+    var downloadedAt: Date?
 
     init(podcast: Podcast, title: String, publishDate: Date, descriptionText: String, durationSeconds: Int, audioURL: String, isExplicit: Bool = false) {
         self.podcast = podcast
@@ -29,6 +43,11 @@ final class Episode {
         self.isExplicit = isExplicit
         self.listenedStatus = .unplayed
         self.playbackPosition = 0
+    }
+
+    var downloadState: DownloadState {
+        get { DownloadState(rawValue: downloadStateRaw) ?? .none }
+        set { downloadStateRaw = newValue.rawValue }
     }
 
     var progressFraction: Double {
