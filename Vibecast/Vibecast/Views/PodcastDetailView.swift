@@ -6,6 +6,7 @@ struct PodcastDetailView: View {
     @Environment(\.playerManager) private var playerManager
     @Environment(\.subscriptionManager) private var subscriptionManager
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.downloadManager) private var downloadManager
     @State private var viewModel: PodcastDetailViewModel?
 
     var body: some View {
@@ -56,6 +57,7 @@ struct PodcastDetailView: View {
                     episode: episode,
                     isCurrent: isCurrent,
                     isPlaying: isCurrent && (playerManager?.isPlaying ?? false),
+                    downloadProgress: downloadManager?.progress[episode.persistentModelID],
                     onPlay: {
                         guard let mgr = playerManager else { return }
                         if mgr.currentEpisode?.persistentModelID == episode.persistentModelID {
@@ -94,6 +96,33 @@ struct PodcastDetailView: View {
                         .tint(.green)
                     }
                 }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    if let dl = downloadManager {
+                        switch episode.downloadState {
+                        case .none, .failed:
+                            Button {
+                                dl.download(episode, manual: true)
+                            } label: {
+                                Label("Download", systemImage: "arrow.down.circle")
+                            }
+                            .tint(Brand.Color.accent)
+                        case .downloading:
+                            Button {
+                                dl.cancelDownload(episode)
+                            } label: {
+                                Label("Cancel", systemImage: "xmark.circle")
+                            }
+                            .tint(.gray)
+                        case .downloaded:
+                            Button {
+                                dl.deleteDownload(episode)
+                            } label: {
+                                Label("Remove", systemImage: "trash")
+                            }
+                            .tint(.red)
+                        }
+                    }
+                }
             }
 
             if vm.isLoadingMore {
@@ -129,6 +158,7 @@ struct PodcastDetailView: View {
             episode.listenedStatus = .played
             episode.playbackPosition = Double(episode.durationSeconds)
             try? modelContext.save()
+            downloadManager?.episodeWasPlayed(episode)
         }
     }
 

@@ -5,6 +5,7 @@ struct SubscriptionsListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.playerManager) private var playerManager
     @Environment(\.subscriptionManager) private var subscriptionManager
+    @Environment(\.downloadManager) private var downloadManager
     @Environment(\.scenePhase) private var scenePhase
     @Query(sort: [SortDescriptor(\Podcast.sortPosition)]) private var podcasts: [Podcast]
     @Query(sort: [SortDescriptor(\Vibe.sortPosition)]) private var vibes: [Vibe]
@@ -427,6 +428,7 @@ struct SubscriptionsListView: View {
             episode.listenedStatus = .played
             episode.playbackPosition = Double(episode.durationSeconds)
             try? modelContext.save()
+            downloadManager?.episodeWasPlayed(episode)
         }
     }
 

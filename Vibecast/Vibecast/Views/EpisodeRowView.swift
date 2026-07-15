@@ -5,6 +5,9 @@ struct EpisodeRowView: View {
     let episode: Episode
     var isCurrent: Bool = false
     var isPlaying: Bool = false
+    /// Fractional progress while `.downloading`, from
+    /// DownloadManager.progress. Nil when not downloading.
+    var downloadProgress: Double? = nil
     let onPlay: () -> Void
 
     private enum RowState { case unplayed, started, nowPlaying, played }
@@ -74,7 +77,10 @@ struct EpisodeRowView: View {
             dateEyebrow
             titleText
                 .frame(minHeight: 16 * 1.22 * 2, alignment: .topLeading)  // 2-line reservation
-            footnote
+            HStack(spacing: 6) {
+                downloadBadge
+                footnote
+            }
         }
     }
 
@@ -192,6 +198,33 @@ struct EpisodeRowView: View {
                 .tracking(Brand.Layout.monoTracking)
                 .foregroundStyle(Brand.Color.inkMuted)
                 .accessibilityLabel(TimeFormatting.spoken(seconds: episode.durationSeconds))
+        }
+    }
+
+    /// Compact download-state glyph leading the footnote. Nothing for
+    /// `.none` — absence is the common case and shouldn't take space.
+    @ViewBuilder
+    private var downloadBadge: some View {
+        switch episode.downloadState {
+        case .downloaded:
+            Image(systemName: "arrow.down.circle.fill")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Brand.Color.accent)
+                .accessibilityLabel("Downloaded")
+        case .downloading:
+            ProgressRing(
+                fraction: downloadProgress ?? 0,
+                size: 11,
+                color: Brand.Color.accent
+            )
+            .accessibilityLabel("Downloading, \(Int((downloadProgress ?? 0) * 100)) percent")
+        case .failed:
+            Image(systemName: "exclamationmark.circle")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.orange)
+                .accessibilityLabel("Download failed")
+        case .none:
+            EmptyView()
         }
     }
 
