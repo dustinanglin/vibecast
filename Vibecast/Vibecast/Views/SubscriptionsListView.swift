@@ -16,6 +16,7 @@ struct SubscriptionsListView: View {
     @State private var selectedPodcast: Podcast?
     @State private var showAddSheet = false
     @State private var showManageVibes = false
+    @State private var showDownloadSettings = false
     @State private var showFullScreenPlayer = false
     @State private var pendingDeletes: Set<PersistentIdentifier> = []
     @State private var editMode: EditMode = .inactive
@@ -62,7 +63,8 @@ struct SubscriptionsListView: View {
                     onStartAll: { startNextUnplayed() },
                     onToggleVibe: { playerManager?.togglePlayPause() },
                     onTapStack: { showManageVibes = true },
-                    onTapAdd: { showAddSheet = true }
+                    onTapAdd: { showAddSheet = true },
+                    onTapSettings: { showDownloadSettings = true }
                 )
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
@@ -271,6 +273,10 @@ struct SubscriptionsListView: View {
             }
             .sheet(isPresented: $showAddSheet) {
                 AddPodcastSheet()
+            }
+            .sheet(isPresented: $showDownloadSettings) {
+                DownloadSettingsView()
+                    .environment(\.downloadManager, downloadManager)
             }
             .sheet(item: $addToVibe) { vibe in
                 AddShowSheet(vibe: vibe)

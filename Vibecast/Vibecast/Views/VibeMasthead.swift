@@ -37,6 +37,7 @@ struct VibeMasthead: View {
     let onToggleVibe: () -> Void
     let onTapStack: () -> Void
     let onTapAdd: () -> Void
+    let onTapSettings: () -> Void
 
     /// 1-based index into the padded HStack. Real range is 1...slotCount;
     /// 0 and slotCount+1 are phantoms used during wrap animations.
@@ -72,6 +73,15 @@ struct VibeMasthead: View {
                     .transition(.opacity)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 HStack(spacing: 4) {
+                    Button(action: onTapSettings) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(Brand.Color.inkSecondary)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Download settings")
                     StackIcon(action: onTapStack)
                     AddIconButton(action: onTapAdd)
                 }
