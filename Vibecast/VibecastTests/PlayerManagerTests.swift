@@ -467,6 +467,32 @@ final class PlayerManagerTests: XCTestCase {
         XCTAssertTrue(manager.isPlaying)
         XCTAssertEqual(engine.loadedURL?.absoluteString, "https://x.com/n.mp3")
     }
+
+    // MARK: - Local playback
+
+    func test_play_usesLocalFileWhenDownloadedAndFileExists() throws {
+        episode.downloadState = .downloaded
+
+        // Materialize a real file at the store path.
+        try FileManager.default.createDirectory(at: DownloadStore.directoryURL, withIntermediateDirectories: true)
+        try Data([0x01]).write(to: DownloadStore.fileURL(for: episode.audioURL))
+        defer { DownloadStore.delete(for: episode.audioURL) }
+
+        manager.play(episode)
+
+        XCTAssertEqual(engine.loadedURL, DownloadStore.fileURL(for: episode.audioURL))
+        XCTAssertTrue(engine.loadedURL?.isFileURL ?? false)
+    }
+
+    func test_play_fallsBackToRemoteAndSelfHealsWhenFileMissing() throws {
+        episode.downloadState = .downloaded
+        // No file written — the store path is empty for this URL.
+
+        manager.play(episode)
+
+        XCTAssertEqual(engine.loadedURL, URL(string: episode.audioURL))
+        XCTAssertEqual(episode.downloadState, DownloadState.none)  // self-healed
+    }
 }
 
 // MARK: - Test Double

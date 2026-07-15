@@ -20,6 +20,11 @@ final class PlayerManager: PlaybackController {
     @ObservationIgnored private let engine: AudioEngine
     @ObservationIgnored private let modelContext: ModelContext
     @ObservationIgnored private let nowPlaying: NowPlayingService
+
+    /// Weak back-reference for delete-when-played + local-file resolution.
+    /// Assigned by VibecastApp after both objects exist; nil in unit tests
+    /// that don't exercise downloads.
+    @ObservationIgnored weak var downloadManager: DownloadManager?
     @ObservationIgnored private var lastPersistedAt: TimeInterval = 0
     @ObservationIgnored private var wasPlayingBeforeInterruption = false
     @ObservationIgnored private static let saveIntervalSeconds: TimeInterval = 5
@@ -70,7 +75,7 @@ final class PlayerManager: PlaybackController {
             self.elapsed = restoredEpisode.playbackPosition
             self.lastPersistedAt = restoredEpisode.playbackPosition
             self.isPlaying = false
-            if let url = URL(string: restoredEpisode.audioURL), !restoredEpisode.audioURL.isEmpty {
+            if !restoredEpisode.audioURL.isEmpty, let url = playbackURL(for: restoredEpisode) {
                 engine.load(url: url, startAt: restoredEpisode.playbackPosition)
             }
             publishNowPlaying()
@@ -109,7 +114,7 @@ final class PlayerManager: PlaybackController {
             try? modelContext.save()
         }
 
-        guard let url = URL(string: episode.audioURL), !episode.audioURL.isEmpty else {
+        guard !episode.audioURL.isEmpty, let url = playbackURL(for: episode) else {
             // No URL — keep state, do not start the engine.
             elapsed = episode.playbackPosition
             lastPersistedAt = episode.playbackPosition
@@ -215,6 +220,7 @@ final class PlayerManager: PlaybackController {
         elapsed = canonicalDuration
         isPlaying = false
         try? modelContext.save()
+        downloadManager?.episodeWasPlayed(episode)
         lastPersistedAt = elapsed
         publishNowPlaying()
 
@@ -344,6 +350,7 @@ final class PlayerManager: PlaybackController {
         }
 
         try? modelContext.save()
+        downloadManager?.episodeWasPlayed(episode)
 
         if wasCurrentlyPlaying {
             switch advance {
@@ -436,6 +443,20 @@ final class PlayerManager: PlaybackController {
     /// Call on scene backgrounding so progress survives abrupt termination.
     func saveCurrentState() {
         persistCurrentPosition()
+    }
+
+    /// Local file when downloaded and present on disk; remote URL
+    /// otherwise. A downloaded episode whose file vanished (storage
+    /// cleanup, reinstall edge) self-heals back to `.none` and streams.
+    private func playbackURL(for episode: Episode) -> URL? {
+        if episode.downloadState == .downloaded {
+            if DownloadStore.exists(for: episode.audioURL) {
+                return DownloadStore.fileURL(for: episode.audioURL)
+            }
+            episode.downloadState = DownloadState.none
+            try? modelContext.save()
+        }
+        return URL(string: episode.audioURL)
     }
 
     private func persistCurrentPosition() {

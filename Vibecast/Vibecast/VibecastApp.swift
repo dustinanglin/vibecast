@@ -54,6 +54,7 @@ struct VibecastApp: App {
                 d?.autoDownload(newEpisodes: episodes)
             }
             AppDelegate.downloadManager = d
+            p.downloadManager = d
             try? VibeSeeder.seedIfNeeded(in: c.mainContext)
             return (p, s, d)
         }
