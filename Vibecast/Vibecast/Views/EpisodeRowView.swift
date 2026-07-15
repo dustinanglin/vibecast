@@ -78,7 +78,9 @@ struct EpisodeRowView: View {
             titleText
                 .frame(minHeight: 16 * 1.22 * 2, alignment: .topLeading)  // 2-line reservation
             HStack(spacing: 6) {
-                downloadBadge
+                if episode.downloadState != .none {
+                    downloadBadge
+                }
                 footnote
             }
         }
