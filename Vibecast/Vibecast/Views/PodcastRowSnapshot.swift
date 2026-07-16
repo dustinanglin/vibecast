@@ -27,6 +27,7 @@ struct EpisodeRowSnapshot: Hashable {
     let playbackPosition: TimeInterval
     /// Raw total duration in seconds, captured at snapshot time.
     let totalDuration: TimeInterval
+    let downloadState: DownloadState
 
     /// Elapsed time formatted like formattedDuration (e.g., "14m", "1h 2m").
     var formattedElapsed: String {
@@ -73,5 +74,6 @@ extension EpisodeRowSnapshot {
         self.formattedRemaining = episode.formattedRemaining
         self.playbackPosition = episode.playbackPosition
         self.totalDuration = TimeInterval(episode.durationSeconds)
+        self.downloadState = episode.downloadState
     }
 }

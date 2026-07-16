@@ -125,6 +125,7 @@ struct SubscriptionsListView: View {
                             isPlaying: isCurrent && (playerManager?.isPlaying ?? false),
                             vibeDots: dots,
                             nowPlayingTint: playerManager?.queueSourceVibe?.colorKey.band ?? Brand.Color.accent,
+                            downloadProgress: latest.flatMap { downloadManager?.progress[$0.persistentModelID] },
                             onPlay: {
                                 guard let ep = latest, let mgr = playerManager else { return }
                                 // If this row's latest episode is the currently-loaded

@@ -12,6 +12,9 @@ struct PodcastRowView: View {
     /// playback from a vibe pass that vibe's band color so the row carries
     /// the vibe identity. Only consumed in the .nowPlaying row state.
     var nowPlayingTint: Color = Brand.Color.accent
+    /// Fractional progress while the latest episode is `.downloading`, from
+    /// DownloadManager.progress. Nil when not downloading.
+    var downloadProgress: Double? = nil
     let onPlay: () -> Void
     let onOpenDetail: () -> Void
 
@@ -131,7 +134,12 @@ struct PodcastRowView: View {
             if !vibeDots.isEmpty {
                 VibeDotsRow(keys: vibeDots)
             }
-            footnote(episode: episode)
+            HStack(spacing: 6) {
+                if episode.downloadState != .none {
+                    downloadBadge(episode: episode)
+                }
+                footnote(episode: episode)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -245,6 +253,33 @@ struct PodcastRowView: View {
                 .tracking(Brand.Layout.monoTracking)
                 .foregroundStyle(Brand.Color.inkMuted)
                 .accessibilityLabel(TimeFormatting.spoken(seconds: episode.totalDuration))
+        }
+    }
+
+    /// Compact download-state glyph leading the footnote. Nothing for
+    /// `.none` — absence is the common case and shouldn't take space.
+    @ViewBuilder
+    private func downloadBadge(episode: EpisodeRowSnapshot) -> some View {
+        switch episode.downloadState {
+        case .downloaded:
+            Image(systemName: "arrow.down.circle.fill")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Brand.Color.accent)
+                .accessibilityLabel("Downloaded")
+        case .downloading:
+            ProgressRing(
+                fraction: downloadProgress ?? 0,
+                size: 11,
+                color: Brand.Color.accent
+            )
+            .accessibilityLabel("Downloading, \(Int((downloadProgress ?? 0) * 100)) percent")
+        case .failed:
+            Image(systemName: "exclamationmark.circle")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.orange)
+                .accessibilityLabel("Download failed")
+        case .none:
+            EmptyView()
         }
     }
 
