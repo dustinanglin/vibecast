@@ -59,6 +59,18 @@ struct DownloadSettingsView: View {
                         showDeleteAllConfirm = true
                     }
                     .disabled(storageBytes == 0)
+                    // Anchored to the button so the dialog presents from it
+                    // rather than detached at the top of the sheet.
+                    .confirmationDialog(
+                        "Delete all downloaded episodes?",
+                        isPresented: $showDeleteAllConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Delete All", role: .destructive) {
+                            downloadManager?.deleteAllDownloads()
+                            refreshStorage()
+                        }
+                    }
                 }
             }
             .navigationTitle("Downloads")
@@ -66,16 +78,6 @@ struct DownloadSettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
-                }
-            }
-            .confirmationDialog(
-                "Delete all downloaded episodes?",
-                isPresented: $showDeleteAllConfirm,
-                titleVisibility: .visible
-            ) {
-                Button("Delete All", role: .destructive) {
-                    downloadManager?.deleteAllDownloads()
-                    refreshStorage()
                 }
             }
             .onAppear { refreshStorage() }
