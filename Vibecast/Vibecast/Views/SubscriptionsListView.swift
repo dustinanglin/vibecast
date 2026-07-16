@@ -207,6 +207,38 @@ struct SubscriptionsListView: View {
                                     Label("Remove", systemImage: "trash")
                                 }
                             }
+
+                            // Context-sensitive download action for the row's
+                            // latest episode, mirroring PodcastDetailView's
+                            // trailing swipe. "Remove DL" reuses the download
+                            // glyph with a gray tint so it reads distinctly
+                            // from the red trash "Remove" (unsubscribe) that
+                            // can appear alongside it on the All view.
+                            if let dl = downloadManager, let episode = latest {
+                                switch episode.downloadState {
+                                case .none, .failed:
+                                    Button {
+                                        dl.download(episode, manual: true)
+                                    } label: {
+                                        Label("Download", systemImage: "arrow.down.circle")
+                                    }
+                                    .tint(Brand.Color.accent)
+                                case .downloading:
+                                    Button {
+                                        dl.cancelDownload(episode)
+                                    } label: {
+                                        Label("Cancel", systemImage: "xmark.circle")
+                                    }
+                                    .tint(.gray)
+                                case .downloaded:
+                                    Button {
+                                        dl.deleteDownload(episode)
+                                    } label: {
+                                        Label("Remove DL", systemImage: "arrow.down.circle")
+                                    }
+                                    .tint(.gray)
+                                }
+                            }
                         }
                     }
                     .onMove { source, destination in
