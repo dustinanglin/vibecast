@@ -429,7 +429,7 @@ final class PlayerManager: PlaybackController {
         guard let candidates = try? modelContext.fetch(descriptor) else { return }
 
         for podcast in candidates {
-            let latest = podcast.episodes.sorted { $0.publishDate > $1.publishDate }.first
+            let latest = podcast.latestEpisode
             guard let next = latest else { continue }
             if next.listenedStatus == .played { continue }
             play(next, clearQueueSource: false) // keep source nil-state intact

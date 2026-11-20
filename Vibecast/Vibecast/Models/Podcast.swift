@@ -38,6 +38,19 @@ final class Podcast {
         self.episodes = []
     }
 
+    /// The most recently published episode. A single pass over the catalog:
+    /// this runs for every row each time the show list redraws, where sorting
+    /// hundreds of episodes per show made scrolling and vibe switches stall.
+    var latestEpisode: Episode? {
+        var latest: (episode: Episode, date: Date)?
+        for episode in episodes {
+            let date = episode.publishDate
+            if let current = latest, date <= current.date { continue }
+            latest = (episode, date)
+        }
+        return latest?.episode
+    }
+
     /// Per-podcast persistent sort preference for the detail view's episode
     /// list. Falls back to `.newest` if the stored raw value ever drifts.
     var sortOrder: EpisodeSortOrder {

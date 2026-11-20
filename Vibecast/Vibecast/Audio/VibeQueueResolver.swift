@@ -40,7 +40,7 @@ enum VibeQueueResolver {
     /// when the latest is `.played` or has crossed the 95% threshold,
     /// regardless of whether older episodes remain unplayed.
     static func latestEpisodeIfUnplayed(in podcast: Podcast) -> Episode? {
-        guard let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first else {
+        guard let latest = podcast.latestEpisode else {
             return nil
         }
         return isUnplayed(latest) ? latest : nil

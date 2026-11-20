@@ -218,9 +218,9 @@ struct SubscriptionsListView: View {
                         // number reflects "this vibe's order" rather than leaking
                         // the global library sortPosition.
                         let positionOverride = activeVibe == nil ? nil : index + 1
-                        let snapshot = PodcastRowSnapshot(podcast, position: positionOverride)
+                        let latest = podcast.latestEpisode
+                        let snapshot = PodcastRowSnapshot(podcast, position: positionOverride, latest: latest)
                         let dots = activeVibe == nil ? snapshot.vibeColorKeys : []
-                        let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
                         // The row is "current" only while there's something playable
                         // happening with this episode. Once it's been played to the
                         // end (and the player isn't actively playing), revert to
@@ -468,7 +468,7 @@ struct SubscriptionsListView: View {
     private func startNextUnplayed() {
         guard let mgr = playerManager else { return }
         for podcast in visiblePodcasts {
-            let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
+            let latest = podcast.latestEpisode
             guard let episode = latest, episode.listenedStatus != .played else { continue }
             mgr.play(episode)
             return

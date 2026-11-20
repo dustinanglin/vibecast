@@ -45,11 +45,15 @@ extension PodcastRowSnapshot {
     /// `position` instead so the left-slot number reflects the per-vibe
     /// ordering rather than leaking the global library index.
     init(_ podcast: Podcast, position: Int? = nil) {
+        self.init(podcast, position: position, latest: podcast.latestEpisode)
+    }
+
+    /// For callers that have already looked up the latest episode.
+    init(_ podcast: Podcast, position: Int?, latest: Episode?) {
         self.id = podcast.persistentModelID
         self.title = podcast.title
         self.artworkURL = podcast.artworkURL
         self.position = position ?? (podcast.sortPosition + 1)
-        let latest = podcast.episodes.sorted(by: { $0.publishDate > $1.publishDate }).first
         self.latestEpisode = latest.map(EpisodeRowSnapshot.init)
         self.vibeColorKeys = podcast.vibeMemberships
             .compactMap { membership -> (sortPosition: Int, key: VibeColorKey)? in
