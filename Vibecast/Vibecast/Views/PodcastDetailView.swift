@@ -156,8 +156,9 @@ struct PodcastDetailView: View {
             }
         }
         .listStyle(.plain)
-        .background(Brand.Color.bg)
         .scrollContentBackground(.hidden)
+        .containedInHorizontalSafeArea()
+        .background(Brand.Color.bg)
     }
 
     // MARK: - Episode mutations (mirrors SubscriptionsListView, with

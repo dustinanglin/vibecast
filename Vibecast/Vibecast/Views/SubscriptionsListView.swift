@@ -395,6 +395,7 @@ struct SubscriptionsListView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .environment(\.editMode, $editMode)
+            .containedInHorizontalSafeArea()
             .onChange(of: activeVibe) { _, _ in
                 // Switching the masthead context should drop the user out
                 // of edit so the previous-view's drag handles disappear
