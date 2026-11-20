@@ -10,7 +10,7 @@ final class StageLayoutModeTests: XCTestCase {
     private func resolve(
         _ pose: DuoPose, _ size: CGSize, regular: Bool = true, fold: Bool = false
     ) -> StageLayoutMode {
-        StageLayoutMode.resolve(pose: pose, size: size, isRegularWidth: regular, foldDividesView: fold)
+        StageLayoutMode.resolve(pose: pose, size: size, isRegularWidth: regular, horizontalFoldDividesView: fold)
     }
 
     func test_resolve_notFoldable_isSingle() {
@@ -43,5 +43,41 @@ final class StageLayoutModeTests: XCTestCase {
 
     func test_resolve_openLandscapeCompactWidth_isSingle() {
         XCTAssertEqual(resolve(.fullyOpen, CGSize(width: 700, height: 626), regular: false), .single)
+    }
+
+    // MARK: fold direction
+
+    func test_horizontalFold_bandAcrossMiddle_isTrue() {
+        let fold = CGRect(x: 0, y: 435, width: 626, height: 20)
+        XCTAssertTrue(StageLayoutMode.horizontalFoldDivides(portrait, divisions: [fold]))
+    }
+
+    func test_horizontalFold_zeroHeightLineAcrossMiddle_isTrue() {
+        let fold = CGRect(x: 0, y: 445, width: 626, height: 0)
+        XCTAssertTrue(StageLayoutMode.horizontalFoldDivides(portrait, divisions: [fold]))
+    }
+
+    func test_horizontalFold_noDivisions_isFalse() {
+        XCTAssertFalse(StageLayoutMode.horizontalFoldDivides(portrait, divisions: []))
+    }
+
+    /// Split View beside another app in landscape: the window is one half of
+    /// the inner display and the fold runs down its edge.
+    func test_horizontalFold_verticalFoldAtWindowEdge_isFalse() {
+        let half = CGSize(width: 435, height: 626)
+        let fold = CGRect(x: 435, y: 0, width: 20, height: 626)
+        XCTAssertFalse(StageLayoutMode.horizontalFoldDivides(half, divisions: [fold]))
+    }
+
+    func test_horizontalFold_verticalFoldThroughWindow_isFalse() {
+        let window = CGSize(width: 600, height: 626)
+        let fold = CGRect(x: 435, y: 0, width: 20, height: 626)
+        XCTAssertFalse(StageLayoutMode.horizontalFoldDivides(window, divisions: [fold]))
+    }
+
+    func test_horizontalFold_bandAtTopOrBottomEdge_isFalse() {
+        let top = CGRect(x: 0, y: -20, width: 626, height: 20)
+        let bottom = CGRect(x: 0, y: 890, width: 626, height: 20)
+        XCTAssertFalse(StageLayoutMode.horizontalFoldDivides(portrait, divisions: [top, bottom]))
     }
 }

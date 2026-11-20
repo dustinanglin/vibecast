@@ -31,12 +31,15 @@ private struct PoseAwareReader<Content: View>: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let foldDividesView = !proxy.reservedRegions(kind: .division).isEmpty
+            let horizontalFold = StageLayoutMode.horizontalFoldDivides(
+                proxy.size,
+                divisions: proxy.reservedRegions(kind: .division).map(\.frame)
+            )
             let mode = DuoDebug.forcedMode ?? StageLayoutMode.resolve(
                 pose: pose,
                 size: proxy.size,
                 isRegularWidth: horizontalSizeClass == .regular,
-                foldDividesView: foldDividesView
+                horizontalFoldDividesView: horizontalFold
             )
             content(DuoLayout(hasSideBar: toolbarVerticalEdge != nil, mode: mode))
         }
