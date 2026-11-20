@@ -74,6 +74,7 @@ struct VibecastApp: App {
                     .environment(\.subscriptionManager, subscriptionManager)
                     .environment(\.downloadManager, downloadManager)
                     .environment(\.duoPose, DuoPoseMonitor.shared.pose)
+                    .background(HingeObserver())
                     .preferredColorScheme(.light)
                     .onOpenURL { url in
                         VibecastURLHandler.handle(url, session: .shared)

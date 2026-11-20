@@ -12,6 +12,7 @@ struct NowPlayingPanel: View {
     /// Height of everything except the artwork in the tall arrangement.
     private static let tallChromeHeight: CGFloat = 358
     private static let volumeRowHeight: CGFloat = 68
+    private static let minimumArtwork: CGFloat = 140
 
     var body: some View {
         GeometryReader { proxy in
@@ -26,9 +27,9 @@ struct NowPlayingPanel: View {
     // MARK: - Arrangements
 
     private func tallLayout(in size: CGSize) -> some View {
-        let showsVolume = size.height - Self.tallChromeHeight - Self.volumeRowHeight >= 200
+        let showsVolume = size.height - Self.tallChromeHeight - Self.volumeRowHeight >= Self.minimumArtwork
         let chrome = Self.tallChromeHeight + (showsVolume ? Self.volumeRowHeight : 0)
-        let artwork = min(max(size.height - chrome, 140), size.width - 64, 360)
+        let artwork = min(max(size.height - chrome, Self.minimumArtwork), max(size.width - 64, 0), 360)
         return VStack(spacing: 0) {
             Spacer(minLength: 0)
             eyebrow
@@ -54,7 +55,7 @@ struct NowPlayingPanel: View {
     }
 
     private func wideLayout(in size: CGSize) -> some View {
-        let artwork = min(max(size.height - 72, 120), size.width * 0.38, 300)
+        let artwork = min(max(size.height - 72, 120), max(size.width * 0.38, 0), 300)
         return HStack(alignment: .center, spacing: 28) {
             cover(size: artwork)
             VStack(alignment: .leading, spacing: 0) {

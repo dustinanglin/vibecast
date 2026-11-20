@@ -10,7 +10,7 @@ enum DuoPose: Equatable {
     case fullyOpen
 
     /// Landscape is only offered on the inner display; the outer display and
-    /// ordinary iPhones stay portrait.
+    /// ordinary iPhones stay portrait. `AppDelegate` returns this to UIKit.
     var supportedOrientations: UIInterfaceOrientationMask {
         switch self {
         case .notFoldable, .closed: return .portrait

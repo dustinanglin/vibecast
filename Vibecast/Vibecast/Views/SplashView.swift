@@ -108,8 +108,9 @@ struct SplashView: View {
                     wordmark
                     Spacer()
                 }
-                .frame(width: contentWidth)
+                .frame(maxWidth: .infinity)
                 .padding(.leading, contentWidth * 0.10)
+                .frame(width: contentWidth)
                 .opacity(contentVisible ? 1 : 0)
                 .offset(y: contentVisible ? 0 : 8)
 
@@ -132,9 +133,10 @@ struct SplashView: View {
                 }
                 .id("label-\(stage == .settle ? "settle" : activeVibe.rawValue)")
                 .transition(.opacity.combined(with: .offset(y: 6)))
-                .frame(width: contentWidth, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, contentWidth * 0.26)
                 .padding(.trailing, 24)
+                .frame(width: contentWidth)
                 .offset(y: proxy.size.height - 130)
                 .opacity(contentVisible ? 1 : 0)
 

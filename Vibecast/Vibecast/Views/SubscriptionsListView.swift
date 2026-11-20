@@ -36,7 +36,9 @@ struct SubscriptionsListView: View {
                 }
                 #endif
         }
-        .onChange(of: podcasts.map(\.persistentModelID)) { _, ids in
+        // Keyed on the *visible* list so the Stage lets go of a show the
+        // moment its row hides, before the delayed delete invalidates it.
+        .onChange(of: visiblePodcasts.map(\.persistentModelID)) { _, ids in
             stage.podcastsDidChange(existing: Set(ids))
         }
         .environment(\.toastCenter, toastCenter)
