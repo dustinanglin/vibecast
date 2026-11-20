@@ -29,6 +29,7 @@ private struct LoadedSheet: View {
     let manager: SubscriptionManager
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.duoSheetContext) private var duoSheetContext
 
     @State private var query = ""
     @State private var results: [PodcastSearchResult] = []
@@ -36,9 +37,17 @@ private struct LoadedSheet: View {
     @State private var lastSubmittedQuery = ""
 
     @State private var showFileImporter = false
+    /// The file picker hosted in our own sheet, used only where the system
+    /// presentation would cover the Stage (part-folded iPhone Duo).
+    @State private var showSizedFilePicker = false
     @State private var showImportSummaryAlert = false
     @State private var showImportFailureAlert = false
     @State private var showApplePodcastsWizard: Bool = false
+
+    @State private var showAddByURLAlert = false
+    @State private var feedURLText = ""
+    @State private var isAddingByURL = false
+    @State private var addByURLResult: AddFeedResult?
 
     var body: some View {
         NavigationStack {
@@ -75,7 +84,10 @@ private struct LoadedSheet: View {
             .safeAreaInset(edge: .top) {
                 VStack(spacing: 8) {
                     applePodcastsImportButton
-                    importButton
+                    HStack(spacing: 8) {
+                        addByURLButton
+                        importButton
+                    }
                 }
                 .padding(.horizontal, Brand.Layout.rowPadding)
                 .padding(.bottom, 8)
@@ -83,18 +95,24 @@ private struct LoadedSheet: View {
             }
             .sheet(isPresented: $showApplePodcastsWizard) {
                 ApplePodcastsImportWizard()
+                    .duoSheetPlacement()
             }
             .task(id: query) {
                 try? await Task.sleep(nanoseconds: 300_000_000)
                 if Task.isCancelled { return }
                 await runSearch()
             }
+            .sheet(isPresented: $showSizedFilePicker) {
+                DocumentPickerSheet(contentTypes: Self.importContentTypes) { urls in
+                    showSizedFilePicker = false
+                    if !urls.isEmpty { handleFileImport(.success(urls)) }
+                }
+                .ignoresSafeArea()
+                .duoSheetPlacement()
+            }
             .fileImporter(
                 isPresented: $showFileImporter,
-                allowedContentTypes: [
-                    UTType(filenameExtension: "opml") ?? .xml,
-                    .xml,
-                ],
+                allowedContentTypes: Self.importContentTypes,
                 allowsMultipleSelection: false
             ) { result in
                 handleFileImport(result)
@@ -103,6 +121,34 @@ private struct LoadedSheet: View {
                 Button("OK") { dismiss() }
             } message: { summary in
                 Text(importSummaryMessage(summary))
+            }
+            .alert("Add from URL", isPresented: $showAddByURLAlert) {
+                TextField("https://example.com/feed.xml", text: $feedURLText)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button("Cancel", role: .cancel) {}
+                Button("Add") { addByURL() }
+            } message: {
+                Text("Paste a podcast's RSS feed address, such as a private or premium feed.")
+            }
+            .alert(
+                addByURLResultTitle,
+                isPresented: Binding(
+                    get: { addByURLResult != nil },
+                    set: { if !$0 { addByURLResult = nil } }
+                ),
+                presenting: addByURLResult
+            ) { result in
+                switch result {
+                case .added, .alreadySubscribed:
+                    Button("OK") { feedURLText = "" }
+                case .invalidURL, .failed:
+                    Button("Try Again") { showAddByURLAlert = true }
+                    Button("Cancel", role: .cancel) { feedURLText = "" }
+                }
+            } message: { result in
+                Text(addByURLResultMessage(result))
             }
             .alert("Couldn't Import", isPresented: $showImportFailureAlert) {
                 Button("OK", role: .cancel) {}
@@ -212,15 +258,88 @@ private struct LoadedSheet: View {
         .buttonStyle(.plain)
     }
 
+    private var addByURLButton: some View {
+        Button {
+            showAddByURLAlert = true
+        } label: {
+            Group {
+                if isAddingByURL {
+                    ProgressView()
+                } else {
+                    Label("Add from URL", systemImage: "link")
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
+            .font(Brand.Font.uiButton())
+            .foregroundStyle(Brand.Color.ink)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 6)
+            .background(Brand.Color.paper)
+            .clipShape(RoundedRectangle(cornerRadius: Brand.Radius.inline))
+            .overlay(
+                RoundedRectangle(cornerRadius: Brand.Radius.inline)
+                    .strokeBorder(Brand.Color.inkHairline, lineWidth: Brand.Layout.hairlineWidth)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(isAddingByURL)
+    }
+
+    private func addByURL() {
+        let text = feedURLText
+        isAddingByURL = true
+        Task {
+            let result = await manager.addFeed(fromUserText: text)
+            isAddingByURL = false
+            addByURLResult = result
+        }
+    }
+
+    private var addByURLResultTitle: String {
+        switch addByURLResult {
+        case .added: return "Podcast Added"
+        case .alreadySubscribed: return "Already Subscribed"
+        case .invalidURL: return "Not a Feed Address"
+        case .failed, .none: return "Couldn't Add Podcast"
+        }
+    }
+
+    private func addByURLResultMessage(_ result: AddFeedResult) -> String {
+        switch result {
+        case .added(let title):
+            return "\(title) is now in your library."
+        case .alreadySubscribed:
+            return "That feed is already in your library."
+        case .invalidURL:
+            return "That doesn't look like a web address. Check it and try again."
+        case .failed:
+            return "No podcast feed could be loaded from that address. Check it and try again."
+        }
+    }
+
+    private static let importContentTypes: [UTType] = [
+        UTType(filenameExtension: "opml") ?? .xml,
+        .xml,
+    ]
+
     private var importButton: some View {
         Button {
-            showFileImporter = true
+            if duoSheetContext.mode == .stacked {
+                showSizedFilePicker = true
+            } else {
+                showFileImporter = true
+            }
         } label: {
             Label("Import from File", systemImage: "square.and.arrow.down")
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 .font(Brand.Font.uiButton())
                 .foregroundStyle(Brand.Color.ink)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
+                .padding(.horizontal, 6)
                 .background(Brand.Color.paper)
                 .clipShape(RoundedRectangle(cornerRadius: Brand.Radius.inline))
                 .overlay(

@@ -14,6 +14,9 @@ struct SubscriptionsListView: View {
     @State private var addToVibe: Vibe?
 
     @State private var stage = StageModel()
+    /// Height of the Library pane, so sheets in the stacked layout can stop
+    /// at the fold instead of covering the Stage above it.
+    @State private var libraryPaneHeight: CGFloat = 0
     @State private var showAddSheet = false
     @State private var showManageVibes = false
     @State private var showDownloadSettings = false
@@ -30,6 +33,12 @@ struct SubscriptionsListView: View {
                 #if DEBUG
                 .task {
                     if UserDefaults.standard.bool(forKey: "debugPresentPlayer") { stage.showNowPlaying() }
+                    switch UserDefaults.standard.string(forKey: "debugOpenSheet") {
+                    case "settings": showDownloadSettings = true
+                    case "vibes": showManageVibes = true
+                    case "add": showAddSheet = true
+                    default: break
+                    }
                     if UserDefaults.standard.bool(forKey: "debugOpenFirstShow"), let first = podcasts.first {
                         stage.openShow(first)
                     }
@@ -58,6 +67,7 @@ struct SubscriptionsListView: View {
         NavigationStack {
             StageSplitContainer(mode: layout.mode) {
                 libraryPane(layout: layout)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { libraryPaneHeight = $0 }
                     .overlay(alignment: .bottom) {
                         if layout.mode != .single { floatingBars }
                     }
@@ -79,20 +89,20 @@ struct SubscriptionsListView: View {
             )
             .sheet(isPresented: $showManageVibes) {
                 ManageVibesView()
-                    .duoSheetPlacement(layout.mode)
+                    .duoSheetPlacement()
             }
             .sheet(isPresented: $showAddSheet) {
                 AddPodcastSheet()
-                    .duoSheetPlacement(layout.mode)
+                    .duoSheetPlacement()
             }
             .sheet(isPresented: $showDownloadSettings) {
                 DownloadSettingsView()
                     .environment(\.downloadManager, downloadManager)
-                    .duoSheetPlacement(layout.mode)
+                    .duoSheetPlacement()
             }
             .sheet(item: $addToVibe) { vibe in
                 AddShowSheet(vibe: vibe)
-                    .duoSheetPlacement(layout.mode)
+                    .duoSheetPlacement()
             }
             .sheet(isPresented: $stage.isPlayerSheetPresented) {
                 if let playerManager, playerManager.currentEpisode != nil {
@@ -103,6 +113,7 @@ struct SubscriptionsListView: View {
                 PodcastDetailView(podcast: podcast)
             }
         }
+        .environment(\.duoSheetContext, DuoSheetContext(mode: layout.mode, libraryPaneHeight: libraryPaneHeight))
         // Floating overlay (not safeAreaInset) so List content scrolls *under*
         // the bar, giving the translucent paper a real "tracing paper" effect.
         // Each List adds a transparent footer row when a player is loaded,

@@ -67,9 +67,11 @@ struct ManageVibesView: View {
             }
             .sheet(isPresented: $newSheet) {
                 VibeEditSheet(mode: .create(autoTagPodcast: nil))
+                    .duoSheetPlacement()
             }
             .sheet(item: $editTarget) { vibe in
                 VibeEditSheet(mode: .edit(vibe))
+                    .duoSheetPlacement()
             }
         }
     }

@@ -148,6 +148,48 @@ final class SubscriptionManager {
         try? modelContext.save()
     }
 
+    // MARK: - Add by URL
+
+    /// Subscribes to a feed address the user typed or pasted, such as a
+    /// private or premium feed that no directory lists.
+    func addFeed(fromUserText text: String) async -> AddFeedResult {
+        guard let url = Self.feedURL(fromUserText: text) else { return .invalidURL }
+        guard !isSubscribed(feedURL: url) else { return .alreadySubscribed }
+        await subscribe(to: url)
+        let target = url.absoluteString
+        var descriptor = FetchDescriptor<Podcast>(predicate: #Predicate { $0.feedURL == target })
+        descriptor.fetchLimit = 1
+        guard let podcast = try? modelContext.fetch(descriptor).first else { return .failed }
+        return .added(title: podcast.title)
+    }
+
+    /// Turns pasted text into a feed URL: trims it, assumes https when no
+    /// scheme is given, and maps `feed:`/`podcast:` links to https. Returns
+    /// nil for anything that is not a web address.
+    static func feedURL(fromUserText text: String) -> URL? {
+        var candidate = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty,
+              candidate.rangeOfCharacter(from: .whitespacesAndNewlines) == nil else { return nil }
+        if !candidate.contains("://") {
+            // "example.com:8080/feed" is a host and port; "mailto:x" is a
+            // scheme we don't handle.
+            if let colon = candidate.firstIndex(of: ":") {
+                let afterColon = candidate[candidate.index(after: colon)...]
+                guard afterColon.first?.isNumber == true else { return nil }
+            }
+            candidate = "https://" + candidate
+        }
+        guard var components = URLComponents(string: candidate),
+              let scheme = components.scheme?.lowercased(),
+              let host = components.host, host.contains(".") else { return nil }
+        switch scheme {
+        case "http", "https": break
+        case "feed", "podcast", "pcast": components.scheme = "https"
+        default: return nil
+        }
+        return components.url
+    }
+
     private func nextAvailableSortPosition() -> Int {
         let descriptor = FetchDescriptor<Podcast>(sortBy: [SortDescriptor(\.sortPosition, order: .reverse)])
         let last = (try? modelContext.fetch(descriptor))?.first
@@ -361,4 +403,12 @@ struct ImportSummary: Equatable {
     let succeeded: Int
     let alreadySubscribed: Int
     let failed: Int
+}
+
+/// Outcome of `SubscriptionManager.addFeed(fromUserText:)`.
+enum AddFeedResult: Equatable {
+    case added(title: String)
+    case alreadySubscribed
+    case invalidURL
+    case failed
 }

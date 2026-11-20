@@ -27,15 +27,47 @@ extension View {
         .toolbar(layout.hasSideBar ? .automatic : .hidden, for: .navigationBar)
     }
 
-    /// In the side-by-side layout, sheets cover the Stage half and leave the
-    /// Library visible.
-    @ViewBuilder
-    func duoSheetPlacement(_ mode: StageLayoutMode) -> some View {
+    /// Side by side, sheets cover the Stage half and leave the Library
+    /// visible. Stacked, they rise only as far as the top of the Library's
+    /// (lower) half, so the Stage above the fold stays in view. Apply to the
+    /// content of every sheet, including ones presented from other sheets.
+    func duoSheetPlacement() -> some View {
+        modifier(DuoSheetPlacement())
+    }
+}
+
+/// What a sheet needs to know to place itself; set once by the main screen
+/// and inherited by every sheet presented beneath it.
+struct DuoSheetContext: Equatable {
+    var mode: StageLayoutMode = .single
+    var libraryPaneHeight: CGFloat = 0
+}
+
+extension EnvironmentValues {
+    @Entry var duoSheetContext = DuoSheetContext()
+}
+
+private struct DuoSheetPlacement: ViewModifier {
+    @Environment(\.duoSheetContext) private var context
+
+    func body(content: Content) -> some View {
+        // A sheet shorter than full height gets the system's translucent
+        // material, which lets the list show through; keep it solid paper.
+        let sized = content
+            .presentationDetents(detents)
+            .presentationBackground(context.mode == .stacked ? AnyShapeStyle(Brand.Color.bg) : AnyShapeStyle(.background))
         if #available(iOS 27.0, *) {
-            presentationPlacement(mode == .sideBySide ? .trailing : .automatic)
+            sized.presentationPlacement(context.mode == .sideBySide ? .trailing : .automatic)
         } else {
-            self
+            sized
         }
+    }
+
+    /// There is no system placement for "the lower half", so the stacked
+    /// case is a fixed-height detent matching the Library pane.
+    private var detents: Set<PresentationDetent> {
+        guard context.mode == .stacked, context.libraryPaneHeight > 0 else { return [.large] }
+        return [.height(context.libraryPaneHeight)]
     }
 }
 
