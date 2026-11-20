@@ -216,10 +216,11 @@ centre the wordmark block within one half.
 - Hinge state is public: SwiftUI `onHingeChange` / `DeviceHinge`
   (`closed`, `partiallyOpen`, `fullyOpen`; `nil` hinge on other devices) and
   UIKit `UIHingeInteraction` (calls its handler with the initial state).
-- Per-scene orientation: `UIWindowSceneDelegate
-  .supportedInterfaceOrientations(for:)` (iOS 27.0) replaces the Info.plist
-  value for that scene. This is how the Duo gets landscape while Info.plist
-  stays portrait-only.
+- Orientation: Info.plist stays portrait-only and
+  `AppDelegate.application(_:supportedInterfaceOrientationsFor:)` widens it
+  while the Duo is open. The hinge is observed from a view in the SwiftUI
+  hierarchy (`HingeObserver`), not a scene delegate: a scene delegate added in
+  an update is not attached to an already-persisted scene session.
 - The simulator's pose cannot be changed from the command line (no `simctl`
   control; DeviceHub is not scriptable), so only the closed pose was verified
   during implementation. Open and part-folded poses need a manual pass.
