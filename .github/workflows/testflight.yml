@@ -39,11 +39,16 @@ jobs:
       - name: Select Xcode
         run: |
           # Apple requires builds with Xcode 26+ / iOS 26 SDK to be
-          # accepted by App Store Connect. Pick the latest Xcode 26.x
-          # the runner has installed; fail loudly if none.
-          XCODE_PATH=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          # accepted by App Store Connect. Prefer the latest Xcode 27.x:
+          # builds from Xcode 26 run inset on iPhone Duo and compile out
+          # the Duo layout (iOS 27.1 APIs). Fall back to 26.x if the
+          # runner has no 27 yet; fail loudly if neither.
+          XCODE_PATH=$(ls -d /Applications/Xcode_27*.app 2>/dev/null | sort -V | tail -1)
           if [ -z "$XCODE_PATH" ]; then
-            echo "ERROR: no Xcode 26.x on this runner"
+            XCODE_PATH=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          fi
+          if [ -z "$XCODE_PATH" ]; then
+            echo "ERROR: no Xcode 27.x or 26.x on this runner"
             ls /Applications | grep -i xcode
             exit 1
           fi

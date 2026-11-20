@@ -13,17 +13,127 @@ struct SubscriptionsListView: View {
     @State private var toastCenter = ToastCenter()
     @State private var addToVibe: Vibe?
 
-    @State private var selectedPodcast: Podcast?
+    @State private var stage = StageModel()
     @State private var showAddSheet = false
     @State private var showManageVibes = false
     @State private var showDownloadSettings = false
-    @State private var showFullScreenPlayer = false
     @State private var pendingDeletes: Set<PersistentIdentifier> = []
     @State private var editMode: EditMode = .inactive
     @Bindable private var applePodcastsSession = ApplePodcastsImportSession.shared
 
     var body: some View {
+        DuoLayoutReader { layout in
+            shell(layout: layout)
+                .onChange(of: layout.mode, initial: true) { _, mode in
+                    stage.setTwoPane(mode != .single)
+                }
+                #if DEBUG
+                .task {
+                    if UserDefaults.standard.bool(forKey: "debugPresentPlayer") { stage.showNowPlaying() }
+                    if UserDefaults.standard.bool(forKey: "debugOpenFirstShow"), let first = podcasts.first {
+                        stage.openShow(first)
+                    }
+                }
+                #endif
+        }
+        .onChange(of: podcasts.map(\.persistentModelID)) { _, ids in
+            stage.podcastsDidChange(existing: Set(ids))
+        }
+        .environment(\.toastCenter, toastCenter)
+    }
+
+    private var hasLoadedEpisode: Bool {
+        playerManager?.currentEpisode != nil
+    }
+
+    // MARK: - Shell
+    //
+    // One pane: the Library fills the stack; a show is pushed and the player
+    // is a sheet. Two panes (open iPhone Duo): the Stage sits beside or below
+    // the Library and hosts both.
+
+    private func shell(layout: DuoLayout) -> some View {
         NavigationStack {
+            StageSplitContainer(mode: layout.mode) {
+                libraryPane(layout: layout)
+                    .overlay(alignment: .bottom) {
+                        if layout.mode != .single { floatingBars }
+                    }
+            } secondary: {
+                StageView(
+                    content: stage.content(hasLoadedEpisode: hasLoadedEpisode),
+                    player: playerManager,
+                    showsInlineClose: !layout.hasSideBar,
+                    onClose: { stage.closeShow() }
+                )
+            }
+            .duoLibraryToolbar(
+                layout: layout,
+                showsClose: stage.shownPodcast != nil,
+                onClose: { stage.closeShow() },
+                onAdd: { showAddSheet = true },
+                onVibes: { showManageVibes = true },
+                onSettings: { showDownloadSettings = true }
+            )
+            .sheet(isPresented: $showManageVibes) {
+                ManageVibesView()
+                    .duoSheetPlacement(layout.mode)
+            }
+            .sheet(isPresented: $showAddSheet) {
+                AddPodcastSheet()
+                    .duoSheetPlacement(layout.mode)
+            }
+            .sheet(isPresented: $showDownloadSettings) {
+                DownloadSettingsView()
+                    .environment(\.downloadManager, downloadManager)
+                    .duoSheetPlacement(layout.mode)
+            }
+            .sheet(item: $addToVibe) { vibe in
+                AddShowSheet(vibe: vibe)
+                    .duoSheetPlacement(layout.mode)
+            }
+            .sheet(isPresented: $stage.isPlayerSheetPresented) {
+                if let playerManager, playerManager.currentEpisode != nil {
+                    FullScreenPlayerView(player: playerManager)
+                }
+            }
+            .navigationDestination(item: $stage.pushedPodcast) { podcast in
+                PodcastDetailView(podcast: podcast)
+            }
+        }
+        // Floating overlay (not safeAreaInset) so List content scrolls *under*
+        // the bar, giving the translucent paper a real "tracing paper" effect.
+        // Each List adds a transparent footer row when a player is loaded,
+        // so the bottom rows aren't permanently hidden behind the bar. With
+        // one pane the bars float above the whole stack (including a pushed
+        // show); with two they belong to the Library pane instead.
+        .overlay(alignment: .bottom) {
+            if layout.mode == .single { floatingBars }
+        }
+    }
+
+    private var floatingBars: some View {
+        ZStack(alignment: .bottom) {
+            if let playerManager, stage.showsMiniPlayer(hasLoadedEpisode: hasLoadedEpisode) {
+                MiniPlayerBar(
+                    player: playerManager,
+                    onTapBar: { stage.showNowPlaying() }
+                )
+                .padding(.horizontal, 12)
+                .padding(.bottom, 8)
+            }
+            if let message = toastCenter.current {
+                ToastView(
+                    message: message,
+                    bottomInset: stage.showsMiniPlayer(hasLoadedEpisode: hasLoadedEpisode) ? 88 : 24
+                )
+            }
+        }
+    }
+
+    // MARK: - Library pane
+
+    private func libraryPane(layout: DuoLayout) -> some View {
             ZStack(alignment: .top) {
                 // Paper base + vibe color band layered behind a transparent
                 // List so the gradient can bleed past the top safe area into
@@ -42,7 +152,9 @@ struct SubscriptionsListView: View {
                     )
                     .frame(height: 380)
                     .frame(maxWidth: .infinity, alignment: .top)
-                    .ignoresSafeArea(edges: .top)
+                    // Horizontal too: on iPhone Duo the band runs under the
+                    // vertical side bar while the list stays inset.
+                    .ignoresSafeArea(edges: [.top, .horizontal])
                     .animation(.easeInOut(duration: 0.28), value: activeVibe)
                     .transition(.opacity)
                 }
@@ -64,8 +176,13 @@ struct SubscriptionsListView: View {
                     onToggleVibe: { playerManager?.togglePlayPause() },
                     onTapStack: { showManageVibes = true },
                     onTapAdd: { showAddSheet = true },
-                    onTapSettings: { showDownloadSettings = true }
+                    onTapSettings: { showDownloadSettings = true },
+                    showsCornerButtons: !layout.hasSideBar,
+                    isTight: layout.mode == .stacked
                 )
+                // With the side bar the (empty) navigation bar still reserves
+                // a band above the list; pull the masthead up into it.
+                .padding(.top, layout.hasSideBar ? -20 : 0)
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
@@ -151,7 +268,7 @@ struct SubscriptionsListView: View {
                                     mgr.play(ep)
                                 }
                             },
-                            onOpenDetail: { selectedPodcast = podcast }
+                            onOpenDetail: { stage.openShow(podcast) }
                         )
                         .listRowBackground(Brand.Color.bg)
                         .listRowSeparator(.hidden)
@@ -263,7 +380,7 @@ struct SubscriptionsListView: View {
 
                 // Reserve scroll-tail so the last row isn't permanently
                 // hidden behind the floating mini-player bar.
-                if playerManager?.currentEpisode != nil {
+                if stage.showsMiniPlayer(hasLoadedEpisode: hasLoadedEpisode) {
                     Color.clear
                         .frame(height: 80)
                         .listRowBackground(Brand.Color.bg)
@@ -276,7 +393,6 @@ struct SubscriptionsListView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .environment(\.editMode, $editMode)
-            .toolbar(.hidden, for: .navigationBar)
             .onChange(of: activeVibe) { _, _ in
                 // Switching the masthead context should drop the user out
                 // of edit so the previous-view's drag handles disappear
@@ -301,52 +417,7 @@ struct SubscriptionsListView: View {
             .refreshable {
                 await subscriptionManager?.refreshAll()
             }
-            .sheet(isPresented: $showManageVibes) {
-                ManageVibesView()
             }
-            .sheet(isPresented: $showAddSheet) {
-                AddPodcastSheet()
-            }
-            .sheet(isPresented: $showDownloadSettings) {
-                DownloadSettingsView()
-                    .environment(\.downloadManager, downloadManager)
-            }
-            .sheet(item: $addToVibe) { vibe in
-                AddShowSheet(vibe: vibe)
-            }
-            .sheet(isPresented: $showFullScreenPlayer) {
-                if let playerManager, playerManager.currentEpisode != nil {
-                    FullScreenPlayerView(player: playerManager)
-                }
-            }
-            .navigationDestination(item: $selectedPodcast) { podcast in
-                PodcastDetailView(podcast: podcast)
-            }
-            }
-        }
-        // Floating overlay (not safeAreaInset) so List content scrolls *under*
-        // the bar, giving the translucent paper a real "tracing paper" effect.
-        // Each List adds a transparent footer row when a player is loaded,
-        // so the bottom rows aren't permanently hidden behind the bar.
-        .overlay(alignment: .bottom) {
-            if let playerManager, playerManager.currentEpisode != nil {
-                MiniPlayerBar(
-                    player: playerManager,
-                    onTapBar: { showFullScreenPlayer = true }
-                )
-                .padding(.horizontal, 12)
-                .padding(.bottom, 8)
-            }
-        }
-        .overlay(alignment: .bottom) {
-            if let message = toastCenter.current {
-                ToastView(
-                    message: message,
-                    bottomInset: playerManager?.currentEpisode != nil ? 88 : 24
-                )
-            }
-        }
-        .environment(\.toastCenter, toastCenter)
     }
 
     // MARK: - Section label ("N SHOWS · YOUR ORDER ——— EDIT ORDER")

@@ -8,19 +8,21 @@ struct PodcastDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.downloadManager) private var downloadManager
     @State private var viewModel: PodcastDetailViewModel?
+    /// False when hosted on the iPhone Duo Stage, which already sits inside
+    /// the Library's navigation stack and must not take over its title.
+    var embedsInNavigationStack: Bool = true
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if let viewModel {
-                    listContent(viewModel: viewModel)
-                } else {
-                    ProgressView()
+        Group {
+            if embedsInNavigationStack {
+                NavigationStack {
+                    detailContent
+                        .navigationTitle(podcast.title)
+                        .navigationBarTitleDisplayMode(.inline)
                 }
+            } else {
+                detailContent
             }
-            .navigationTitle(podcast.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .background(Brand.Color.bg)
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
@@ -31,6 +33,17 @@ struct PodcastDetailView: View {
             await subscriptionManager?.refresh(podcast)
             viewModel?.refetch()
         }
+    }
+
+    private var detailContent: some View {
+        Group {
+            if let viewModel {
+                listContent(viewModel: viewModel)
+            } else {
+                ProgressView()
+            }
+        }
+        .background(Brand.Color.bg)
     }
 
     @ViewBuilder

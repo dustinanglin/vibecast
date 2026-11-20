@@ -56,6 +56,9 @@ struct VibecastApp: App {
             AppDelegate.downloadManager = d
             p.downloadManager = d
             try? VibeSeeder.seedIfNeeded(in: c.mainContext)
+            #if DEBUG
+            DebugLaunch.apply(context: c.mainContext, player: p)
+            #endif
             return (p, s, d)
         }
         _playerManager = State(initialValue: player)
