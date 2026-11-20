@@ -38,12 +38,12 @@ jobs:
 
       - name: Select Xcode
         run: |
-          # Apple requires builds with Xcode 26+ / iOS 26 SDK to be
-          # accepted by App Store Connect. Pick the latest Xcode 26.x
-          # the runner has installed; fail loudly if none.
-          XCODE_PATH=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          # The iPhone Duo layout uses iOS 27.1 SDK symbols, so the app
+          # only compiles with Xcode 27.1 or later. Pick the newest one
+          # the runner has installed; fail loudly if there is none.
+          XCODE_PATH=$(ls -d /Applications/Xcode_27.[1-9]*.app /Applications/Xcode_2[89]*.app 2>/dev/null | sort -V | tail -1)
           if [ -z "$XCODE_PATH" ]; then
-            echo "ERROR: no Xcode 26.x on this runner"
+            echo "ERROR: no Xcode 27.1+ on this runner (needed for the iOS 27.1 SDK)"
             ls /Applications | grep -i xcode
             exit 1
           fi

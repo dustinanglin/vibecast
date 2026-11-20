@@ -1,8 +1,9 @@
 import UIKit
 
-/// Minimal app delegate whose ONLY job is receiving the background-
-/// URLSession relaunch callback and parking the completion handler on
-/// DownloadManager. Everything else stays in the SwiftUI App.
+/// Minimal app delegate: receives the background-URLSession relaunch
+/// callback and parks the completion handler on DownloadManager, and
+/// answers which orientations the app supports for the current iPhone Duo
+/// pose. Everything else stays in the SwiftUI App.
 final class AppDelegate: NSObject, UIApplicationDelegate {
 
     /// Set by VibecastApp.init once the manager exists.
@@ -20,5 +21,14 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         MainActor.assumeIsolated {
             AppDelegate.downloadManager?.backgroundCompletionHandler = completionHandler
         }
+    }
+
+    /// Info.plist is portrait-only; this widens it to landscape while an
+    /// iPhone Duo is open. Every other iPhone keeps getting `.portrait`.
+    func application(
+        _ application: UIApplication,
+        supportedInterfaceOrientationsFor window: UIWindow?
+    ) -> UIInterfaceOrientationMask {
+        MainActor.assumeIsolated { DuoPoseMonitor.shared.pose.supportedOrientations }
     }
 }

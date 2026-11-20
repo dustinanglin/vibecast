@@ -80,6 +80,9 @@ struct SplashView: View {
 
     var body: some View {
         GeometryReader { proxy in
+            // On a landscape canvas (open iPhone Duo) compose the splash in
+            // the leading half, so the wordmark never straddles the fold.
+            let contentWidth = proxy.size.width > proxy.size.height ? proxy.size.width / 2 : proxy.size.width
             ZStack(alignment: .topLeading) {
                 // Paper background, full bleed.
                 Brand.Color.bg
@@ -87,15 +90,15 @@ struct SplashView: View {
 
                 // Saturated band, 14% of the screen width on the left.
                 activeVibe.band
-                    .frame(width: proxy.size.width * 0.14)
+                    .frame(width: contentWidth * 0.14)
                     .opacity(bandsVisible ? 0.85 : 0)
                     .ignoresSafeArea()
 
                 // Faint adjacent band, 6% wide, starting at 14%.
                 activeVibe.band
-                    .frame(width: proxy.size.width * 0.06)
+                    .frame(width: contentWidth * 0.06)
                     .opacity(bandsVisible ? 0.32 : 0)
-                    .offset(x: proxy.size.width * 0.14)
+                    .offset(x: contentWidth * 0.14)
                     .ignoresSafeArea()
 
                 // Wordmark + accent dot, vertically centered, padded left
@@ -106,7 +109,8 @@ struct SplashView: View {
                     Spacer()
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.leading, proxy.size.width * 0.10)
+                .padding(.leading, contentWidth * 0.10)
+                .frame(width: contentWidth)
                 .opacity(contentVisible ? 1 : 0)
                 .offset(y: contentVisible ? 0 : 8)
 
@@ -130,8 +134,9 @@ struct SplashView: View {
                 .id("label-\(stage == .settle ? "settle" : activeVibe.rawValue)")
                 .transition(.opacity.combined(with: .offset(y: 6)))
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, proxy.size.width * 0.26)
+                .padding(.leading, contentWidth * 0.26)
                 .padding(.trailing, 24)
+                .frame(width: contentWidth)
                 .offset(y: proxy.size.height - 130)
                 .opacity(contentVisible ? 1 : 0)
 
@@ -144,7 +149,7 @@ struct SplashView: View {
                         .foregroundStyle(Brand.Color.inkSecondary)
                         .padding(.bottom, 30)
                 }
-                .frame(maxWidth: .infinity)
+                .frame(width: contentWidth)
                 .opacity(contentVisible ? 1 : 0)
             }
         }

@@ -38,6 +38,12 @@ struct VibeMasthead: View {
     let onTapStack: () -> Void
     let onTapAdd: () -> Void
     let onTapSettings: () -> Void
+    /// False where the system shows these actions in a vertical side bar
+    /// (iPhone Duo); the masthead then keeps only the eyebrow in row 1.
+    var showsCornerButtons: Bool = true
+    /// Shorter arrangement for half-height panes (Duo part-folded like a
+    /// laptop): smaller wordmark, CTA beside the subtitle.
+    var isTight: Bool = false
 
     /// 1-based index into the padded HStack. Real range is 1...slotCount;
     /// 0 and slotCount+1 are phantoms used during wrap animations.
@@ -72,6 +78,7 @@ struct VibeMasthead: View {
                     .id("eyebrow-\(activeIndex)")
                     .transition(.opacity)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                if showsCornerButtons {
                 HStack(spacing: 4) {
                     Button(action: onTapSettings) {
                         Image(systemName: "gearshape")
@@ -86,13 +93,14 @@ struct VibeMasthead: View {
                     AddIconButton(action: onTapAdd)
                 }
                 .offset(y: -8) // center 44pt buttons against the 22pt eyebrow
+                }
             }
 
             // Row 2: wordmark — infinite-carousel sliding HStack.
             HStack(spacing: 0) {
                 ForEach(0..<(slotCount + 2), id: \.self) { paddedIdx in
                     Text(paddedWordmark(at: paddedIdx))
-                        .font(Brand.Font.display(size: 56))
+                        .font(Brand.Font.display(size: isTight ? 40 : 56))
                         .tracking(-1.4)
                         .foregroundStyle(Brand.Color.ink)
                         .lineLimit(1)
@@ -110,67 +118,30 @@ struct VibeMasthead: View {
             .clipped()
             .padding(.top, 10)
 
-            // Row 3: subtitle — pinned, fade on state change.
-            Text(subtitleText)
-                .font(Brand.Font.serifItalic(size: 18))
-                .foregroundStyle(Brand.Color.inkSecondary)
-                .lineLimit(1)
-                .id("subtitle-\(activeIndex)")
-                .transition(.opacity)
-                .padding(.top, 8)
-
-            // Row 4: pagination dots — pinned, active dot tinted by state.
-            // Hidden when there are no vibes; a single dot is just noise.
-            if slotCount > 1 {
-                HStack(spacing: 6) {
-                    ForEach(0..<slotCount, id: \.self) { idx in
-                        Circle()
-                            .fill(idx == activeIndex ? dotActiveColor : Brand.Color.inkHairline)
-                            .frame(width: 6, height: 6)
+            // Rows 3–5: subtitle, pagination dots, CTA pill. Stacked by
+            // default; in a tight pane the pill sits beside the other two.
+            if isTight {
+                HStack(alignment: .bottom, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        subtitleLine
+                        paginationDots
                     }
+                    Spacer(minLength: 0)
+                    ctaButton
                 }
-                .padding(.top, 14)
+                .padding(.top, 6)
+            } else {
+                subtitleLine
+                    .padding(.top, 8)
+                paginationDots
+                    .padding(.top, 14)
+                ctaButton
+                    .padding(.top, 14)
             }
-
-            // Row 5: Start / Vibing / Resume pill — color, icon, and copy
-            // adapt based on whether the displayed vibe is also the queue's
-            // source and whether the player is currently playing. Disabled
-            // (dimmed, not tappable) when the displayed vibe has no
-            // members, or when on All view with zero subscriptions.
-            Button {
-                if let vibe = currentVibe {
-                    if isCurrentVibePlayingSource {
-                        onToggleVibe()
-                    } else {
-                        onStartVibe(vibe)
-                    }
-                } else {
-                    onStartAll()
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: ctaIcon)
-                        .font(.system(size: 13, weight: .semibold))
-                    Text(ctaText)
-                        .font(Brand.Font.uiBody(size: 15, weight: .semibold))
-                }
-                .foregroundStyle(Brand.Color.paper)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 10)
-                .background(Capsule().fill(ctaBackgroundColor))
-                .opacity(ctaDisabled ? 0.4 : 1)
-            }
-            .buttonStyle(.plain)
-            .disabled(ctaDisabled)
-            .padding(.top, 14)
-            // Re-mount on state changes so the icon swap + text swap fade
-            // together rather than snapping mid-press.
-            .id("cta-\(activeIndex)-\(ctaStateKey)")
-            .transition(.opacity.combined(with: .scale(scale: 0.96)))
         }
         .padding(.horizontal, 22)
-        .padding(.top, 24)
-        .padding(.bottom, 14)
+        .padding(.top, isTight ? 16 : 24)
+        .padding(.bottom, isTight ? 10 : 14)
         // The vibe-color band is rendered as a parent-level backdrop on
         // SubscriptionsListView so it bleeds past the top safe area into
         // the status-bar / camera-pill region. The masthead row itself
@@ -220,6 +191,70 @@ struct VibeMasthead: View {
                 }
         )
         .animation(.easeInOut(duration: 0.28), value: activeIndex)
+    }
+
+    // MARK: - Rows 3–5
+
+    /// Pinned; fades on state change.
+    private var subtitleLine: some View {
+        Text(subtitleText)
+            .font(Brand.Font.serifItalic(size: 18))
+            .foregroundStyle(Brand.Color.inkSecondary)
+            .lineLimit(1)
+            .id("subtitle-\(activeIndex)")
+            .transition(.opacity)
+    }
+
+    /// Active dot tinted by state. Hidden when there are no vibes; a single
+    /// dot is just noise.
+    @ViewBuilder
+    private var paginationDots: some View {
+        if slotCount > 1 {
+            HStack(spacing: 6) {
+                ForEach(0..<slotCount, id: \.self) { idx in
+                    Circle()
+                        .fill(idx == activeIndex ? dotActiveColor : Brand.Color.inkHairline)
+                        .frame(width: 6, height: 6)
+                }
+            }
+        }
+    }
+
+    /// Start / Vibing / Resume pill — color, icon, and copy adapt based on
+    /// whether the displayed vibe is also the queue's source and whether
+    /// the player is currently playing. Disabled (dimmed, not tappable)
+    /// when the displayed vibe has no members, or when on All view with
+    /// zero subscriptions.
+    private var ctaButton: some View {
+        Button {
+            if let vibe = currentVibe {
+                if isCurrentVibePlayingSource {
+                    onToggleVibe()
+                } else {
+                    onStartVibe(vibe)
+                }
+            } else {
+                onStartAll()
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: ctaIcon)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(ctaText)
+                    .font(Brand.Font.uiBody(size: 15, weight: .semibold))
+            }
+            .foregroundStyle(Brand.Color.paper)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 10)
+            .background(Capsule().fill(ctaBackgroundColor))
+            .opacity(ctaDisabled ? 0.4 : 1)
+        }
+        .buttonStyle(.plain)
+        .disabled(ctaDisabled)
+        // Re-mount on state changes so the icon swap + text swap fade
+        // together rather than snapping mid-press.
+        .id("cta-\(activeIndex)-\(ctaStateKey)")
+        .transition(.opacity.combined(with: .scale(scale: 0.96)))
     }
 
     // MARK: - Carousel mechanics
