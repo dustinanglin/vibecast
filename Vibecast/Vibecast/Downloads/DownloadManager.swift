@@ -30,6 +30,15 @@ final class DownloadManager: NSObject {
     @ObservationIgnored private let modelContext: ModelContext
     @ObservationIgnored private var session: URLSession!
 
+    /// How often buffered progress reaches `progress` (and so the UI).
+    private static let progressFlushInterval: Duration = .milliseconds(500)
+
+    @ObservationIgnored private let progressBuffer = DownloadProgressBuffer()
+
+    /// In-flight episodes by audio URL, so a progress flush does not need a
+    /// database fetch per download.
+    @ObservationIgnored private var inFlightIDs: [String: PersistentIdentifier] = [:]
+
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
         super.init()
@@ -57,6 +66,7 @@ final class DownloadManager: NSObject {
         if manual { episode.isManualDownload = true }
         try? modelContext.save()
         progress[episode.persistentModelID] = 0
+        inFlightIDs[episode.audioURL] = episode.persistentModelID
 
         let task = session.downloadTask(with: request)
         task.taskDescription = episode.audioURL
@@ -73,6 +83,7 @@ final class DownloadManager: NSObject {
         episode.downloadState = DownloadState.none
         episode.isManualDownload = false
         progress[episode.persistentModelID] = nil
+        inFlightIDs[audioURL] = nil
         try? modelContext.save()
     }
 
@@ -88,6 +99,7 @@ final class DownloadManager: NSObject {
         episode.isManualDownload = false
         episode.downloadedAt = nil
         progress[episode.persistentModelID] = nil
+        inFlightIDs[audioURL] = nil
         try? modelContext.save()
     }
 
@@ -107,6 +119,7 @@ final class DownloadManager: NSObject {
             episode.downloadedAt = nil
             progress[episode.persistentModelID] = nil
         }
+        inFlightIDs.removeAll()
         DownloadStore.deleteAll()
         try? modelContext.save()
     }
@@ -158,6 +171,7 @@ final class DownloadManager: NSObject {
     }
 
     fileprivate func finishDownload(audioURL: String, success: Bool) {
+        inFlightIDs[audioURL] = nil
         guard let episode = episode(forAudioURL: audioURL) else { return }
         progress[episode.persistentModelID] = nil
         if success {
@@ -177,9 +191,26 @@ final class DownloadManager: NSObject {
         finishDownload(audioURL: audioURL, success: false)
     }
 
-    fileprivate func updateProgress(audioURL: String, fraction: Double) {
-        guard let episode = episode(forAudioURL: audioURL) else { return }
-        progress[episode.persistentModelID] = fraction
+    /// Applies buffered progress in a single mutation of `progress`, so the
+    /// UI redraws once per flush however many downloads are running.
+    fileprivate func flushProgress() {
+        var updated = progress
+        for (audioURL, fraction) in progressBuffer.drain() {
+            guard let id = inFlightID(forAudioURL: audioURL) else { continue }
+            updated[id] = fraction
+        }
+        if updated != progress { progress = updated }
+    }
+
+    /// Nil when the download is no longer in flight, so a report that was
+    /// buffered just before it finished or was cancelled is dropped.
+    private func inFlightID(forAudioURL audioURL: String) -> PersistentIdentifier? {
+        if let id = inFlightIDs[audioURL] { return id }
+        // A task that outlived the previous launch: look it up once.
+        guard let episode = episode(forAudioURL: audioURL),
+              episode.downloadState == .downloading else { return nil }
+        inFlightIDs[audioURL] = episode.persistentModelID
+        return episode.persistentModelID
     }
 
     /// After relaunch: any episode stuck in `.downloading` with no live
@@ -242,8 +273,10 @@ extension DownloadManager: URLSessionDownloadDelegate {
         guard totalBytesExpectedToWrite > 0,
               let audioURL = downloadTask.taskDescription else { return }
         let fraction = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
+        guard progressBuffer.record(fraction: fraction, for: audioURL) else { return }
         Task { @MainActor in
-            self.updateProgress(audioURL: audioURL, fraction: fraction)
+            try? await Task.sleep(for: Self.progressFlushInterval)
+            self.flushProgress()
         }
     }
 
