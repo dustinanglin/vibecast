@@ -1,0 +1,271 @@
+<title>Vibecast on iPhone Duo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column on a drafting-table ground; device mockups sit on it as the only "objects". */
+:root{
+  --ground:#E4E0D8; --sheet:#F1EEE8; --ink:#1A1714; --ink2:#54504A; --ink3:#8A857D; --rule:#1A171422;
+  --accent:#1F7A8C; --note:#8A5A12; --noteBg:#F3E4C4;
+  /* app palette: fixed, the app is light-only */
+  --a-bg:#F4EFE6; --a-paper:#FBF7EE; --a-ink:#1A1714; --a-band:#3F8B5C; --a-chip:#BCD8C5; --a-vink:#173A22; --a-teal:#2E94A8; --bezel:#0E0D0C;
+  --serif:"Fraunces",Georgia,serif; --sans:"Inter",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ground:#161412;--sheet:#1F1C19;--ink:#EFEAE0;--ink2:#B9B2A6;--ink3:#857F75;--rule:#EFEAE026;--accent:#6CC3D4;--note:#F0CB85;--noteBg:#3A2D14;--bezel:#000;color-scheme:dark}}
+:root[data-theme="dark"]{--ground:#161412;--sheet:#1F1C19;--ink:#EFEAE0;--ink2:#B9B2A6;--ink3:#857F75;--rule:#EFEAE026;--accent:#6CC3D4;--note:#F0CB85;--noteBg:#3A2D14;--bezel:#000;color-scheme:dark}
+body{background:var(--ground);color:var(--ink);font:16px/1.55 var(--sans)}
+.wrap{max-width:980px;margin:0 auto;padding-block:40px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:56px}
+section{display:flex;flex-direction:column;gap:18px}
+.eyebrow{font:500 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+h1{font:500 clamp(34px,6vw,54px)/1.04 var(--serif);letter-spacing:-.02em;margin:0;text-wrap:balance}
+h2{font:500 28px/1.15 var(--serif);letter-spacing:-.01em;margin:0;text-wrap:balance}
+h3{font:600 14px/1.3 var(--sans);margin:0}
+p,ul,ol{margin:0;max-width:66ch}
+.lede{font:300 20px/1.45 var(--serif);color:var(--ink2);max-width:60ch}
+ul,ol{padding-left:1.2em;display:flex;flex-direction:column;gap:6px}
+code{font:13px var(--mono);background:var(--sheet);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.idea{background:var(--sheet);padding:22px 24px;border-radius:14px;display:flex;flex-direction:column;gap:10px}
+.idea p{max-width:70ch}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px}
+th{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:8px 12px 8px 0;border-bottom:1px solid var(--rule)}
+td{padding:10px 12px 10px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+td:first-child{font-weight:600;white-space:nowrap}
+.mocks{display:flex;flex-wrap:wrap;gap:28px 32px;align-items:flex-start}
+#m-land{flex-direction:column}
+#m-land figcaption{max-width:66ch}
+figure{margin:0;display:flex;flex-direction:column;gap:10px;min-width:0;max-width:100%}
+figcaption{font-size:13px;color:var(--ink2);max-width:44ch}
+figcaption b{color:var(--ink);font-weight:600}
+.tag{font:500 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:99px;background:var(--rule);color:var(--ink2);margin-right:6px}
+.tag.new{background:var(--accent);color:var(--ground)}
+.note{background:var(--noteBg);color:var(--note);padding:12px 16px;border-radius:10px;font-size:14px;max-width:70ch}
+.note b{font-weight:600}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px 40px}
+.cols>div{display:flex;flex-direction:column;gap:8px;min-width:0}
+.cols p,.cols ul{font-size:14.5px}
+hr{border:0;border-top:1px solid var(--rule);margin:0}
+
+/* ---------- device mockups; 1 "pt" = var(--p) ---------- */
+.dev{container-type:inline-size;width:min(100%,var(--max));aspect-ratio:var(--w)/var(--h);border:5px solid var(--bezel);border-radius:22px;background:var(--bezel);box-sizing:content-box;max-width:calc(100% - 10px)}
+.scr{--p:calc(100cqw / var(--w));position:relative;width:100%;height:100%;overflow:hidden;border-radius:17px;background:var(--a-bg);color:var(--a-ink);font-family:var(--sans)}
+.scr *{box-sizing:border-box}
+.band{position:absolute;inset:0 0 auto 0;height:calc(300*var(--p));background:linear-gradient(var(--a-chip),#F4EFE600)}
+.band.cut{right:calc(64*var(--p))}
+.pane{position:absolute;overflow:hidden}
+.mh{position:relative;padding:calc(22*var(--p)) calc(22*var(--p)) calc(12*var(--p))}
+.mh .eb{font:500 calc(10.5*var(--p))/1 var(--mono);letter-spacing:.14em;color:var(--a-vink);display:flex;align-items:center;gap:calc(6*var(--p))}
+.mh .eb:before{content:"";width:calc(8*var(--p));height:calc(8*var(--p));border-radius:50%;background:var(--a-band)}
+.mh .wm{font:500 calc(50*var(--p))/1.05 var(--serif);letter-spacing:-.025em;margin-top:calc(10*var(--p));white-space:nowrap}
+.mh .sub{font:italic 400 calc(16*var(--p))/1.2 var(--serif);opacity:.62;margin-top:calc(6*var(--p));white-space:nowrap}
+.mh .dots{display:flex;gap:calc(6*var(--p));margin-top:calc(12*var(--p))}
+.mh .dots i{width:calc(6*var(--p));height:calc(6*var(--p));border-radius:50%;background:#1A17141a}
+.mh .dots i.on{background:var(--a-band)}
+.cta{display:inline-flex;align-items:center;gap:calc(7*var(--p));margin-top:calc(12*var(--p));padding:calc(9*var(--p)) calc(16*var(--p));border-radius:99px;background:var(--a-band);color:var(--a-paper);font:600 calc(13.5*var(--p))/1 var(--sans)}
+.mh.tight .wm{font-size:calc(40*var(--p))}
+.mh.tight .cta{position:absolute;right:calc(22*var(--p));bottom:calc(14*var(--p));margin:0}
+.mh.tight .dots{margin-top:calc(8*var(--p))}
+.btns{position:absolute;top:calc(12*var(--p));right:calc(14*var(--p));display:flex;gap:calc(4*var(--p))}
+.ib{width:calc(38*var(--p));height:calc(38*var(--p));border-radius:50%;display:grid;place-items:center;color:var(--a-ink)}
+.ib svg{width:calc(19*var(--p));height:calc(19*var(--p));fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ib.dark{background:var(--a-ink);color:var(--a-paper)}
+.ib.ring{background:var(--a-paper);box-shadow:inset 0 0 0 1px #1A17141f}
+.ib.hl{outline:calc(2*var(--p)) solid var(--a-teal);outline-offset:calc(2*var(--p))}
+.sec{display:flex;align-items:center;gap:calc(10*var(--p));padding:calc(4*var(--p)) calc(22*var(--p)) calc(8*var(--p));font:500 calc(9.5*var(--p))/1 var(--mono);letter-spacing:.14em;opacity:.45;white-space:nowrap}
+.sec:after{content:"EDIT ORDER";order:3}
+.sec i{flex:1;height:1px;background:currentColor;opacity:.4}
+.row{display:flex;align-items:center;gap:calc(11*var(--p));margin:0 calc(14*var(--p));padding:calc(8*var(--p)) calc(8*var(--p));border-radius:calc(12*var(--p))}
+.row.cur{background:var(--a-paper);box-shadow:inset 0 0 0 1px #1A171414}
+.row .n{font:400 calc(10*var(--p)) var(--mono);opacity:.4;width:calc(16*var(--p))}
+.art{flex:none;border-radius:calc(7*var(--p));display:grid;place-items:center;color:#fff;font:600 calc(13*var(--p)) var(--serif);width:calc(44*var(--p));height:calc(44*var(--p))}
+.row .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:calc(2*var(--p))}
+.row .t b{font:500 calc(15*var(--p))/1.2 var(--serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .t span{font:400 calc(11.5*var(--p))/1.2 var(--sans);opacity:.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .pb{flex:none;width:calc(32*var(--p));height:calc(32*var(--p));border-radius:50%;box-shadow:inset 0 0 0 1px #1A171426;display:grid;place-items:center}
+.row.cur .pb{background:var(--a-band);box-shadow:none;color:#fff}
+.pb svg,.tp svg{fill:currentColor;width:42%;height:42%}
+.mini{position:absolute;left:calc(12*var(--p));right:calc(12*var(--p));bottom:calc(10*var(--p));display:flex;align-items:center;gap:calc(10*var(--p));padding:calc(9*var(--p)) calc(12*var(--p));border-radius:calc(14*var(--p));background:#FBF7EEea;box-shadow:0 calc(5*var(--p)) calc(14*var(--p)) #0000001f,inset 0 0 0 1px #1A17141a}
+.mini .t{flex:1;min-width:0}
+.mini .t small{display:block;font:500 calc(8.5*var(--p)) var(--mono);letter-spacing:.12em;opacity:.6;text-transform:uppercase}
+.mini .t b{display:block;font:500 calc(13.5*var(--p)) var(--serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini .art{width:calc(36*var(--p));height:calc(36*var(--p))}
+.tp{flex:none;border-radius:50%;display:grid;place-items:center;font:600 calc(10*var(--p)) var(--sans)}
+.tp.s{width:calc(40*var(--p));height:calc(40*var(--p));background:var(--a-paper);box-shadow:inset 0 0 0 1px #1A17141f}
+.tp.m{width:calc(54*var(--p));height:calc(54*var(--p));background:var(--a-band);color:#fff}
+.mini .tp.m{width:calc(34*var(--p));height:calc(34*var(--p))}
+/* vertical bar */
+.bar{position:absolute;top:0;bottom:0;right:0;width:calc(64*var(--p));display:flex;flex-direction:column;align-items:center;gap:calc(8*var(--p));padding-top:calc(14*var(--p))}
+.bar .cam{width:calc(15*var(--p));height:calc(15*var(--p));border-radius:50%;background:#000;margin-bottom:calc(2*var(--p))}
+.bar .time{font:600 calc(12*var(--p)) var(--sans);margin-bottom:calc(8*var(--p))}
+.bar .ib{background:#FBF7EEcc;box-shadow:0 calc(2*var(--p)) calc(8*var(--p)) #00000014,inset 0 0 0 1px #1A171414;width:calc(42*var(--p));height:calc(42*var(--p))}
+.bar .gap{height:calc(8*var(--p))}
+.bar.empty:after{content:"";position:absolute;inset:calc(96*var(--p)) calc(8*var(--p)) calc(12*var(--p));border:1px dashed #C7564188;border-radius:calc(10*var(--p));background:repeating-linear-gradient(135deg,#C7564112 0 6px,transparent 6px 12px)}
+/* stage */
+.stage{background:var(--a-paper)}
+.np{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(14*var(--p));padding:calc(20*var(--p)) calc(28*var(--p));text-align:center}
+.np.h{flex-direction:row;text-align:left;gap:calc(26*var(--p));padding:calc(22*var(--p)) calc(30*var(--p))}
+.np .col{display:flex;flex-direction:column;gap:calc(12*var(--p));align-items:inherit;min-width:0;width:100%}
+.np.h .col{align-items:flex-start;flex:1}
+.np .k{font:500 calc(9.5*var(--p)) var(--mono);letter-spacing:.14em;opacity:.55;text-transform:uppercase}
+.np .ti{font:500 calc(22*var(--p))/1.15 var(--serif);text-wrap:balance}
+.np .big{box-shadow:0 calc(8*var(--p)) calc(20*var(--p)) #0000001f;border-radius:calc(12*var(--p));font-size:calc(52*var(--p))}
+.scrub{width:100%;display:flex;flex-direction:column;gap:calc(6*var(--p))}
+.scrub i{display:block;height:calc(2*var(--p));background:linear-gradient(90deg,var(--a-band) 38%,#1A17141f 38%);position:relative}
+.scrub i:after{content:"";position:absolute;left:38%;top:50%;width:calc(12*var(--p));height:calc(12*var(--p));margin:calc(-6*var(--p));border-radius:50%;background:var(--a-band)}
+.scrub span{display:flex;justify-content:space-between;font:400 calc(9.5*var(--p)) var(--mono);opacity:.6}
+.trn{display:flex;align-items:center;gap:calc(20*var(--p))}
+.upn{width:100%;border-top:1px solid #1A17141a;padding-top:calc(10*var(--p));text-align:left;display:flex;flex-direction:column;gap:calc(6*var(--p))}
+.upn div{display:flex;gap:calc(8*var(--p));align-items:center;font:500 calc(12.5*var(--p)) var(--serif)}
+.upn .art{width:calc(24*var(--p));height:calc(24*var(--p));font-size:calc(8*var(--p));border-radius:calc(4*var(--p))}
+.dt{padding:calc(20*var(--p)) calc(8*var(--p)) 0}
+.dt .hd{display:flex;gap:calc(14*var(--p));align-items:center;padding:0 calc(14*var(--p)) calc(12*var(--p))}
+.dt .hd .art{width:calc(68*var(--p));height:calc(68*var(--p));font-size:calc(22*var(--p))}
+.dt .hd b{display:block;font:500 calc(22*var(--p))/1.1 var(--serif)}
+.dt .hd span{font:400 calc(11.5*var(--p)) var(--sans);opacity:.6}
+.dt .sec:after{content:none}
+.sheet{position:absolute;inset:calc(14*var(--p)) 0 0 0;background:var(--a-bg);border-radius:calc(22*var(--p)) calc(22*var(--p)) 0 0;box-shadow:0 0 0 100vmax #00000030}
+.sheet:before{content:"";position:absolute;top:calc(8*var(--p));left:50%;width:calc(36*var(--p));height:calc(4*var(--p));margin-left:calc(-18*var(--p));border-radius:9px;background:#1A171422}
+.fold{position:absolute;background:linear-gradient(var(--dir,90deg),#0000 0,#00000038 50%,#0000 100%);pointer-events:none}
+</style>
+
+<div class="wrap">
+<section>
+  <div class="eyebrow">Design proposal · 19 Nov 2026 · for review</div>
+  <h1>Vibecast on iPhone Duo</h1>
+  <p class="lede">How the app should lay out in each way the Duo can be held, based on Apple's “Designing for iPhone Duo” guidelines and the current 1.0.2 code. Nothing is built yet.</p>
+  <div class="idea">
+    <div class="eyebrow">The one idea</div>
+    <h2>Library + Stage</h2>
+    <p>Today Vibecast is one screen (the <b>Library</b>: masthead and show list) with two things that cover it: the full-screen player and a show's episode list. On the Duo, whenever a second screen-half is available, those two get a permanent home beside the Library, called the <b>Stage</b>. The Stage shows Now Playing by default and a show's episodes when you open one. With one screen-half, everything works as it does today.</p>
+    <p>The gear, vibes and + buttons leave the masthead and become real toolbar items wherever the Duo puts its controls on the side.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Every pose at a glance</h2>
+  <div class="tbl"><table>
+    <tr><th>Pose</th><th>Canvas (approx.)</th><th>Layout</th><th>Gear / Vibes / +</th><th>Player</th></tr>
+    <tr><td>Closed</td><td>466 × 678 pt, outer</td><td>Library only</td><td>Side bar</td><td>Mini-player, then sheet</td></tr>
+    <tr><td>Open, landscape</td><td>890 × 626 pt, inner</td><td>Library │ Stage</td><td>Side bar</td><td>On the Stage</td></tr>
+    <tr><td>Part-folded, landscape (book)</td><td>two 445-wide halves</td><td>Library │ Stage, split at the fold</td><td>Side bar</td><td>On the Stage</td></tr>
+    <tr><td>Open, portrait</td><td>626 × 890 pt, inner</td><td>Library only, larger</td><td>Masthead, as today</td><td>Mini-player, then sheet</td></tr>
+    <tr><td>Part-folded, portrait (laptop)</td><td>two 445-tall halves</td><td>Library on top, Stage below</td><td>Masthead, as today</td><td>On the Stage (lower half)</td></tr>
+    <tr><td>Split View with another app</td><td>about half the inner display</td><td>Library only</td><td>Side bar, on our outer edge</td><td>Mini-player, then sheet</td></tr>
+  </table></div>
+  <p class="note"><b>Unverified:</b> the inner point size assumes Apple's 1878 × 2670 px spec at 3x. The simulator only gave us the outer display last time. Step one of the build is to confirm these numbers and the API behaviour in DeviceHub.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Pose 1</div>
+  <h2>Closed: buttons move to the side bar</h2>
+  <p>The outer display is wider and shorter than any other iPhone, and iOS reserves a strip beside the camera for controls. Vibecast hides its navigation bar and draws its own buttons, so today that strip sits empty and the whole app looks pushed to the left.</p>
+  <div class="mocks" id="m-closed"></div>
+  <ul>
+    <li>Gear, Vibes and + become system toolbar items. Order from the top: <b>+ Add</b>, <b>Vibes</b>, <b>Settings</b>. If space runs out, Settings goes into the overflow menu first.</li>
+    <li>The vibe colour band runs the full width, under the side bar. The list stays inside the safe area.</li>
+    <li>“Edit order” stays where it is. Apple keeps text-only buttons out of the side bar, and it belongs next to the list it edits.</li>
+    <li>The Now Playing sheet does not fit this height today (fixed 280 pt artwork, about 730 pt of content on a 678 pt screen). Artwork becomes flexible so everything fits without scrolling.</li>
+  </ul>
+</section>
+
+<section>
+  <div class="eyebrow">Poses 2 and 3</div>
+  <h2>Open in landscape: Library on the left, Stage on the right</h2>
+  <p>Opening the Duo like a book gives a landscape inner display. Apple's guidance is to keep the same hierarchy and reveal one more level of it. The left half is the screen you just had on the outer display, so nothing moves as you open it.</p>
+  <div class="mocks" id="m-land"></div>
+  <ul>
+    <li><b>Stage default: Now Playing.</b> Large artwork, scrubber, transport, and a short Up Next list drawn from the current vibe's order. The mini-player is hidden because it would duplicate the Stage.</li>
+    <li><b>Tap a show:</b> its episode list opens on the Stage, not as a push. A Close button appears at the top of the side bar. The mini-player returns at the bottom of the Library, and tapping it brings the Stage back to Now Playing.</li>
+    <li><b>Nothing loaded yet:</b> the Stage shows the splash motif with “Pick your vibe.”</li>
+    <li><b>Part-folded like a book:</b> same layout. The system container keeps each pane clear of the fold, so no custom fold handling is needed here.</li>
+    <li>Add Podcast, Manage Vibes and Settings open as sheets placed over the Stage half, so the Library stays visible and you can watch shows arrive as you add them.</li>
+  </ul>
+</section>
+
+<section>
+  <div class="eyebrow">Pose 4</div>
+  <h2>Open in portrait: the same single screen, larger</h2>
+  <p>As you suggested, this is the phone layout with more room. Apple keeps standard horizontal bars in this pose, so the masthead keeps its three buttons exactly as on other iPhones.</p>
+  <div class="mocks" id="m-port"></div>
+  <ul>
+    <li>More rows visible. Margins grow from 22 to 28 pt; type sizes stay the same.</li>
+    <li>The Now Playing sheet uses the taller layout with artwork up to about 360 pt.</li>
+  </ul>
+</section>
+
+<section>
+  <div class="eyebrow">Pose 5</div>
+  <h2>Part-folded in portrait: list above, player deck below</h2>
+  <p>Set on a desk like a small laptop, the upper half faces you and the lower half lies flat under your fingers. The Library stays on top, where it already was in portrait, and the Stage appears on the lower half as a player deck.</p>
+  <div class="mocks" id="m-lap"></div>
+  <ul>
+    <li>Folding from open portrait only adds the Stage. The Library does not move, which follows Apple's advice to avoid large rearrangements as the device folds.</li>
+    <li>The masthead tightens in a half-height pane (smaller wordmark, play pill moves beside it) so four rows stay visible.</li>
+    <li>Now Playing switches to a side-by-side layout: artwork left, title and controls right. Opening a show replaces the deck with its episodes, as in landscape.</li>
+  </ul>
+  <p class="note"><b>Your call:</b> the alternative is Now Playing on the upper half (artwork as an ambient display) with controls and the list below. It looks better on a desk but rearranges the whole screen each time you fold. I recommend the version drawn here.</p>
+</section>
+
+<section>
+  <h2>How it gets built</h2>
+  <div class="cols">
+    <div><h3>Phase 0 · Check the assumptions (half a day)</h3>
+      <ul><li>In DeviceHub: inner display point size, and which poses report a side bar.</li><li>Does a portrait-only app get the landscape inner display, or must landscape be enabled?</li><li>Do toolbar items appear in the side bar while the navigation bar title is hidden?</li><li>Move CI from Xcode 26 to Xcode 27. Builds from Xcode 26 do not use the full Duo screen.</li></ul></div>
+    <div><h3>Phase 1 · Closed pose (ships on its own)</h3>
+      <ul><li>Toolbar items for the three buttons, shown only where a side bar exists.</li><li>Full-width colour band.</li><li>Flexible Now Playing layout, shared by sheet and Stage.</li><li>Icon and title on every sheet toolbar button.</li></ul></div>
+    <div><h3>Phase 2 · Library + Stage in landscape</h3>
+      <ul><li>Two-pane container, horizontal only.</li><li>Stage state: Now Playing, show detail, or empty.</li><li>Carry state across open and close: a pushed show or open player sheet becomes the Stage, and back again.</li></ul></div>
+    <div><h3>Phase 3 · Laptop pose and polish</h3>
+      <ul><li>Vertical split when the fold is active in portrait.</li><li>Tight masthead, side-by-side Now Playing.</li><li>Sheets over the Stage half; splash wordmark kept off the fold.</li></ul></div>
+  </div>
+  <p>The app still supports iOS 26.4, so every Duo-specific API sits behind an iOS 27 availability check and other iPhones keep today's layout unchanged. The builder's version of this proposal is in the repo at <code>docs/superpowers/specs/2026-11-19-iphone-duo-design.md</code>.</p>
+</section>
+
+<section>
+  <h2>Decisions I made that you should check</h2>
+  <ol>
+    <li><b>Laptop pose:</b> Library on top, player deck below (alternative described above).</li>
+    <li><b>Stage default is Now Playing</b>, with a read-only Up Next list. Up Next is new; it can be dropped without affecting the rest.</li>
+    <li><b>Masthead buttons stay on ordinary iPhones</b> and in open portrait. They move to the side bar only where the system has one. The alternative is system toolbars everywhere on iOS 27, which is simpler but changes the look on every iPhone.</li>
+    <li><b>Ordinary iPhones stay portrait-only.</b> Landscape is for the Duo's inner display. This depends on the Phase 0 orientation check.</li>
+    <li><b>Side bar order:</b> Add, Vibes, Settings, with Settings first to overflow.</li>
+  </ol>
+</section>
+</div>
+
+<script>
+const I={plus:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+ gear:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.6" stroke-width="3.2" stroke-dasharray="3 2.97"/></svg>',
+ stack:'<svg viewBox="0 0 24 24"><path d="M12 4l8 4-8 4-8-4zM4 12l8 4 8-4M4 16l8 4 8-4"/></svg>',
+ close:'<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+ play:'<svg viewBox="0 0 24 24"><path d="M7 4l14 8-14 8z"/></svg>',
+ pause:'<svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>'};
+const S=[['99% Invisible','The Power Broker, revisited','42 min','#22211F','99'],['Hard Fork','A week of new models','1 hr 4 min','#C75641','HF'],['Radiolab','The echo in the machine','38 min','#D89A4F','R'],['Song Exploder','Episode 281','24 min','#7066B0','SE'],['Planet Money','The price of a parking space','27 min','#2E94A8','PM'],['Decoder','Who pays for the open web','51 min','#3F8B5C','D']];
+const art=(s,c='')=>`<span class="art ${c}" style="background:${s[3]}">${s[4]}</span>`;
+const row=(s,i,cur)=>`<div class="row ${cur?'cur':''}"><span class="n">${i+1}</span>${art(s)}<span class="t"><b>${s[0]}</b><span>${s[1]} · ${s[2]}</span></span><span class="pb">${cur?I.pause:I.play}</span></div>`;
+const btns=hl=>`<div class="btns"><span class="ib">${I.gear}</span><span class="ib dark">${I.stack}</span><span class="ib ring">${I.plus}</span></div>`;
+const mast=(o={})=>`<div class="mh ${o.tight?'tight':''}">${o.btns?btns():''}<div class="eb">VIBE</div><div class="wm">Deep work</div><div class="sub">6 shows, in order. About 4.1hrs</div><div class="dots"><i></i><i></i><i class="on"></i><i></i><i></i></div><span class="cta">${I.pause.replace('<svg','<svg style="width:1em;height:1em;fill:currentColor"')}Vibing</span></div>`;
+const mini=()=>`<div class="mini">${art(S[0])}<span class="t"><small>99% Invisible</small><b>The Power Broker, revisited</b></span><span class="tp m">${I.pause}</span></div>`;
+const lib=(o={})=>`${mast(o)}<div class="sec">6 SHOWS · YOUR ORDER<i></i></div>${S.slice(0,o.rows||6).map((s,i)=>row(s,i,i==0)).join('')}${o.mini?mini():''}`;
+const trn=()=>`<div class="trn"><span class="tp s">15</span><span class="tp m">${I.pause}</span><span class="tp s">30</span></div>`;
+const scrub=()=>`<div class="scrub"><i></i><span><b>16:04</b><b>-25:56</b></span></div>`;
+const np=(o={})=>`<div class="np ${o.h?'h':''}"><span class="art big" style="background:${S[0][3]};width:calc(${o.art}*var(--p));height:calc(${o.art}*var(--p))">99</span><div class="col"><div class="k">Now playing · 99% Invisible</div><div class="ti">The Power Broker, revisited</div>${scrub()}${trn()}${o.up?`<div class="upn"><div class="k">Up next in Deep work</div><div>${art(S[1])}Hard Fork</div><div>${art(S[2])}Radiolab</div></div>`:''}</div></div>`;
+const detail=()=>`<div class="dt"><div class="hd">${art(S[2])}<div><b>Radiolab</b><span>WNYC Studios · in Deep work, Morning</span></div></div><div class="sec">NEWEST FIRST<i></i></div>${[['The echo in the machine','Nov 14 · 38 min'],['Small potatoes','Nov 7 · 44 min'],['The longest night','Oct 31 · 52 min'],['Signal hill','Oct 24 · 35 min'],['A map of the tide','Oct 17 · 41 min']].map((e,i)=>`<div class="row"><span class="t"><b>${e[0]}</b><span>${e[1]}</span></span><span class="pb">${I.play}</span></div>`).join('')}</div>`;
+const bar=(o={})=>`<div class="bar ${o.empty?'empty':''}">${o.cam?'<span class="cam"></span>':''}<span class="time">11:30</span>${o.close?`<span class="ib hl">${I.close}</span><span class="gap"></span>`:''}${o.empty?'':`<span class="ib">${I.plus}</span><span class="ib">${I.stack}</span><span class="ib">${I.gear}</span>`}</div>`;
+const dev=(w,h,max,inner,cap)=>`<figure><div class="dev" style="--w:${w};--h:${h};--max:${max}px"><div class="scr">${inner}</div></div><figcaption>${cap}</figcaption></figure>`;
+const pane=(l,t,w,h,html,c='')=>`<div class="pane ${c}" style="left:calc(${l}*var(--p));top:calc(${t}*var(--p));width:calc(${w}*var(--p));height:calc(${h}*var(--p))">${html}</div>`;
+
+document.getElementById('m-closed').innerHTML=
+ dev(466,678,290,`<div class="band cut"></div>${pane(0,0,402,678,lib({btns:1,mini:1}))}${bar({cam:1,empty:1})}`,'<span class="tag">Today</span>Buttons in the masthead. The reserved strip on the right (hatched) is empty, and the colour band stops short of it.')+
+ dev(466,678,290,`<div class="band"></div>${pane(0,0,402,678,lib({mini:1}))}${bar({cam:1})}`,'<span class="tag new">Proposed</span><b>Add, Vibes, Settings in the side bar</b> under the camera. Colour band runs edge to edge.')+
+ dev(466,678,290,`${pane(0,0,402,678,lib({}))}<div class="sheet">${pane(0,10,402,650,np({art:236}))}</div>${bar({cam:1,empty:0}).replace(/<span class="ib">.*<\/span>/,'')}`,'<span class="tag new">Proposed</span><b>Now Playing sheet</b> with artwork sized to the space left over, so transport controls are never cut off.');
+
+document.getElementById('m-land').innerHTML=
+ dev(890,626,780,`<div class="band" style="right:calc(445*var(--p))"></div>${pane(0,0,445,626,lib({}))}${pane(445,0,381,626,np({art:190,up:1}),'stage')}<div class="pane stage" style="left:calc(826*var(--p));top:0;width:calc(64*var(--p));height:100%"></div>${bar({})}`,'<span class="tag new">Open flat</span><b>Stage shows Now Playing.</b> The Library half matches the closed layout, and the side bar keeps the same three buttons in the same order.')+
+ dev(890,626,780,`<div class="band" style="right:calc(453*var(--p))"></div>${pane(0,0,437,626,lib({mini:1}))}${pane(453,0,373,626,detail(),'stage')}<div class="pane stage" style="left:calc(826*var(--p));top:0;width:calc(64*var(--p));height:100%"></div><div class="fold" style="left:calc(431*var(--p));top:0;bottom:0;width:calc(28*var(--p))"></div>${bar({close:1})}`,'<span class="tag new">Part-folded, book</span><b>Stage shows a show\'s episodes</b> after tapping Radiolab. Close (outlined) sits at the top of the side bar. Mini-player returns on the Library side.');
+
+document.getElementById('m-port').innerHTML=
+ dev(626,890,400,`<div class="band" style="height:calc(360*var(--p))"></div>${pane(0,0,626,890,lib({btns:1,mini:1}))}`,'<span class="tag new">Open, portrait</span>Same structure as any iPhone. Buttons stay in the masthead because the system uses horizontal bars here.');
+
+document.getElementById('m-lap').innerHTML=
+ dev(626,890,400,`<div class="band" style="height:calc(260*var(--p))"></div>${pane(0,0,626,437,lib({btns:1,tight:1,rows:4}))}${pane(0,453,626,437,np({h:1,art:210}),'stage')}<div class="fold" style="--dir:180deg;top:calc(431*var(--p));left:0;right:0;height:calc(28*var(--p))"></div>`,'<span class="tag new">Part-folded, laptop</span><b>Library above the fold, player deck below.</b> The deck uses a side-by-side Now Playing layout to fit the short pane.');
+</script>
